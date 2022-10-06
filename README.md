@@ -7,7 +7,7 @@ The various benchmark tests can be run through the Phoronix Test Suite (pts). It
 To install pts (in CentOS Stream 8):
 `yum install phoronix-test-suite`
 
-Phoronix should be run in a clean shell, where `dbt-workarea-env` hasn't been run. You can skip to the [Automating benchmark tests](https://github.com/DUNE-DAQ/performancetest/edit/develop/README.md#automating-benchmark-tests) section, which describes how to run all the benchmark tests. Otherwise, the tool and the tests are described in the following sections. To install and run a test:
+Phoronix should be run in a clean shell, where `dbt-workarea-env` hasn't been run. You can skip to the [Automating benchmark tests](https://github.com/DUNE-DAQ/performancetest#automating-benchmark-tests) section, which describes how to run all the benchmark tests. Otherwise, the tool and the tests are described in the following sections. To install and run a test:
 ```
 phoronix-test-suite install <test>
 phoronix-test-suite run <test>
