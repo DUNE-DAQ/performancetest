@@ -7,7 +7,7 @@ The various benchmark tests can be run through the Phoronix Test Suite (pts). It
 To install pts (in CentOS Stream 8):
 `yum install phoronix-test-suite`
 
-To install and run a test:
+Phoronix should be run in a clean shell, where `dbt-workarea-env` hasn't been run. To install and run a test:
 ```
 phoronix-test-suite install <test>
 phoronix-test-suite run <test>
@@ -48,8 +48,15 @@ TODO: rebuild fio with libaio engine
 
 ## DAQ performance tests
 
-To monitor the performance of the server while running DAQ apps, we use PCM https://github.com/intel/pcm. This can then be displayed on a grafana dashboard. This will actively monitor metrics such as memory bandwidth, CPU utilization, energy consumption, cache hit ratio, inter-socket data rates, and others. This can be used to measure KPIs such as readout server memory bandwidth performance as number of DAQ data links is scaled.
+To monitor the performance of the server while running DAQ apps, we use PCM. This can then be displayed on a grafana dashboard. This will actively monitor metrics such as memory bandwidth, CPU utilization, energy consumption, cache hit ratio, inter-socket data rates, and others. This can be used to measure KPIs such as readout server memory bandwidth performance as number of DAQ data links is scaled.
 
-Instructions to run PCM Grafana is given here on Centos 7 https://github.com/intel/pcm/tree/master/scripts/grafana#readme. On Centos 8 the scripts needed to be updated to use podman containers instead of docker containers. 
+First you need to clone PCM here https://github.com/intel/pcm. Then instructions to build it, and scripts to run PCM-Grafana, which have been modified for Centos 8 to use podman containers instead of docker containers, are given here https://github.com/DUNE-DAQ/performancetest/tree/develop/grafana#readme
 
-TODO: upload grafana scripts.
+For an older OS or if you use docker instead of podman, the original scripts and instructions are here https://github.com/intel/pcm/tree/master/scripts/grafana.
+
+To configure the PCM-Grafana dashboard:
+1. Ensure that the data source is configured to prometheus at the correct host address and port (default port is 9090). Note that this is the host address of prometheus and grafana, not PCM.
+2. Go to dashboards and import https://github.com/DUNE-DAQ/performancetest/blob/develop/grafana/PCM_Dashboard-1665067579560.json
+
+
+
