@@ -10,7 +10,7 @@ cpupower idle-info
 
 echo " "
 echo "Set frequency governor to performance (if available)..."
-cpupower frequency-set --governor performance
+cpupower -c all frequency-set --governor performance
 cpupower frequency-info
 
 echo " "
