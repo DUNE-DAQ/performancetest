@@ -109,10 +109,7 @@ lspci -s <hw-address> -vvv | grep NUMA
 htop
 ```
 
-Since cpu pinning configurations are fully dependent on hardware topology, different servers may need different configs. The important thing to look for is how cores/threads are distributed across NUMA nodes. Example configurations can be found here:
-https://github.com/DUNE-DAQ/performancetest/tree/develop/cpupins
-https://github.com/DUNE-DAQ/readoutlibs/blob/develop/config/cpupins
-
+Since cpu pinning configurations are fully dependent on hardware topology, different servers may need different configs. The important thing to look for is how cores/threads are distributed across NUMA nodes. Example configurations can be found [here](https://github.com/DUNE-DAQ/performancetest/tree/develop/cpupins) and [here](https://github.com/DUNE-DAQ/readoutlibs/blob/develop/config/cpupins).
 
 ### Link scaling performance tests
 
@@ -120,7 +117,7 @@ The readout app performance test for a particular system configuration, with sca
 
 ```
 # Run this only once to disable higher level core sleep states
-./scripts/cpu-perf-mode.sh
+sudo ./scripts/cpu-perf-mode.sh
 
 # Run this only once to generate config files for each run at n=1-24 links, giving it the address to host non-readout apps, and the full path to the cpu pin file
 curl -o frames.bin -O https://cernbox.cern.ch/index.php/s/0XzhExSIMQJUsp0/download
