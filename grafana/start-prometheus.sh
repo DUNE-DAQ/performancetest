@@ -25,9 +25,9 @@ curl -o grafana_volume/dashboards/pcm-dashboard.json $1/dashboard/prometheus
 echo Creating prometheus-grafana pod
 podman pod create --name prometheus-grafana -p 9090:9090 -p 3000:3000
 echo Starting prometheus
-podman run --name prometheus -d --pod grafana-prometheus -v $PWD/prometheus.yml:/etc/prometheus/prometheus.yml:Z -v $PWD/prometheus_volume:/prometheus:Z prom/prometheus
+podman run --name prometheus -d --pod prometheus-grafana -v $PWD/prometheus.yml:/etc/prometheus/prometheus.yml -v $PWD/prometheus_volume:/prometheus prom/prometheus
 echo Starting grafana
-podman run -d --name grafana --pod grafana-prometheus -v $PWD/grafana_volume:/var/lib/grafana:Z -v $PWD/provisioning:/etc/grafana/provisioning:Z grafana/grafana
+podman run -d --name grafana --pod prometheus-grafana -v $PWD/grafana_volume:/var/lib/grafana -v $PWD/provisioning:/etc/grafana/provisioning grafana/grafana
 
 echo Start browser at http://localhost:3000/ and login with admin user, password admin
 
