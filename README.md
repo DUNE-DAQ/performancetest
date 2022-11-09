@@ -113,7 +113,7 @@ Since cpu pinning configurations are fully dependent on hardware topology, diffe
 
 ### Link scaling performance tests
 
-The readout app performance test for a particular system configuration, with scaling from 1-24 data links, will be described here. This will produce configurations for 1-24 data links, hosting readout locally and all other apps at a given host. At 12 minutes per run, this full test is expected to take just under 5 hours. Ensure first that PCM monitoring is active, so that results can be exported from grafana. 
+The readout app performance test for a particular system configuration, with scaling from 1-24 data links, will be described here. This will produce configurations for 1-24 data links, hosting readout locally and all other apps at a given host. At 12 minutes per run (10m run, 2m cooldown), this full test is expected to take just under 5 hours. Ensure first that PCM monitoring is active, so that results can be exported from grafana. The link scaling tests were run with dunedaq v3.1.0.
 
 ```
 # Run this only once to disable higher level core sleep states
@@ -127,5 +127,18 @@ curl -o frames.bin -O https://cernbox.cern.ch/index.php/s/0XzhExSIMQJUsp0/downlo
 ./tests/link_scaling_run.sh <run_number>
 ```
 
-Details will follow for changing the configuration between tests.
+### Link scaling SNB recording performance test
+
+This is a performance test for the SNB recording, scaling from 1-24 links. It is configured with software TPG enabled, CPU pinning, non-local hosting for non-readout apps, and raw recording enabled. The recording is run for the first 100s of the 10 minute run per link, and requires ~1TB of space in the recording directory. The results can be exported from the grafana monitoring as usual. And it will again take about 5 hours to complete.
+
+```
+# Run this only once to generate config files for each run at n=1-24 links, giving it the address to host non-readout apps, and the full path to the cpu pin file
+./tests/snb_write_gen.sh <host_address> <pin_file> <output_path>
+
+# Copy the record command into your working directory
+cp tests/record-cmd.json $PWD
+
+# To run the test, give it a run number and ensure all run numbers up to run_number+23 are unused
+./tests/snb_write_run.sh <run_number>
+```
 
