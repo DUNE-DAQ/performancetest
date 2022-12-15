@@ -14,7 +14,7 @@ output_path=$3
 
 for i in {1..24}
 do
-        daqconf_multiru_gen -d frames.bin -o . -n $i --thread-pinning-file $pin_file --host-df $host_address --host-dfo $host_address --host-trigger $host_address --host-hsi $host_address --enable-software-tpg --enable-raw-recording --raw-recording-output-dir $ouput_path snb_write_n${i}
+        daqconf_multiru_gen -d frames.bin -o . -n $i --thread-pinning-file $pin_file --host-df $host_address --host-dfo $host_address --host-trigger $host_address --host-hsi $host_address --enable-raw-recording --raw-recording-output-dir $ouput_path snb_write_no_tpg_n${i}
 
 done
 

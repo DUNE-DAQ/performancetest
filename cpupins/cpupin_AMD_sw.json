@@ -1,0 +1,83 @@
+{
+  "_comment": "For superdune.physics.utoronto.ca sw emulation",
+  
+  "daq_application": {
+
+    "--name ruemu0": {
+      "parent": "0-63,128-191",
+        "threads": {
+            "fakeprod-0": [0],
+            "consumer-0": [128],
+
+	    "fakeprod-1": [1],
+            "consumer-1": [129],
+
+	    "fakeprod-2": [2],
+            "consumer-2": [130],
+
+	    "fakeprod-3": [3],
+            "consumer-3": [131],
+
+	    "fakeprod-4": [4],
+            "consumer-4": [132],
+
+	    "fakeprod-5": [5],
+            "consumer-5": [133],
+
+	    "fakeprod-6": [6],
+            "consumer-6": [134],
+
+	    "fakeprod-7": [7],
+            "consumer-7": [135],
+
+	    "fakeprod-8": [8],
+            "consumer-8": [136],
+
+            "fakeprod-9": [9],
+            "consumer-9": [137],
+
+            "fakeprod-10": [10],
+            "consumer-10": [138],
+
+            "fakeprod-11": [11],
+            "consumer-11": [139],
+
+            "fakeprod-12": [12],
+            "consumer-12": [140],
+
+            "fakeprod-13": [13],
+            "consumer-13": [141],
+
+            "fakeprod-14": [14],
+            "consumer-14": [142],
+
+            "fakeprod-15": [15],
+            "consumer-15": [143],
+
+	    "fakeprod-16": [16],
+            "consumer-16": [144],
+
+            "fakeprod-17": [17],
+            "consumer-17": [145],
+
+            "fakeprod-18": [18],
+            "consumer-18": [146],
+
+            "fakeprod-19": [19],
+            "consumer-19": [147],
+
+            "fakeprod-20": [20],
+            "consumer-20": [148],
+
+            "fakeprod-21": [21],
+            "consumer-21": [149],
+
+            "fakeprod-22": [22],
+            "consumer-22": [150],
+
+            "fakeprod-23": [23],
+            "consumer-23": [151]
+      }
+    }
+  }
+}
