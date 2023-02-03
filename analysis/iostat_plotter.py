@@ -1,5 +1,5 @@
 # input directory to iostat files, output plot of disk throughput
-# Notes: we assume sampling rate of 1s for 120s, and data is in MB/s. Consider moving to JSON for clarity
+# Notes: we assume sampling rate of 1s for 120s, and data is in MB/s
 
 import glob
 import sys
@@ -7,7 +7,6 @@ import re
 import matplotlib.pyplot as plt
 import numpy as np
 
-filename = '/mnt/dunedaq/dunedaq-v3.1.0/readout_test/snb_write_superdune/'
 n=24
 
 def file_parser(filename):
@@ -33,7 +32,7 @@ def file_parser(filename):
 
     return np.array(disk_throughput)
 
-def dir_parser(directoryname):
+def iostat_plotter(directoryname):
     colours = plt.cm.jet(np.linspace(0,1,n))
     for i in range(1,n+1):
         filename = 'iostat_n{}.txt'.format(i)
@@ -56,7 +55,10 @@ def dir_parser(directoryname):
 def main():
     args=sys.argv
 
-    dir_parser(filename)
+    if len(args) != 2:
+        print("Usage: {} test_directory".format(args[0]))
+    elif len(args) == 5:
+        iostat_plotter(args[1])
 
 if __name__ == "__main__":
     main()
