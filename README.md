@@ -70,7 +70,7 @@ Then run the test suite in batch mode like this `phoronix-test-suite batch-bench
 
 ### PCM Grafana
 
-To monitor the performance of the server while running DAQ apps, we use PCM. This can then be displayed on a grafana dashboard. This will actively monitor metrics such as memory bandwidth, CPU utilization, energy consumption, cache hit ratio, inter-socket data rates, and others. This can be used to measure KPIs such as readout server memory bandwidth performance as number of DAQ data links is scaled.
+To monitor the performance of an Intel CPU server while running DAQ apps, we use PCM (For AMD machines, see next section). This can then be displayed on a grafana dashboard. This will actively monitor metrics such as memory bandwidth, CPU utilization, energy consumption, cache hit ratio, inter-socket data rates, and others. This can be used to measure KPIs such as readout server memory bandwidth performance as number of DAQ data links is scaled.
 
 First you need to clone PCM here https://github.com/intel/pcm. Then instructions to build it, and scripts to run PCM-Grafana, which have been modified for Centos 8 to use podman containers instead of docker containers, are given here https://github.com/DUNE-DAQ/performancetest/tree/develop/grafana#readme
 
@@ -79,6 +79,28 @@ For an older OS or if you use docker instead of podman, the original scripts and
 To configure the PCM-Grafana dashboard:
 1. Ensure that the data source is configured to prometheus at the correct host address and port (default port is 9090). Note that this is the host address of prometheus and grafana, not PCM.
 2. Go to dashboards and import https://github.com/DUNE-DAQ/performancetest/blob/develop/grafana/PCM_Dashboard-1665067579560.json
+
+### uProf Grafana
+
+To monitor the performance of an AMD CPU server while running DAQ apps, we use uProf. Since a grafana integration is not yet supported by AMD, the process is less smooth than for the Intel case. Nonetheless, installing and running the tool, as well as monitoring with grafana, will all be described in this section.
+
+The uProf tool rpm can be downloaded from here https://developer.amd.com/amd-uprof/#download
+
+And then installed like this: `sudo yum install amduprof-x.y-z.x86_64.rpm`
+
+The uProfPcm tool is used to monitor most cpu metrics (eg. memory bandwidth, cpu utilization, cache hits, ...), however to monitor power consumption we need to add the uProfCLI timechart tool. Some other disadvantages are uProf requires a run duration and the output needs to be reformatted so grafana can parse it, meaning the process requires more attention and doesn't support live monitoring. 
+
+Monitoring a link scaling test with this tool is done as follows (after running the script to generate the configurations described [below](https://github.com/DUNE-DAQ/performancetest#link-scaling-performance-tests)):
+
+```
+sudo ./scripts/start_uprof.sh <output_dir> ; ./tests/link_scaling_run.sh <run_number>
+
+# Once test is complete, run this script to reformat the uprof output
+# Input uprof files (check output_dir) and reformatted file names
+python3 grafana/uprof_csv_formatter.py <pcm_file> <pcm_file_reformatted> <timechart_file> <timechart_file_reformatted>
+```
+
+Then configure grafana to plot the metrics. The same grafana instance can be used as for the Intel case. In the grafana browser, go to Configuration->Plugins and install the CSV plugin. Configure two CSV datasources in local mode, one for the reformatted uProfPcm file, and one for the timechart. For local access, the data files should be saved to either `/var/lib/grafana/csv` or the volume mount `grafana/grafana_volume/csv`. Then upload the [uProfPcm dashboard](https://github.com/DUNE-DAQ/performancetest/blob/develop/grafana/uProf_PCM_Dashboard.json). 
 
 ### CPU pinning
 
@@ -141,4 +163,5 @@ cp tests/record-cmd.json $PWD
 # To run the test, give it a run number and ensure all run numbers up to run_number+23 are unused
 ./tests/snb_write_run.sh <run_number>
 ```
+
 

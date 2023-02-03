@@ -27,7 +27,7 @@ podman pod create --name prometheus-grafana -p 9090:9090 -p 3000:3000
 echo Starting prometheus
 podman run --name prometheus -d --pod prometheus-grafana -v $PWD/prometheus.yml:/etc/prometheus/prometheus.yml -v $PWD/prometheus_volume:/prometheus prom/prometheus
 echo Starting grafana
-podman run -d --name grafana --pod prometheus-grafana -v $PWD/grafana_volume:/var/lib/grafana -v $PWD/provisioning:/etc/grafana/provisioning grafana/grafana
+podman run -d --name grafana --pod prometheus-grafana -v $PWD/grafana_volume:/var/lib/grafana -v $PWD/provisioning:/etc/grafana/provisioning --env "GF_PLUGIN_ALLOW_LOCAL_MODE=true" grafana/grafana
 
 echo Start browser at http://localhost:3000/ and login with admin user, password admin
 
