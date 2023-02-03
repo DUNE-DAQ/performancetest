@@ -10,9 +10,18 @@ run_num_init=$1
 
 for i in {1..24}
 do
+	# disk throughput
+        iostat -m -t 1 120 > iostat_n${i}.txt &
+
 	echo "Scaling to ${i} links"
 	run_num=$(($run_num_init + ${i} - 1))
 	nanorc daq_fake_cpupin_n${i} centos-test boot conf start_run ${run_num} wait 600 stop_run shutdown
+	
+	# move log files
+	mkdir RunConf_${run_num}/logs
+        mv log_*.txt RunConf_${run_num}/logs
+        grep -R "ERROR" RunConf_${run_num}/logs >> error_summary.txt
+
 	echo "wait for 120s for resources to return to baseline"
 	sleep 120
 

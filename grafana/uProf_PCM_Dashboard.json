@@ -1,43 +1,4 @@
 {
-  "__inputs": [
-    {
-      "name": "DS_CSV",
-      "label": "CSV",
-      "description": "",
-      "type": "datasource",
-      "pluginId": "marcusolsson-csv-datasource",
-      "pluginName": "CSV"
-    },
-    {
-      "name": "DS_CSV-TIMECHART",
-      "label": "CSV-timechart",
-      "description": "",
-      "type": "datasource",
-      "pluginId": "marcusolsson-csv-datasource",
-      "pluginName": "CSV"
-    }
-  ],
-  "__elements": {},
-  "__requires": [
-    {
-      "type": "grafana",
-      "id": "grafana",
-      "name": "Grafana",
-      "version": "9.0.6"
-    },
-    {
-      "type": "datasource",
-      "id": "marcusolsson-csv-datasource",
-      "name": "CSV",
-      "version": "0.6.3"
-    },
-    {
-      "type": "panel",
-      "id": "timeseries",
-      "name": "Time series",
-      "version": ""
-    }
-  ],
   "annotations": {
     "list": [
       {
@@ -63,14 +24,14 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": null,
+  "id": 1,
   "links": [],
   "liveNow": false,
   "panels": [
     {
       "datasource": {
         "type": "marcusolsson-csv-datasource",
-        "uid": "${DS_CSV}"
+        "uid": "DTeo7lKVk"
       },
       "fieldConfig": {
         "defaults": {
@@ -93,7 +54,8 @@
             "lineWidth": 1,
             "pointSize": 1,
             "scaleDistribution": {
-              "type": "linear"
+              "log": 10,
+              "type": "log"
             },
             "showPoints": "auto",
             "spanNulls": false,
@@ -146,7 +108,7 @@
         {
           "datasource": {
             "type": "marcusolsson-csv-datasource",
-            "uid": "${DS_CSV}"
+            "uid": "DTeo7lKVk"
           },
           "decimalSeparator": ".",
           "delimiter": ",",
@@ -186,7 +148,7 @@
     {
       "datasource": {
         "type": "marcusolsson-csv-datasource",
-        "uid": "${DS_CSV}"
+        "uid": "DTeo7lKVk"
       },
       "fieldConfig": {
         "defaults": {
@@ -209,7 +171,117 @@
             "lineWidth": 1,
             "pointSize": 1,
             "scaleDistribution": {
-              "type": "linear"
+              "log": 10,
+              "type": "log"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "GBs"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 0
+      },
+      "id": 7,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "9.0.6",
+      "targets": [
+        {
+          "datasource": {
+            "type": "marcusolsson-csv-datasource",
+            "uid": "DTeo7lKVk"
+          },
+          "decimalSeparator": ".",
+          "delimiter": ",",
+          "header": true,
+          "hide": false,
+          "ignoreUnknown": false,
+          "refId": "A",
+          "schema": [
+            {
+              "name": "Timestamp",
+              "type": "time"
+            },
+            {
+              "name": "Approximate xGMI outbound data bytes (GB/s) PKG0",
+              "type": "number"
+            },
+            {
+              "name": "Approximate xGMI outbound data bytes (GB/s) PKG1",
+              "type": "number"
+            }
+          ],
+          "skipRows": 0
+        }
+      ],
+      "title": "Interconnect Bandwidth",
+      "transformations": [],
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "marcusolsson-csv-datasource",
+        "uid": "DTeo7lKVk"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 1,
+            "scaleDistribution": {
+              "log": 10,
+              "type": "log"
             },
             "showPoints": "auto",
             "spanNulls": false,
@@ -242,8 +314,8 @@
       "gridPos": {
         "h": 8,
         "w": 12,
-        "x": 12,
-        "y": 0
+        "x": 0,
+        "y": 8
       },
       "id": 1,
       "options": {
@@ -261,7 +333,7 @@
         {
           "datasource": {
             "type": "marcusolsson-csv-datasource",
-            "uid": "${DS_CSV}"
+            "uid": "DTeo7lKVk"
           },
           "decimalSeparator": ".",
           "delimiter": ",",
@@ -292,7 +364,7 @@
     {
       "datasource": {
         "type": "marcusolsson-csv-datasource",
-        "uid": "${DS_CSV-TIMECHART}"
+        "uid": "Ctv9_FcVk"
       },
       "fieldConfig": {
         "defaults": {
@@ -348,7 +420,7 @@
       "gridPos": {
         "h": 8,
         "w": 12,
-        "x": 0,
+        "x": 12,
         "y": 8
       },
       "id": 6,
@@ -386,11 +458,7 @@
               "type": "number"
             }
           ],
-          "skipRows": 0,
-          "datasource": {
-            "type": "marcusolsson-csv-datasource",
-            "uid": "${DS_CSV-TIMECHART}"
-          }
+          "skipRows": 0
         }
       ],
       "title": "CPU Power Consumption",
@@ -399,7 +467,7 @@
     {
       "datasource": {
         "type": "marcusolsson-csv-datasource",
-        "uid": "${DS_CSV}"
+        "uid": "DTeo7lKVk"
       },
       "fieldConfig": {
         "defaults": {
@@ -455,8 +523,8 @@
       "gridPos": {
         "h": 8,
         "w": 12,
-        "x": 12,
-        "y": 8
+        "x": 0,
+        "y": 16
       },
       "id": 5,
       "options": {
@@ -475,7 +543,7 @@
         {
           "datasource": {
             "type": "marcusolsson-csv-datasource",
-            "uid": "${DS_CSV}"
+            "uid": "DTeo7lKVk"
           },
           "decimalSeparator": ".",
           "delimiter": ",",
@@ -507,7 +575,7 @@
     {
       "datasource": {
         "type": "marcusolsson-csv-datasource",
-        "uid": "${DS_CSV}"
+        "uid": "DTeo7lKVk"
       },
       "fieldConfig": {
         "defaults": {
@@ -563,7 +631,7 @@
       "gridPos": {
         "h": 8,
         "w": 12,
-        "x": 0,
+        "x": 12,
         "y": 16
       },
       "id": 4,
@@ -583,7 +651,7 @@
         {
           "datasource": {
             "type": "marcusolsson-csv-datasource",
-            "uid": "${DS_CSV}"
+            "uid": "DTeo7lKVk"
           },
           "decimalSeparator": ".",
           "delimiter": ",",
@@ -639,7 +707,7 @@
     {
       "datasource": {
         "type": "marcusolsson-csv-datasource",
-        "uid": "${DS_CSV}"
+        "uid": "DTeo7lKVk"
       },
       "fieldConfig": {
         "defaults": {
@@ -695,7 +763,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 16
+        "y": 24
       },
       "id": 3,
       "options": {
@@ -714,7 +782,7 @@
         {
           "datasource": {
             "type": "marcusolsson-csv-datasource",
-            "uid": "${DS_CSV}"
+            "uid": "DTeo7lKVk"
           },
           "decimalSeparator": ".",
           "delimiter": ",",
@@ -751,13 +819,13 @@
     "list": []
   },
   "time": {
-    "from": "2022-12-14T18:57:53.000Z",
-    "to": "2022-12-14T23:58:00.000Z"
+    "from": "2023-02-01T12:07:54.000Z",
+    "to": "2023-02-01T17:07:55.000Z"
   },
   "timepicker": {},
   "timezone": "",
   "title": "uProf PCM",
   "uid": "k4uNBrK4z",
-  "version": 9,
+  "version": 11,
   "weekStart": ""
 }

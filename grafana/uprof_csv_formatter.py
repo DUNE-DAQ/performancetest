@@ -86,7 +86,7 @@ def uprof_timechart_formatter(file, newfile):
             month = month2num(full_date[0:3])
             date = int(full_date[4:6])
             year = int(full_date[7:11])
-            full_date_new = "{year}-{month:02d}-{date}".format(year=year, month=month, date=date)
+            full_date_new = "{year}-{month:02d}-{date:02d}".format(year=year, month=month, date=date)
 
         # Reformat timestamps
         if not header:

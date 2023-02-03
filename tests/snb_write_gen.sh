@@ -1,16 +1,22 @@
 #!/bin/bash
 
-if [ $# -ne 3 ]; then
-  echo "Usage: ./link_scaling_gen.sh <host_address> <pin_file> <output_path>"
+if [ $# -ne 4 ]; then
+  echo "Usage: ./link_scaling_gen.sh <test_name> <host_address> <pin_file> <output_path>"
   echo "host_address is the address to host all processes except readout (run locally)"
   echo "pin_file is the full path to the cpu pinning config file"
   echo "output path for raw recording"
   exit 2
 fi
 
-host_address=$1
-pin_file=$2
-output_path=$3
+test_name=$1
+host_address=$2
+pin_file=$3
+output_path=$4
+
+mkdir $test_name
+cp tests/record-cmd.json $test_name/
+cd $test_name
+curl -o frames.bin -O https://cernbox.cern.ch/index.php/s/0XzhExSIMQJUsp0/download
 
 for i in {1..24}
 do
