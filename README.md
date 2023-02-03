@@ -142,8 +142,7 @@ The readout app performance test for a particular system configuration, with sca
 sudo ./scripts/cpu-perf-mode.sh
 
 # Run this only once to generate config files for each run at n=1-24 links, giving it the address to host non-readout apps, and the full path to the cpu pin file
-curl -o frames.bin -O https://cernbox.cern.ch/index.php/s/0XzhExSIMQJUsp0/download
-./tests/link_scaling_gen.sh <host_address> <pin_file>
+./tests/link_scaling_gen.sh <test_name> <host_address> <pin_file>
 
 # To run the test, give it a run number and ensure all run numbers up to run_number+23 are unused
 ./tests/link_scaling_run.sh <run_number>
@@ -155,7 +154,7 @@ This is a performance test for the SNB recording, scaling from 1-24 links. It is
 
 ```
 # Run this only once to generate config files for each run at n=1-24 links, giving it the address to host non-readout apps, and the full path to the cpu pin file
-./tests/snb_write_gen.sh <host_address> <pin_file> <output_path>
+./tests/snb_write_gen.sh <test_name> <host_address> <pin_file> <output_path>
 
 # Copy the record command into your working directory
 cp tests/record-cmd.json $PWD
@@ -164,4 +163,7 @@ cp tests/record-cmd.json $PWD
 ./tests/snb_write_run.sh <run_number>
 ```
 
+### RAID throughput
+
+Recording to RAID disks should have a throughput of about 880 MB/s per data link. The throughput can be plotted, scaled down by the number of data links, for each run in the test. After running the performance test with recording to disk, view the RAID throughput with: `./analysis/iostat_plotter.py <test_directory>`
 
