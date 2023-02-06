@@ -68,6 +68,15 @@ Then run the test suite in batch mode like this `phoronix-test-suite batch-bench
 
 ## DAQ performance tests
 
+The performance test suite has the following dependencies to install:
+
+```
+yum install numactl
+yum install hwloc-gui
+yum install htop
+yum install sysstat
+```
+
 ### PCM Grafana
 
 To monitor the performance of an Intel CPU server while running DAQ apps, we use PCM (For AMD machines, see next section). This can then be displayed on a grafana dashboard. This will actively monitor metrics such as memory bandwidth, CPU utilization, energy consumption, cache hit ratio, inter-socket data rates, and others. This can be used to measure KPIs such as readout server memory bandwidth performance as number of DAQ data links is scaled.
@@ -107,10 +116,6 @@ Then configure grafana to plot the metrics. The same grafana instance can be use
 In order to optimize the server for a high performance use case such as this, we must use CPU pinning, which binds processes to a CPU thread to prevent the latency involved in moving the process to a different thread and re-caching the data. First there are some tools to explore the hardware topology to determine the appropriate pinning configuration. 
 
 ```
-yum install numactl
-yum install hwloc-gui
-yum install htop
-
 # For CPU pinning to work, the NUMA daemon needs to be disabled. Check its status:
 service numad status
 # And run this if it's enabled
