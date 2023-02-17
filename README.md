@@ -95,7 +95,11 @@ To monitor the performance of an AMD CPU server while running DAQ apps, we use u
 
 The uProf tool rpm can be downloaded from here https://developer.amd.com/amd-uprof/#download
 
-And then installed like this: `sudo yum install amduprof-x.y-z.x86_64.rpm`
+And then with root privileges, uProf is installed and NMI watchdog is disabled (required for uProf to run) as follows: 
+```
+yum install amduprof-x.y-z.x86_64.rpm
+echo  > 0 /proc/sys/kernel/nmi_watchdog 
+```
 
 The uProfPcm tool is used to monitor most cpu metrics (eg. memory bandwidth, cpu utilization, cache hits, ...), however to monitor power consumption we need to add the uProfCLI timechart tool. Some other disadvantages are uProf requires a run duration and the output needs to be reformatted so grafana can parse it, meaning the process requires more attention and doesn't support live monitoring. 
 
