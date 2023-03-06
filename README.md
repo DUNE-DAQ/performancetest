@@ -75,6 +75,9 @@ yum install numactl
 yum install hwloc-gui
 yum install htop
 yum install sysstat
+
+git clone https://github.com/DUNE-DAQ/nanorc.git -b plasorak/batch-expert-command
+pip install nanorc
 ```
 
 ### PCM Grafana
