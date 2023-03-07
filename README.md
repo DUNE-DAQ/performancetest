@@ -59,9 +59,9 @@ Optionally you can run in batch mode, which also lets you configure pre and post
 * Save test results when in batch mode (Y/n): y
 * Open the web browser automatically when in batch mode (y/N): n
 * Auto upload the results to OpenBenchmarking.org (Y/n): y
-* Prompt for test identifier (Y/n): y
-* Prompt for test description (Y/n): y
-* Prompt for saved results file-name (Y/n): y
+* Prompt for test identifier (Y/n): n
+* Prompt for test description (Y/n): n
+* Prompt for saved results file-name (Y/n): n
 * Run all test options (Y/n): y
 
 Then run the test suite in batch mode like this `phoronix-test-suite batch-benchmark <suite-name>`. You will only be prompted for what you selected, and results will be uploaded to OpenBenchmarking at the link given.
