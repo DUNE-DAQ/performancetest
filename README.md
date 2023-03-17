@@ -109,7 +109,7 @@ The uProfPcm tool is used to monitor most cpu metrics (eg. memory bandwidth, cpu
 Monitoring a link scaling test with this tool is done as follows (after running the script to generate the configurations described [below](https://github.com/DUNE-DAQ/performancetest#link-scaling-performance-tests)):
 
 ```
-sudo ./scripts/start_uprof.sh <output_dir> ; ./tests/link_scaling_run.sh <run_number>
+sudo ./scripts/start_uprof.sh <output_dir>
 
 # Once test is complete, run this script to reformat the uprof output
 # Input uprof files (check output_dir) and reformatted file names
