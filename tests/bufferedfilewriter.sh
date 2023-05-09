@@ -1,9 +1,9 @@
 #!/bin/bash
 
 if [ $# -ne 1 ]; then
-  echo "Usage: ./test_bufferedfilewriter.sh <filename>"
-  echo "Give path to file to write to, to benchmark write performance of RAID disks."
-  exit 2
+    echo "Usage: ./test_bufferedfilewriter.sh <filename>"
+    echo "Give path to file to write to, to benchmark write performance of RAID disks."
+    exit 2
 fi
 
 filename=$1

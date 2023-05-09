@@ -1,0 +1,83 @@
+{
+  "_comment": "For dune.physics.utoronto.ca sw emulation, pinning producer to NUMA node 0 and consumer to NUMA node 1",
+  
+  "daq_application": {
+
+      "--name ruemu0": {
+	"parent":"0-47",
+        "threads": {
+            "fakeprod-0": [0],
+            "consumer-0": [12],
+
+            "fakeprod-1": [1],
+            "consumer-1": [13],
+
+            "fakeprod-2": [2],
+            "consumer-2": [14],
+
+            "fakeprod-3": [3],
+            "consumer-3": [15],
+
+            "fakeprod-4": [4],
+            "consumer-4": [16],
+
+            "fakeprod-5": [5],
+            "consumer-5": [17],
+
+            "fakeprod-6": [6],
+            "consumer-6": [18],
+
+            "fakeprod-7": [7],
+            "consumer-7": [19],
+
+            "fakeprod-8": [8],
+            "consumer-8": [20],
+
+            "fakeprod-9": [9],
+            "consumer-9": [21],
+
+            "fakeprod-10": [10],
+            "consumer-10": [22],
+
+            "fakeprod-11": [11],
+            "consumer-11": [23],
+
+            "fakeprod-12": [24],
+            "consumer-12": [36],
+
+            "fakeprod-13": [25],
+            "consumer-13": [37],
+
+            "fakeprod-14": [26],
+            "consumer-14": [38],
+
+            "fakeprod-15": [27],
+            "consumer-15": [39],
+
+	    "fakeprod-16": [28],
+            "consumer-16": [40],
+
+            "fakeprod-17": [29],
+            "consumer-17": [41],
+
+            "fakeprod-18": [30],
+            "consumer-18": [42],
+
+            "fakeprod-19": [31],
+            "consumer-19": [43],
+
+            "fakeprod-20": [32],
+            "consumer-20": [44],
+
+            "fakeprod-21": [33],
+            "consumer-21": [45],
+
+            "fakeprod-22": [34],
+            "consumer-22": [46],
+
+            "fakeprod-23": [35],
+            "consumer-23": [47]
+      }
+    }
+  }
+}

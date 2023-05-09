@@ -1,0 +1,394 @@
+{
+  "_comment": "For dune.physics.utoronto.ca sw emulation, pinning producer to NUMA node 0 and consumer to NUMA node 1",
+  
+  "daq_application": {
+      "--name ruemu0": {
+	    "parent":"0-63,128-191,64-127,192-255",
+        "threads": {
+            "fakeprod-0": [0],
+            "consumer-0": [64],
+
+            "fakeprod-1": [1],
+            "consumer-1": [65],
+
+            "fakeprod-2": [3],
+            "consumer-2": [66],
+
+            "fakeprod-3": [3],
+            "consumer-3": [67],
+
+            "fakeprod-4": [4],
+            "consumer-4": [68],
+
+            "fakeprod-5": [5],
+            "consumer-5": [69],
+
+            "fakeprod-6": [6],
+            "consumer-6": [70],
+
+            "fakeprod-7": [7],
+            "consumer-7": [71],
+
+            "fakeprod-8": [8],
+            "consumer-8": [72],
+
+            "fakeprod-9": [9],
+            "consumer-9": [73],
+
+            "fakeprod-10": [10],
+            "consumer-10": [74],
+
+            "fakeprod-11": [11],
+            "consumer-11": [75],
+
+            "fakeprod-12": [12],
+            "consumer-12": [76],
+
+            "fakeprod-13": [13],
+            "consumer-13": [77],
+
+            "fakeprod-14": [14],
+            "consumer-14": [78],
+
+            "fakeprod-15": [15],
+            "consumer-15": [79],
+
+	    "fakeprod-16": [16],
+            "consumer-16": [80],
+
+            "fakeprod-17": [17],
+            "consumer-17": [81],
+
+            "fakeprod-18": [18],
+            "consumer-18": [82],
+
+            "fakeprod-19": [19],
+            "consumer-19": [83],
+
+            "fakeprod-20": [20],
+            "consumer-20": [84],
+
+            "fakeprod-21": [21],
+            "consumer-21": [85],
+
+            "fakeprod-22": [22],
+            "consumer-22": [86],
+
+            "fakeprod-23": [23],
+            "consumer-23": [87],
+
+            "fakeprod-24": [24],
+            "consumer-24": [88],
+
+            "fakeprod-25": [25],
+            "consumer-25": [89],
+
+            "fakeprod-26": [26],
+            "consumer-26": [90],
+
+            "fakeprod-27": [27],
+            "consumer-27": [91],
+
+            "fakeprod-28": [28],
+            "consumer-28": [92],
+
+            "fakeprod-29": [29],
+            "consumer-29": [93],
+
+            "fakeprod-30": [30],
+            "consumer-30": [94],
+
+            "fakeprod-31": [31],
+            "consumer-31": [95],
+
+            "fakeprod-32": [32],
+            "consumer-32": [96],
+
+            "fakeprod-33": [33],
+            "consumer-33": [97],
+
+            "fakeprod-34": [34],
+            "consumer-34": [98],
+
+            "fakeprod-35": [35],
+            "consumer-35": [99],
+
+            "fakeprod-36": [36],
+            "consumer-36": [100],
+
+            "fakeprod-37": [37],
+            "consumer-37": [101],
+
+            "fakeprod-38": [38],
+            "consumer-38": [102],
+
+            "fakeprod-39": [39],
+            "consumer-39": [103],
+
+            "fakeprod-40": [40],
+            "consumer-40": [104],
+
+            "fakeprod-41": [41],
+            "consumer-41": [105],
+
+            "fakeprod-42": [42],
+            "consumer-42": [106],
+
+            "fakeprod-43": [43],
+            "consumer-43": [107],
+
+            "fakeprod-44": [44],
+            "consumer-44": [108],
+
+            "fakeprod-45": [45],
+            "consumer-45": [109],
+
+            "fakeprod-46": [46],
+            "consumer-46": [110],
+
+            "fakeprod-47": [47],
+            "consumer-47": [111],
+
+            "fakeprod-48": [48],
+            "consumer-48": [112],
+
+            "fakeprod-49": [49],
+            "consumer-49": [113],
+
+            "fakeprod-50": [50],
+            "consumer-50": [114],
+
+            "fakeprod-51": [51],
+            "consumer-51": [115],
+
+            "fakeprod-52": [52],
+            "consumer-52": [116],
+
+            "fakeprod-53": [53],
+            "consumer-53": [117],
+
+            "fakeprod-54": [54],
+            "consumer-54": [118],
+
+            "fakeprod-55": [55],
+            "consumer-55": [119],
+
+            "fakeprod-56": [56],
+            "consumer-56": [120],
+
+            "fakeprod-57": [57],
+            "consumer-57": [121],
+
+            "fakeprod-58": [58],
+            "consumer-58": [122],
+
+            "fakeprod-59": [59],
+            "consumer-59": [123],
+
+            "fakeprod-60": [60],
+            "consumer-60": [124],
+
+            "fakeprod-61": [61],
+            "consumer-61": [125],
+
+            "fakeprod-62": [62],
+            "consumer-62": [126],
+
+            "fakeprod-63": [63],
+            "consumer-63": [127],
+
+            "fakeprod-64": [128],
+            "consumer-64": [192],
+
+            "fakeprod-65": [129],
+            "consumer-65": [193],
+
+            "fakeprod-66": [130],
+            "consumer-66": [194],
+
+            "fakeprod-67": [131],
+            "consumer-67": [195],
+
+            "fakeprod-68": [132],
+            "consumer-68": [196],
+
+            "fakeprod-69": [133],
+            "consumer-69": [197],
+
+            "fakeprod-70": [134],
+            "consumer-70": [198],
+
+            "fakeprod-71": [135],
+            "consumer-71": [199],
+
+            "fakeprod-72": [136],
+            "consumer-72": [200],
+
+            "fakeprod-73": [137],
+            "consumer-73": [201],
+
+            "fakeprod-74": [138],
+            "consumer-74": [202],
+
+            "fakeprod-75": [139],
+            "consumer-75": [203],
+
+            "fakeprod-76": [140],
+            "consumer-76": [204],
+
+            "fakeprod-77": [141],
+            "consumer-77": [205],
+
+            "fakeprod-78": [142],
+            "consumer-78": [206],
+
+            "fakeprod-79": [143],
+            "consumer-79": [207],
+
+            "fakeprod-80": [144],
+            "consumer-80": [208],
+
+            "fakeprod-81": [145],
+            "consumer-81": [209],
+
+            "fakeprod-82": [146],
+            "consumer-82": [210],
+
+            "fakeprod-83": [147],
+            "consumer-83": [211],
+
+            "fakeprod-84": [148],
+            "consumer-84": [212],
+
+            "fakeprod-85": [149],
+            "consumer-85": [213],
+
+            "fakeprod-86": [150],
+            "consumer-86": [214],
+
+            "fakeprod-87": [151],
+            "consumer-87": [215],
+
+            "fakeprod-88": [152],
+            "consumer-88": [216],
+
+            "fakeprod-89": [153],
+            "consumer-89": [217],
+
+            "fakeprod-90": [154],
+            "consumer-90": [218],
+
+            "fakeprod-91": [155],
+            "consumer-91": [219],
+
+            "fakeprod-92": [156],
+            "consumer-92": [220],
+
+            "fakeprod-93": [157],
+            "consumer-93": [221],
+
+            "fakeprod-94": [158],
+            "consumer-94": [222],
+
+            "fakeprod-95": [159],
+            "consumer-95": [223],
+
+            "fakeprod-96": [160],
+            "consumer-96": [224],
+            
+            "fakeprod-97": [161],
+            "consumer-97": [225],
+
+            "fakeprod-98": [162],
+            "consumer-98": [226],
+
+            "fakeprod-99": [163],
+            "consumer-99": [227],
+
+            "fakeprod-100": [164],
+            "consumer-100": [228],
+
+            "fakeprod-101": [165],
+            "consumer-101": [229],
+
+            "fakeprod-102": [166],
+            "consumer-102": [230],
+
+            "fakeprod-103": [167],
+            "consumer-103": [231],
+
+            "fakeprod-104": [168],
+            "consumer-104": [232],
+
+            "fakeprod-105": [169],
+            "consumer-105": [233],
+
+            "fakeprod-106": [170],
+            "consumer-106": [234],
+
+            "fakeprod-107": [171],
+            "consumer-107": [235],
+
+            "fakeprod-108": [172],
+            "consumer-108": [236],
+
+            "fakeprod-109": [173],
+            "consumer-109": [237],
+
+            "fakeprod-110": [174],
+            "consumer-110": [238],
+
+            "fakeprod-111": [175],
+            "consumer-111": [239],
+
+            "fakeprod-112": [176],
+            "consumer-112": [240],
+
+            "fakeprod-113": [177],
+            "consumer-113": [241],
+
+            "fakeprod-114": [178],
+            "consumer-114": [242],
+
+            "fakeprod-115": [179],
+            "consumer-115": [243],
+
+            "fakeprod-116": [180],
+            "consumer-116": [244],
+
+            "fakeprod-117": [181],
+            "consumer-117": [245],
+
+            "fakeprod-118": [182],
+            "consumer-118": [246],
+
+            "fakeprod-119": [183],
+            "consumer-119": [247],
+
+            "fakeprod-120": [184],
+            "consumer-120": [248],
+
+            "fakeprod-121": [185],
+            "consumer-121": [249],
+
+            "fakeprod-122": [186],
+            "consumer-122": [250],
+
+            "fakeprod-123": [187],
+            "consumer-123": [251],
+
+            "fakeprod-124": [188],
+            "consumer-124": [252],
+
+            "fakeprod-125": [189],
+            "consumer-125": [253],
+
+            "fakeprod-126": [190],
+            "consumer-126": [254],
+
+            "fakeprod-127": [191],
+            "consumer-127": [255]
+      }
+    }
+  }
+}
