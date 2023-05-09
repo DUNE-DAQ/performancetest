@@ -253,7 +253,7 @@ def main():
             try:
                 plot_vars_uprof(file=file_list, input_dir=output_dir, variable_x=variable_x, variable_y=y_list, ylabel=ylabel_list, figure_name=figure_name, figure_dir=figure_dir)
             except:
-                file_list_problems.append(file_list)
+                file_list_problems.append(y_list)
                 
     print('Problem in file ', file_list_problems)
 
