@@ -183,6 +183,7 @@ def plot_vars_uprof(file, input_dir, variable_x, variable_y, ylabel, figure_name
     Y_tmp=[]
     color_tmp=[]
     label_tmp=[]
+    k = 1
     
     for i, columns_i in enumerate(columns_list):
         if columns_i in ['NewTime', variable_x]:
@@ -190,8 +191,9 @@ def plot_vars_uprof(file, input_dir, variable_x, variable_y, ylabel, figure_name
         else: 
             Y=data_frame[columns_i]
             if columns_i in variable_y:
+                k += 1
                 Y_tmp.append(Y)
-                color_tmp.append(color_list[i])
+                color_tmp.append(color_list[k])
                 label_tmp.append(columns_i)
             else:
                 pass
@@ -216,8 +218,6 @@ def plot_vars_uprof(file, input_dir, variable_x, variable_y, ylabel, figure_name
     plt.legend(loc='upper left')
     plt.tight_layout()
     plt.close()
-        
-    plt.savefig('{}/pdf/{}_{}.pdf'.format(figure_dir, figure_name, ylabel), dpi=400)
     plt.savefig('{}/{}_{}.png'.format(figure_dir, figure_name, ylabel), dpi=200)
     print('Saved {}_{} to figures.'.format(figure_name, ylabel))
     
@@ -236,7 +236,6 @@ def main():
     figure_dir = args[7]
     
     name_list = make_name_list(input_dir=input_dir_csv)
-    file_list_problems=[]
     variable_x='Timestamp'
     
     # Create output directory (if it doesn't exist yet) where files will be stored:
@@ -253,9 +252,7 @@ def main():
             try:
                 plot_vars_uprof(file=file_list, input_dir=output_dir, variable_x=variable_x, variable_y=y_list, ylabel=ylabel_list, figure_name=figure_name, figure_dir=figure_dir)
             except:
-                file_list_problems.append(y_list)
-                
-    print('Problem in file ', file_list_problems)
+                pass
 
 def print_usage():
     print("Usage: uprof-export.py <input_dir_csv> <input_dir_pkl> <output_dir> <variable_y> <ylabel> <figure_name> <figure_dir>")

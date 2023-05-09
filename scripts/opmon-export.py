@@ -211,8 +211,6 @@ def plot_vars_grafana(file, input_dir, variable_x, figure_name, figure_dir):
     plt.legend(loc='upper left')
     plt.tight_layout()
     plt.close()
-        
-    plt.savefig('{}/pdf/{}_{}.pdf'.format(figure_dir, figure_name, file), dpi=400)
     plt.savefig('{}/{}_{}.png'.format(figure_dir, figure_name, file), dpi=200)
     print('Saved {}_{} to figures.'.format(figure_name, file))
     
@@ -228,10 +226,7 @@ def main():
     figure_name = args[4]
     figure_dir = args[5]
     
-    
-    
     name_list = make_name_list(input_dir=input_dir_csv)
-    file_list_problems=[]
     variable_x='Time'
     
     # Create output directory (if it doesn't exist yet) where files will be stored:
@@ -247,9 +242,7 @@ def main():
         try:
             plot_vars_grafana(file=file_list, input_dir=output_dir, variable_x=variable_x, figure_name=figure_name, figure_dir=figure_dir)
         except:
-            file_list_problems.append(file_list)
-            
-    print('Problem in file ', file_list_problems)
+            pass
     
 def print_usage():
     print("Usage: opmon-export.py <input_dir_csv> <input_dir_pkl> <output_dir> <figure_name> <figure_dir>")
