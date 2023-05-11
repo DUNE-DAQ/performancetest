@@ -364,14 +364,14 @@ def main():
 def print_usage():
     print("Usage: uprof-export.py <input_dir_csv> <input_dir_pkl> <output_dir> <variable_y> <ylabel> <figure_name> <figure_dir> <comparison_names> <do_comparison>")
     print('input_dir_csv: path to csv files.')
-    print('input_dir_pkl: path to folther to store basic pkl file.')
-    print('output_dir: path to folther to store pkl files with reformated time. In the case of comparison list of paths.')
+    print('input_dir_pkl: path to folder to store basic pkl file.')
+    print('output_dir: path to folder to store pkl files with reformated time. In the case of comparison list of paths.')
     print('variable_y: list of columns to plot together.')
     print('ylabel: list of y label.')
     print('figure_name: list of figure names.')
     print('figure_dir: path where figures will be stored.')
     print('comparison_names: list of names of two servers or tests for comparison.')
-    print('do_comparison: False or True')
+    print('do_comparison: True or False')
     
 # Driver Code
 if __name__ == '__main__':
