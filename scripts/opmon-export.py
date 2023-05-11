@@ -97,7 +97,7 @@ def remove_underlines_in_filename_1(input_dir):
             new_file_name = file_name.replace('_.', '.')
             os.rename(file_name, new_file_name ) 
             
-def change_name_grafana_files(input_dir):
+def change_name_pcm_files(input_dir):
     remove_spaces_in_filename(input_dir=input_dir)
     remove_date_in_filename_0(input_dir=input_dir)
     remove_date_in_filename_1(input_dir=input_dir)
@@ -183,7 +183,7 @@ def units_selection(name):
 
     return unit
 
-def plot_vars_grafana(file, input_dir, variable_x, figure_name, figure_dir):
+def plot_vars_pcm(file, input_dir, variable_x, figure_name, figure_dir):
     data_frame = pd.read_pickle('{}/{}.pkl'.format(input_dir, file))
     columns_list = list(data_frame.columns) 
     X = data_frame['NewTime']
@@ -225,7 +225,7 @@ def plot_vars_grafana(file, input_dir, variable_x, figure_name, figure_dir):
     print('Saved {}_{} to figures.'.format(figure_name, file))
     plt.close()
 
-def plot_vars_grafana_comparison(file, input_dir, comparison_names, variable_x, figure_name, figure_dir):
+def plot_vars_pcm_comparison(file, input_dir, comparison_names, variable_x, figure_name, figure_dir):
     linestyle_new = []
     X_new = []
     Y_new = [] 
@@ -313,19 +313,19 @@ def main():
 
         for file_list in name_list:
             try:
-                plot_vars_grafana_comparison(file=file_list, input_dir=output_dir, comparison_names=comparison_names, variable_x=variable_x, figure_name=figure_name, figure_dir=figure_dir)
+                plot_vars_pcm_comparison(file=file_list, input_dir=output_dir, comparison_names=comparison_names, variable_x=variable_x, figure_name=figure_name, figure_dir=figure_dir)
             except:
                 pass  
         
     else:
-        change_name_grafana_files(input_dir=input_dir_csv)
+        change_name_pcm_files(input_dir=input_dir_csv)
         name_list = make_name_list(input_dir=input_dir_csv)
         
         for file_list in name_list:
             csv_to_pkl(file=file_list, input_dir=input_dir_csv, output_dir=input_dir_pkl)
             add_column_to_pkl(file=file_list, input_dir=input_dir_pkl, output_dir=output_dir, variable_x=variable_x)
             try:
-                plot_vars_grafana(file=file_list, input_dir=output_dir, variable_x=variable_x, figure_name=figure_name, figure_dir=figure_dir)
+                plot_vars_pcm(file=file_list, input_dir=output_dir, variable_x=variable_x, figure_name=figure_name, figure_dir=figure_dir)
             except:
                 pass
     
