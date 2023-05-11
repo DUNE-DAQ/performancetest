@@ -176,3 +176,24 @@ This is a performance test for the SNB recording, scaling from 1-24 links. It is
 
 Recording to RAID disks should have a throughput of about 880 MB/s per data link. The throughput can be plotted, scaled down by the number of data links, for each run in the test. After running the performance test with recording to disk, view the RAID throughput with: `./analysis/iostat_plotter.py <test_directory>`
 
+### Plotting tools
+
+For the plotting of the results from uprof and pcm two tools were developed (uprof-export.py and opmon-export.py). For uprof-export.py the input data are the reformatted output of the test (<pcm_file_reformatted> <timechart_file_reformatted>). In the case of the pcm monitoring the data displayed in grafana needs to be saved as csv files.
+```
+#To run it:
+opmon-export.py <input_dir_csv> <input_dir_pkl> <output_dir> <figure_name> <figure_dir> <comparison_names> <do_comparison>
+uprof-export.py <input_dir_csv> <input_dir_pkl> <output_dir> <variable_y> <ylabel> <figure_name> <figure_dir> <comparison_names> <do_comparison>
+
+#input_dir_csv: path to csv files.
+#input_dir_pkl: path to folder to store basic pkl file.
+#output_dir: path to folder to store pkl files with reformated time. In the case of comparison list of paths.
+#variable_y: list of columns to plot together.
+#ylabel: list of y label.
+#figure_name: list of figure names.
+#figure_dir: path where figures will be stored.
+#comparison_names: list of names of two servers or tests for comparison.
+#do_comparison: True or False.
+
+#In the case of do_comparison=True the length of output_dir will give you the number of tests to compare.
+```
+
