@@ -1,0 +1,24 @@
+{
+    "boot": {
+	"opmon_impl": "cern",
+	"ers_impl":"cern",
+	"use_connectivity_service": true,
+    "start_connectivity_service": true,
+    "connectivity_service_host": "localhost",
+    "connectivity_service_port": 15432
+  }, 
+    "readout": {
+	"thread_pinning_file":"../dunedaq-dev-nightly/sourcecode/performancetest/cpupins/cpupin-link-scalling-node0-amd.json",
+    "clock_speed_hz": 62500000,
+	"data_rate_slowdown_factor": 1,
+	"emulator_mode": true,
+    "data_files": [
+      {"detector_id": 3, "data_file": "asset://?label=DuneWIB&subsystem=readout"}
+    ]
+  },
+  "trigger": {
+    "trigger_window_before_ticks": 1000,
+    "trigger_window_after_ticks": 1000,
+    "trigger_rate_hz": 1.0
+  }
+}

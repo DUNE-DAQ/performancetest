@@ -1,0 +1,61 @@
+{  
+  "daq_application": {
+	
+    "--name runp02srv0030": {
+     "parent": "0,56,2,58,4,60,6,62",
+     "threads": {
+
+        "fakeprod-0": [8,64],
+        "fakeprod-1": [10,66],
+        "fakeprod-2": [12,68],
+        "fakeprod-3": [14,70],
+        "fakeprod-4": [16,72],
+        "fakeprod-5": [18,74],
+        "fakeprod-6": [20,76],
+        "fakeprod-7": [22,78],
+        "fakeprod-8": [24,80],
+        "fakeprod-9": [26,82],
+        "fakeprod-10": [28,84],
+        "fakeprod-11": [30,86],
+        "fakeprod-12": [8,64],
+        "fakeprod-13": [10,66],
+        "fakeprod-14": [12,68],
+        "fakeprod-15": [14,70],
+        "fakeprod-16": [16,72],
+        "fakeprod-17": [18,74],
+        "fakeprod-18": [20,76],
+        "fakeprod-19": [22,78],
+        "fakeprod-20": [24,80],
+        "fakeprod-21": [26,82],
+        "fakeprod-22": [28,84],
+        "fakeprod-23": [30,86],
+
+        "consumer-0": [32,88],
+        "consumer-1": [34,90],
+        "consumer-2": [36,92],
+        "consumer-3": [38,94],
+        "consumer-4": [40,96],
+        "consumer-5": [42,98],
+        "consumer-6": [44,100],
+        "consumer-7": [46,102],
+        "consumer-8": [48,104],
+        "consumer-9": [50,106],
+        "consumer-10": [52,108],
+        "consumer-11": [54,110],
+        "consumer-12": [32,88],
+        "consumer-13": [34,90],
+        "consumer-14": [36,92],
+        "consumer-15": [38,94],
+        "consumer-16": [40,96],
+        "consumer-17": [42,98],
+        "consumer-18": [44,100],
+        "consumer-19": [46,102],
+        "consumer-20": [48,104],
+        "consumer-21": [50,106],
+        "consumer-22": [52,108],
+        "consumer-23": [54,110]
+      }
+    }      
+  }
+}
+
