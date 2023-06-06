@@ -8,7 +8,7 @@
 	"connectivity_service_port": 15432
   }, 
   "readout": {
-	"thread_pinning_file":"../dunedaq-dev-nightly/sourcecode/performancetest/cpupins/cpupin-link-scalling-node0-intel.json",
+	"thread_pinning_file":"../dunedaq-v4.0.0/sourcecode/performancetest/cpupins/cpupin-link-scalling-node0-intel.json",
 	"clock_speed_hz": 62500000,
 	"data_rate_slowdown_factor": 1,
 	"emulator_mode": true,
