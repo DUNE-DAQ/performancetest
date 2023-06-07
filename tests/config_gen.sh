@@ -1,6 +1,6 @@
 #!/bin/bash
 
-if [ $# -ne 4 ]; then
+if [ $# -ne 3 ]; then
   echo "Usage: ./config_gen.sh <daqconf_file> <hwmap_file> <test_name>"
   exit 2
 fi
