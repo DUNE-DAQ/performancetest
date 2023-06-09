@@ -9,7 +9,7 @@ test_name=$1
 envir_name=$2
 run_num=$3
 
-nanorc $test_name  $envir_name boot conf start_run $run_num wait 600 stop_run shutdown sleep 120
+nanorc $test_name  $envir_name boot conf start_run $run_num wait 600 stop_run shutdown
 	
 
 
