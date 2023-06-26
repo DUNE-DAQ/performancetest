@@ -1,0 +1,29 @@
+{
+  "boot": {
+    "use_connectivity_service": true,
+    "start_connectivity_service": false,
+    "connectivity_service_host": "localhost",
+    "connectivity_service_port": 30005,
+    "disable_trace": false,
+    "opmon_impl": "cern",
+    "ers_impl":"cern",
+    "use_k8s": false,
+    "op_env": "dvargas-perf"
+  }, 
+  "readout": {
+    "thread_pinning_file":"../dunedaq-latest/sourcecode/performancetest/cpupins/cpupin-link-scalling-nodes01-amd.json",
+    "default_data_file": "wibeth_output_ALL_ZEROS.bin", 
+    "latency_buffer_size": 499968,
+    "clock_speed_hz": 62500000,
+	  "data_rate_slowdown_factor": 1,
+	  "emulator_mode": true,
+    "use_fake_cards": true
+  },
+  "trigger": {
+    "trigger_window_before_ticks": 2144,
+    "trigger_window_after_ticks": 260000,
+    "trigger_rate_hz": 0.1,
+    "host_trigger": "localhost",
+    "host_tpw": "localhost"
+  }
+}

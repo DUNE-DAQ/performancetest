@@ -1,0 +1,434 @@
+[
+    {
+        "src_id": 0,
+        "geo_id": {
+            "det_id": 3,
+            "crate_id": 1,
+            "slot_id": 0,
+            "stream_id": 0
+        },
+        "kind": "flx",
+        "parameters": {
+            "protocol": "full",
+            "mode": "fix_rate",
+            "host": "np02-srv-003",
+            "card": 0,
+            "slr": 0,
+            "link": 0
+        }
+    },
+    {
+        "src_id": 1,
+        "geo_id": {
+            "det_id": 3,
+            "crate_id": 1,
+            "slot_id": 0,
+            "stream_id": 1
+        },
+        "kind": "flx",
+        "parameters": {
+            "protocol": "full",
+            "mode": "fix_rate",
+            "host": "np02-srv-003",
+            "card": 0,
+            "slr": 0,
+            "link": 1
+        }
+    },
+    {
+        "src_id": 2,
+        "geo_id": {
+            "det_id": 3,
+            "crate_id": 1,
+            "slot_id": 0,
+            "stream_id": 2
+        },
+        "kind": "flx",
+        "parameters": {
+            "protocol": "full",
+            "mode": "fix_rate",
+            "host": "np02-srv-003",
+            "card": 0,
+            "slr": 0,
+            "link": 2
+        }
+    },
+    {
+        "src_id": 3,
+        "geo_id": {
+            "det_id": 3,
+            "crate_id": 1,
+            "slot_id": 0,
+            "stream_id": 3
+        },
+        "kind": "flx",
+        "parameters": {
+            "protocol": "full",
+            "mode": "fix_rate",
+            "host": "np02-srv-003",
+            "card": 0,
+            "slr": 0,
+            "link": 3
+        }
+    },
+    {
+        "src_id": 4,
+        "geo_id": {
+            "det_id": 3,
+            "crate_id": 1,
+            "slot_id": 0,
+            "stream_id": 4
+        },
+        "kind": "flx",
+        "parameters": {
+            "protocol": "full",
+            "mode": "fix_rate",
+            "host": "np02-srv-003",
+            "card": 0,
+            "slr": 0,
+            "link": 4
+        }
+    },
+    {
+        "src_id": 5,
+        "geo_id": {
+            "det_id": 3,
+            "crate_id": 1,
+            "slot_id": 0,
+            "stream_id": 5
+        },
+        "kind": "flx",
+        "parameters": {
+            "protocol": "full",
+            "mode": "fix_rate",
+            "host": "np02-srv-003",
+            "card": 0,
+            "slr": 0,
+            "link": 5
+        }
+    },
+    {
+        "src_id": 6,
+        "geo_id": {
+            "det_id": 3,
+            "crate_id": 1,
+            "slot_id": 0,
+            "stream_id": 6
+        },
+        "kind": "flx",
+        "parameters": {
+            "protocol": "full",
+            "mode": "fix_rate",
+            "host": "np02-srv-003",
+            "card": 0,
+            "slr": 0,
+            "link": 6
+        }
+    },
+    {
+        "src_id": 7,
+        "geo_id": {
+            "det_id": 3,
+            "crate_id": 1,
+            "slot_id": 0,
+            "stream_id": 7
+        },
+        "kind": "flx",
+        "parameters": {
+            "protocol": "full",
+            "mode": "fix_rate",
+            "host": "np02-srv-003",
+            "card": 0,
+            "slr": 0,
+            "link": 7
+        }
+    },
+    {
+        "src_id": 8,
+        "geo_id": {
+            "det_id": 3,
+            "crate_id": 1,
+            "slot_id": 0,
+            "stream_id": 8
+        },
+        "kind": "flx",
+        "parameters": {
+            "protocol": "full",
+            "mode": "fix_rate",
+            "host": "np02-srv-003",
+            "card": 0,
+            "slr": 0,
+            "link": 8
+        }
+    },
+    {
+        "src_id": 9,
+        "geo_id": {
+            "det_id": 3,
+            "crate_id": 1,
+            "slot_id": 0,
+            "stream_id": 9
+        },
+        "kind": "flx",
+        "parameters": {
+            "protocol": "full",
+            "mode": "fix_rate",
+            "host": "np02-srv-003",
+            "card": 0,
+            "slr": 0,
+            "link": 9
+        }
+    },
+    {
+        "src_id": 10,
+        "geo_id": {
+            "det_id": 3,
+            "crate_id": 1,
+            "slot_id": 0,
+            "stream_id": 10
+        },
+        "kind": "flx",
+        "parameters": {
+            "protocol": "full",
+            "mode": "fix_rate",
+            "host": "np02-srv-003",
+            "card": 0,
+            "slr": 0,
+            "link": 10
+        }
+    },
+    {
+        "src_id": 11,
+        "geo_id": {
+            "det_id": 3,
+            "crate_id": 1,
+            "slot_id": 0,
+            "stream_id": 11
+        },
+        "kind": "flx",
+        "parameters": {
+            "protocol": "full",
+            "mode": "fix_rate",
+            "host": "np02-srv-003",
+            "card": 0,
+            "slr": 0,
+            "link": 11
+        }
+    },
+    {
+        "src_id": 12,
+        "geo_id": {
+            "det_id": 3,
+            "crate_id": 1,
+            "slot_id": 0,
+            "stream_id": 12
+        },
+        "kind": "flx",
+        "parameters": {
+            "protocol": "full",
+            "mode": "fix_rate",
+            "host": "np02-srv-003",
+            "card": 0,
+            "slr": 0,
+            "link": 12
+        }
+    },
+    {
+        "src_id": 13,
+        "geo_id": {
+            "det_id": 3,
+            "crate_id": 1,
+            "slot_id": 0,
+            "stream_id": 13
+        },
+        "kind": "flx",
+        "parameters": {
+            "protocol": "full",
+            "mode": "fix_rate",
+            "host": "np02-srv-003",
+            "card": 0,
+            "slr": 0,
+            "link": 13
+        }
+    },
+    {
+        "src_id": 14,
+        "geo_id": {
+            "det_id": 3,
+            "crate_id": 1,
+            "slot_id": 0,
+            "stream_id": 14
+        },
+        "kind": "flx",
+        "parameters": {
+            "protocol": "full",
+            "mode": "fix_rate",
+            "host": "np02-srv-003",
+            "card": 0,
+            "slr": 0,
+            "link": 14
+        }
+    },
+    {
+        "src_id": 15,
+        "geo_id": {
+            "det_id": 3,
+            "crate_id": 1,
+            "slot_id": 0,
+            "stream_id": 15
+        },
+        "kind": "flx",
+        "parameters": {
+            "protocol": "full",
+            "mode": "fix_rate",
+            "host": "np02-srv-003",
+            "card": 0,
+            "slr": 0,
+            "link": 15
+        }
+    },
+    {
+        "src_id": 16,
+        "geo_id": {
+            "det_id": 3,
+            "crate_id": 1,
+            "slot_id": 0,
+            "stream_id": 16
+        },
+        "kind": "flx",
+        "parameters": {
+            "protocol": "full",
+            "mode": "fix_rate",
+            "host": "np02-srv-003",
+            "card": 0,
+            "slr": 0,
+            "link": 16
+        }
+    },
+    {
+        "src_id": 17,
+        "geo_id": {
+            "det_id": 3,
+            "crate_id": 1,
+            "slot_id": 0,
+            "stream_id": 17
+        },
+        "kind": "flx",
+        "parameters": {
+            "protocol": "full",
+            "mode": "fix_rate",
+            "host": "np02-srv-003",
+            "card": 0,
+            "slr": 0,
+            "link": 17
+        }
+    },
+    {
+        "src_id": 18,
+        "geo_id": {
+            "det_id": 3,
+            "crate_id": 1,
+            "slot_id": 0,
+            "stream_id": 18
+        },
+        "kind": "flx",
+        "parameters": {
+            "protocol": "full",
+            "mode": "fix_rate",
+            "host": "np02-srv-003",
+            "card": 0,
+            "slr": 0,
+            "link": 18
+        }
+    },
+    {
+        "src_id": 19,
+        "geo_id": {
+            "det_id": 3,
+            "crate_id": 1,
+            "slot_id": 0,
+            "stream_id": 19
+        },
+        "kind": "flx",
+        "parameters": {
+            "protocol": "full",
+            "mode": "fix_rate",
+            "host": "np02-srv-003",
+            "card": 0,
+            "slr": 0,
+            "link": 19
+        }
+    },
+    {
+        "src_id": 20,
+        "geo_id": {
+            "det_id": 3,
+            "crate_id": 1,
+            "slot_id": 0,
+            "stream_id": 20
+        },
+        "kind": "flx",
+        "parameters": {
+            "protocol": "full",
+            "mode": "fix_rate",
+            "host": "np02-srv-003",
+            "card": 0,
+            "slr": 0,
+            "link": 20
+        }
+    },
+    {
+        "src_id": 21,
+        "geo_id": {
+            "det_id": 3,
+            "crate_id": 1,
+            "slot_id": 0,
+            "stream_id": 21
+        },
+        "kind": "flx",
+        "parameters": {
+            "protocol": "full",
+            "mode": "fix_rate",
+            "host": "np02-srv-003",
+            "card": 0,
+            "slr": 0,
+            "link": 21
+        }
+    },
+    {
+        "src_id": 22,
+        "geo_id": {
+            "det_id": 3,
+            "crate_id": 1,
+            "slot_id": 0,
+            "stream_id": 22
+        },
+        "kind": "flx",
+        "parameters": {
+            "protocol": "full",
+            "mode": "fix_rate",
+            "host": "np02-srv-003",
+            "card": 0,
+            "slr": 0,
+            "link": 22
+        }
+    },
+    {
+        "src_id": 23,
+        "geo_id": {
+            "det_id": 3,
+            "crate_id": 1,
+            "slot_id": 0,
+            "stream_id": 23
+        },
+        "kind": "flx",
+        "parameters": {
+            "protocol": "full",
+            "mode": "fix_rate",
+            "host": "np02-srv-003",
+            "card": 0,
+            "slr": 0,
+            "link": 23
+        }
+    }
+]
