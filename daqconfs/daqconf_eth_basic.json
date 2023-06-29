@@ -4,24 +4,20 @@
 	  "start_connectivity_service": true,
 	  "connectivity_service_host": "localhost",
 	  "connectivity_service_port": 15432,
-	  "disable_trace": false,
 	  "opmon_impl": "cern",
 	  "ers_impl":"cern",
-	  "use_k8s": false,
 	  "op_env": "dvargas-perf"
 	}, 
 	"readout": {
-	  "thread_pinning_file":"/nfs/home/dvargas/DUNE-SW/dunedaq-latest/sourcecode/performancetest/cpupins/cpupin-eth-link-scalling-node0-intel.json",
+	  "thread_pinning_file":"/nfs/home/dvargas/DUNE-SW/dunedaq-latest/sourcecode/performancetest/cpupins/cpupin-eth-basic.json",
 	  "default_data_file": "wibeth/wibeth_output_ALL_ZEROS.bin",
-	  "latency_buffer_size": 499968,
 	  "clock_speed_hz": 62500000,
-		"data_rate_slowdown_factor": 1,
-		"emulator_mode": true,
+	  "data_rate_slowdown_factor": 1,
 	  "use_fake_cards": true
 	},
 	"trigger": {
-	  "trigger_window_before_ticks": 2144,
-	  "trigger_window_after_ticks": 260000,
-	  "trigger_rate_hz": 0.1
+	  "trigger_window_before_ticks": 1000,
+	  "trigger_window_after_ticks": 1000,
+	  "trigger_rate_hz": 1.0
 	}
-}
+  }

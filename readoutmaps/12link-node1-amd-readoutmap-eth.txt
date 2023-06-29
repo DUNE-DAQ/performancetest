@@ -11,7 +11,7 @@
         "parameters": {
             "protocol": "udp",
             "mode": "fix_rate",
-            "rx_iface": 0,
+            "rx_iface": 1,
             "rx_host": "np02-srv-004",
             "rx_mac": "00:00:00:00:00:00",
             "rx_ip": "0.0.0.0",
@@ -32,7 +32,7 @@
         "parameters": {
             "protocol": "udp",
             "mode": "fix_rate",
-            "rx_iface": 0,
+            "rx_iface": 1,
             "rx_host": "np02-srv-004",
             "rx_mac": "00:00:00:00:00:00",
             "rx_ip": "0.0.0.0",
@@ -53,7 +53,7 @@
         "parameters": {
             "protocol": "udp",
             "mode": "fix_rate",
-            "rx_iface": 0,
+            "rx_iface": 1,
             "rx_host": "np02-srv-004",
             "rx_mac": "00:00:00:00:00:00",
             "rx_ip": "0.0.0.0",
@@ -74,7 +74,7 @@
         "parameters": {
             "protocol": "udp",
             "mode": "fix_rate",
-            "rx_iface": 0,
+            "rx_iface": 1,
             "rx_host": "np02-srv-004",
             "rx_mac": "00:00:00:00:00:00",
             "rx_ip": "0.0.0.0",
@@ -95,7 +95,7 @@
         "parameters": {
             "protocol": "udp",
             "mode": "fix_rate",
-            "rx_iface": 0,
+            "rx_iface": 1,
             "rx_host": "np02-srv-004",
             "rx_mac": "00:00:00:00:00:00",
             "rx_ip": "0.0.0.0",
@@ -116,7 +116,7 @@
         "parameters": {
             "protocol": "udp",
             "mode": "fix_rate",
-            "rx_iface": 0,
+            "rx_iface": 1,
             "rx_host": "np02-srv-004",
             "rx_mac": "00:00:00:00:00:00",
             "rx_ip": "0.0.0.0",
@@ -137,7 +137,7 @@
         "parameters": {
             "protocol": "udp",
             "mode": "fix_rate",
-            "rx_iface": 0,
+            "rx_iface": 1,
             "rx_host": "np02-srv-004",
             "rx_mac": "00:00:00:00:00:00",
             "rx_ip": "0.0.0.0",
@@ -158,7 +158,7 @@
         "parameters": {
             "protocol": "udp",
             "mode": "fix_rate",
-            "rx_iface": 0,
+            "rx_iface": 1,
             "rx_host": "np02-srv-004",
             "rx_mac": "00:00:00:00:00:00",
             "rx_ip": "0.0.0.0",
@@ -179,7 +179,7 @@
         "parameters": {
             "protocol": "udp",
             "mode": "fix_rate",
-            "rx_iface": 0,
+            "rx_iface": 1,
             "rx_host": "np02-srv-004",
             "rx_mac": "00:00:00:00:00:00",
             "rx_ip": "0.0.0.0",
@@ -200,7 +200,7 @@
         "parameters": {
             "protocol": "udp",
             "mode": "fix_rate",
-            "rx_iface": 0,
+            "rx_iface": 1,
             "rx_host": "np02-srv-004",
             "rx_mac": "00:00:00:00:00:00",
             "rx_ip": "0.0.0.0",
@@ -221,7 +221,7 @@
         "parameters": {
             "protocol": "udp",
             "mode": "fix_rate",
-            "rx_iface": 0,
+            "rx_iface": 1,
             "rx_host": "np02-srv-004",
             "rx_mac": "00:00:00:00:00:00",
             "rx_ip": "0.0.0.0",
@@ -242,7 +242,7 @@
         "parameters": {
             "protocol": "udp",
             "mode": "fix_rate",
-            "rx_iface": 0,
+            "rx_iface": 1,
             "rx_host": "np02-srv-004",
             "rx_mac": "00:00:00:00:00:00",
             "rx_ip": "0.0.0.0",
