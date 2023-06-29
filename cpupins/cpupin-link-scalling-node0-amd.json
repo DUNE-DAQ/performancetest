@@ -1,7 +1,7 @@
 {  
   "daq_application": {
 
-    "--name runp02srv0040": {
+    "--name runp02srv004flx0": {
     "parent": "0,128,1,129,2,130,3,131",
     "threads": {
         "fakeprod-0": [4,132],

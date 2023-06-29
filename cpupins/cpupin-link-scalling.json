@@ -1,7 +1,7 @@
 {  
   "daq_application": {
 
-    "--name runp02srv0030": {
+    "--name runp02srv003flx0": {
      "parent": "0,56,2,58,4,60,6,62",
      "threads": {
         "fakeprod-0": [8,64],
@@ -57,7 +57,7 @@
     },
 
 
-    "--name runp02srv0031": {
+    "--name runp02srv003flx1": {
     "parent": "1,57,3,59,5,61,7,63",
     "threads": {
         "fakeprod-24": [9,65],
@@ -112,7 +112,7 @@
       }
     },
 
-    "--name runp02srv0040": {
+    "--name runp02srv004flx0": {
     "parent": "0,128,1,129,2,130,3,131",
     "threads": {
         "fakeprod-0": [4,132],
@@ -167,7 +167,7 @@
        }
     },
 
-    "--name runp02srv0041": {
+    "--name runp02srv004flx1": {
     "parent": "64,192,65,193,66,194,67,195",
     "threads": {
         "fakeprod-24": [68,196],

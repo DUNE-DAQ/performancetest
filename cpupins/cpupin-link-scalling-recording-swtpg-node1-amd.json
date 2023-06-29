@@ -1,7 +1,7 @@
 {  
   "daq_application": {
 
-    "--name runp02srv0041": {
+    "--name runp02srv004flx1": {
     "parent": "64,192,65,193,66,194,67,195",
     "threads": {
         "postproc-0-24": [0],
