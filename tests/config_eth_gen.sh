@@ -1,9 +1,9 @@
 #!/bin/bash
 
 if [ $# -ne 4 ]; then
-echo "Usage: ./config_eth_gen.sh <path> <daqconf_file> <hwmap_file> <test_name>"
-ecjo "path to performancetest"
-exit 2
+  echo "Usage: ./config_eth_gen.sh <path> <daqconf_file> <hwmap_file> <test_name>"
+  echo "path to performancetest"
+  exit 2
 fi
 
 path=$1
