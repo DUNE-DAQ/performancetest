@@ -18,6 +18,6 @@
 	"trigger": {
 	  "trigger_window_before_ticks": 1000,
 	  "trigger_window_after_ticks": 1000,
-	  "trigger_rate_hz": 1.0
+	  "trigger_rate_hz": 0.1
 	}
   }

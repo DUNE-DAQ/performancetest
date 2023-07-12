@@ -21,6 +21,8 @@ grep -R "ERROR" RunConf_$run_num/logs >> error_summary.txt
 mkdir RunConf_$run_num/output
 mv *.hdf5 RunConf_$run_num/output
 mv logbook_*.txt RunConf_$run_num/output
+mv error_summary.txt RunConf_$run_num/output
+mv iostat_*.txt RunConf_$run_num/output
 
 echo "wait for 120s for resources to return to baseline"
 sleep 120

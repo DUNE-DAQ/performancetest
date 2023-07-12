@@ -1,28 +1,34 @@
 {
-  "boot": {
-    "use_connectivity_service": true,
-    "start_connectivity_service": true,
-    "connectivity_service_host": "localhost",
-    "connectivity_service_port": 15432,
-    "disable_trace": false,
-    "opmon_impl": "cern",
-    "ers_impl":"cern",
-    "use_k8s": false,
-    "op_env": "dvargas-perf"
-  }, 
-  "readout": {
-    "thread_pinning_file":"../dunedaq-latest/sourcecode/performancetest/cpupins/cpupin-link-scalling-recording-swtpg-node1-amd.json",
-    "default_data_file": "asset://?label=DuneWIB&subsystem=readout",
-    "enable_raw_recording": true,
-    "raw_recording_output_dir":"/mnt/nvm_raid0/recording_swtpg_amd_24/",
-    "latency_buffer_size": 499968,
-    "clock_speed_hz": 62500000,
-	  "data_rate_slowdown_factor": 1,
-	  "emulator_mode": true,
-    "use_fake_cards": true,
+	"detector": {
+        "clock_speed_hz": 62500000,
+        "tpc_channel_map": "PD2HDChannelMap"
+    },
+
+    "daq_common": {
+        "data_rate_slowdown_factor": 1.0
+    },
+
+	"boot": {
+		"use_connectivity_service": true,
+		"start_connectivity_service": true,
+		"connectivity_service_host": "localhost",
+		"connectivity_service_port": 15432,
+		"disable_trace": false,
+		"opmon_impl": "cern",
+		"ers_impl":"cern"
+	}, 
+
+	"readout": {
+		"thread_pinning_file":"../cpupins/cpupin-link-scalling-recording-swtpg-node1-amd.json",
+		"default_data_file": "asset://?label=DuneWIB&subsystem=readout",
+		"enable_raw_recording": true,
+		"raw_recording_output_dir":"/mnt/nvm_raid0/recording_swtpg_amd_24/",
+		"latency_buffer_size": 499968,
+		"emulator_mode": true,
+		"use_fake_cards": true,
     "enable_tpg": true,
-    "tpg_threshold": 15000,
-    "tpg_algorithm": "SimpleThreshold",   
+    "tpg_threshold": 100,
+    "tpg_algorithm": "SimpleThreshold",
     "numa_config": {
       "default_id": 1,
       "default_latency_numa_aware": true,
@@ -36,11 +42,12 @@
         }
       ]
     }
-  },
-  "trigger": {
+	},
+
+	"trigger": {
 		"trigger_window_before_ticks": 2144,
 		"trigger_window_after_ticks": 260000,
-		"trigger_rate_hz": 0.1,
-    "tpg_channel_map": "PD2HDChannelMap"
+	  "trigger_rate_hz": 0.1
+	}
+
   }
-}
