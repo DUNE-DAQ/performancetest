@@ -12,7 +12,7 @@ run_num=$3
 path=$4
 
 iostat -m -t 1 120 > iostat_$test_name.txt &
-nanorc $test_name $envir_name boot conf start_run $run_num  expert_command $test_name/$test_name/runp02srv00* $path/tests/record-cmd.json wait 600 stop_run shutdown
+nanorc $test_name $envir_name boot conf start_run $run_num  expert_command --timeout 10 $test_name/$test_name/runp02srv00* $path/tests/record-cmd.json wait 600 stop_run shutdown
 
 # move log files
 mkdir RunConf_$run_num/logs

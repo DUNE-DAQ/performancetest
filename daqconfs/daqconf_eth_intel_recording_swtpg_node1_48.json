@@ -22,7 +22,7 @@
 		"thread_pinning_file":"../cpupins/cpupin-eth-link-scalling-recording-swtpg-node1-intel.json",
     "default_data_file": "wibeth/wibeth_output_ALL_ZEROS.bin",
 		"enable_raw_recording": true,
-		"raw_recording_output_dir":"/mnt/nvm_raid0/eth_recording_swtpg_intel_48/",
+		"raw_recording_output_dir":"/mnt/nvm_raid1/eth_recording_swtpg_intel_48/",
 		"latency_buffer_size": 124992,
 		"emulator_mode": true,
 		"use_fake_cards": true,
@@ -46,8 +46,11 @@
 
 	"trigger": {
 		"trigger_window_before_ticks": 2144,
-		"trigger_window_after_ticks": 260000,
-	  "trigger_rate_hz": 0.1
-	}
+		"trigger_window_after_ticks": 260000
+	},
+	
+	"hsi": {
+    "random_trigger_rate_hz": 0.1
+  }
 
   }

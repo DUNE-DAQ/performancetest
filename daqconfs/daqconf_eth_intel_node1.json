@@ -19,7 +19,7 @@
 
 	"readout": {
 		"thread_pinning_file":"../cpupins/cpupin-eth-link-scalling-node1-intel.json",
-	  "default_data_file": "wibeth/wibeth_output_ALL_ZEROS.bin",
+	    "default_data_file": "wibeth/wibeth_output_ALL_ZEROS.bin",
 		"latency_buffer_size": 124992,
 		"emulator_mode": true,
 		"use_fake_cards": true
@@ -27,8 +27,11 @@
 
 	"trigger": {
 		"trigger_window_before_ticks": 2144,
-		"trigger_window_after_ticks": 260000,
-		"trigger_rate_hz": 0.1
-	}
+		"trigger_window_after_ticks": 260000
+	},
+	
+	"hsi": {
+        "random_trigger_rate_hz": 0.1
+    }
 
   }

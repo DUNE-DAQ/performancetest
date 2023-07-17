@@ -29,8 +29,11 @@
 
 	"trigger": {
 		"trigger_window_before_ticks": 2144,
-		"trigger_window_after_ticks": 260000,
-		"trigger_rate_hz": 0.1
-	}
+		"trigger_window_after_ticks": 260000
+	},
+
+	"hsi": {
+        "random_trigger_rate_hz": 0.1
+    }
 
   }

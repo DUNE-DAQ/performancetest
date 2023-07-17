@@ -26,28 +26,31 @@
 		"latency_buffer_size": 499968,
 		"emulator_mode": true,
 		"use_fake_cards": true,
-    "enable_tpg": true,
-    "tpg_threshold": 100,
-    "tpg_algorithm": "SimpleThreshold",
-    "numa_config": {
-      "default_id": 1,
-      "default_latency_numa_aware": true,
-      "exceptions": [
-        {
-          "host": "np02-srv-003",
-          "card": 0,
-          "numa_id": 0,
-          "latency_buffer_numa_aware": true,
-          "latency_buffer_preallocation": true
-        }
-      ]
-    }
+		"enable_tpg": true,
+		"tpg_threshold": 100,
+		"tpg_algorithm": "SimpleThreshold",
+		"numa_config": {
+			"default_id": 1,
+			"default_latency_numa_aware": true,
+			"exceptions": [
+				{
+				"host": "np02-srv-003",
+				"card": 0,
+				"numa_id": 0,
+				"latency_buffer_numa_aware": true,
+				"latency_buffer_preallocation": true
+				}
+			]
+		}
 	},
 
 	"trigger": {
 		"trigger_window_before_ticks": 2144,
-		"trigger_window_after_ticks": 260000,
-	  "trigger_rate_hz": 0.1
-	}
+		"trigger_window_after_ticks": 260000
+	},
+
+	"hsi": {
+        "random_trigger_rate_hz": 0.1
+    }
 
   }

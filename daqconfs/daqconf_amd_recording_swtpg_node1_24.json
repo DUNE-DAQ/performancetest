@@ -22,7 +22,7 @@
 		"thread_pinning_file":"../cpupins/cpupin-link-scalling-recording-swtpg-node1-amd.json",
 		"default_data_file": "asset://?label=DuneWIB&subsystem=readout",
 		"enable_raw_recording": true,
-		"raw_recording_output_dir":"/mnt/nvm_raid0/recording_swtpg_amd_24/",
+		"raw_recording_output_dir":"/mnt/nvm_raid1/recording_swtpg_amd_24/",
 		"latency_buffer_size": 499968,
 		"emulator_mode": true,
 		"use_fake_cards": true,
@@ -46,8 +46,11 @@
 
 	"trigger": {
 		"trigger_window_before_ticks": 2144,
-		"trigger_window_after_ticks": 260000,
-	  "trigger_rate_hz": 0.1
-	}
+		"trigger_window_after_ticks": 260000
+	},
+
+	"hsi": {
+        "random_trigger_rate_hz": 0.1
+    }
 
   }
