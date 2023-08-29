@@ -1,0 +1,10 @@
+./config_gen.sh /nfs/home/dvargas/DUNE-SW/dunedaq-latest/sourcecode/performancetest np02srv003 0 daqconf_eth_stream_scaling_np02srv003.json
+./config_gen.sh /nfs/home/dvargas/DUNE-SW/dunedaq-latest/sourcecode/performancetest np02srv004 0 daqconf_eth_stream_scaling_np02srv004.json
+./config_gen.sh /nfs/home/dvargas/DUNE-SW/dunedaq-latest/sourcecode/performancetest np02srv003 1 daqconf_eth_stream_scaling_np02srv003.json
+./config_gen.sh /nfs/home/dvargas/DUNE-SW/dunedaq-latest/sourcecode/performancetest np02srv004 1 daqconf_eth_stream_scaling_np02srv004.json
+./config_gen.sh /nfs/home/dvargas/DUNE-SW/dunedaq-latest/sourcecode/performancetest np02srv003 1 daqconf_eth_stream_scaling_swtpg_np02srv003.json
+./config_gen.sh /nfs/home/dvargas/DUNE-SW/dunedaq-latest/sourcecode/performancetest np02srv004 1 daqconf_eth_stream_scaling_swtpg_np02srv004.json
+./config_gen.sh /nfs/home/dvargas/DUNE-SW/dunedaq-latest/sourcecode/performancetest np02srv003 1 daqconf_eth_stream_scaling_recording_np02srv003.json
+./config_gen.sh /nfs/home/dvargas/DUNE-SW/dunedaq-latest/sourcecode/performancetest np02srv004 1 daqconf_eth_stream_scaling_recording_np02srv004.json
+./config_gen.sh /nfs/home/dvargas/DUNE-SW/dunedaq-latest/sourcecode/performancetest np02srv003 1 daqconf_eth_stream_scaling_recording_swtpg_np02srv003.json
+./config_gen.sh /nfs/home/dvargas/DUNE-SW/dunedaq-latest/sourcecode/performancetest np02srv004 1 daqconf_eth_stream_scaling_recording_swtpg_np02srv004.json
