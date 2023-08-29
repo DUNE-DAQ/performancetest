@@ -11,4 +11,4 @@ duration=$2
 echo "start uprof monitoring"
 /opt/AMDuProf_4.0-341/bin/AMDuProfPcm -a -s -d $duration -t 2500 -m memory,ipc,l1,l2,l3 -A package -k -o $output_dir/uprof_pcm.csv &
 /opt/AMDuProf_4.0-341/bin/AMDuProfCLI-bin timechart --event power --interval 15000 --duration $duration -o $output_dir &
-case 
+
