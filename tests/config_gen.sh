@@ -17,6 +17,6 @@ cd $test_name
 
 for i in {8..48..8}
 do
-  daqconf_multiru_gen -c $path/daqconfs/$daqconf_file --detector-readout-map-file $path/readoutmaps/RM-$server-$NUMA_node_num-stream${i}.json ${i}
+  daqconf_multiru_gen -c $path/daqconfs/$daqconf_file --detector-readout-map-file $path/readoutmaps/RM-$server-$NUMA_node_num-streams${i}.json ${i}
 done
 

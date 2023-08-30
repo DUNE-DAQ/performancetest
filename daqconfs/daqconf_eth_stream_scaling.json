@@ -19,7 +19,7 @@
 
 	"readout": {
 		"thread_pinning_file":"../cpupins/cpupin-eth-stream-scaling.json",
-		"default_data_file": "wibeth/wibeth_output_ALL_ZEROS.bin",
+		"default_data_file": "asset://?label=WIBEth&subsystem=readout",
 		"latency_buffer_size": 124992,
 		"emulator_mode": true,
 		"use_fake_cards": true
