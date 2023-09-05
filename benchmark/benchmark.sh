@@ -6,16 +6,17 @@ if [ $# -ne 3 ]; then
   exit 2
 fi
 
+test_suite=dunedaq-srv-benchmark
 path=$1
 output_path=$2
-test_name=$3
+test_name=$3-$test_suite
 
 cp $path/benchmark/user-config.xml ~/.phoronix-test-suite/
 cp -r $path/benchmark/local/ ~/.phoronix-test-suite/test-suites/
 
 export CFLAGS='-mcmodel=medium'
 
-phoronix-test-suite batch-benchmark dunedaq-srv-benchmark
+phoronix-test-suite batch-benchmark $test_suite
 
 results=$(ls -t ~/.phoronix-test-suite/test-results/ | head -n1)
 
