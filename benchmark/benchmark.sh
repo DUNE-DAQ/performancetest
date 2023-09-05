@@ -6,10 +6,10 @@ if [ $# -ne 3 ]; then
   exit 2
 fi
 
-test_suite=dunedaq-srv-benchmark
 path=$1
 output_path=$2
-test_name=$3-$test_suite
+test_name=$3
+test_suite=dunedaq-srv-benchmark
 
 cp $path/benchmark/user-config.xml ~/.phoronix-test-suite/
 cp -r $path/benchmark/local/ ~/.phoronix-test-suite/test-suites/
