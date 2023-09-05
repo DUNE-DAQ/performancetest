@@ -6,7 +6,7 @@ if [ $# -ne 7 ]; then
   echo "<data_format>: eth of wib2"
   echo "<test>: ex. stream_scaling"
   echo "<dunedaq_version>: v4_1_1" 
-  echo "<server_others>: local server that runs all the apps exept the readout"
+  echo "<server_others>: local server that runs all the apps except the readout"
   exit 2
 fi
 
