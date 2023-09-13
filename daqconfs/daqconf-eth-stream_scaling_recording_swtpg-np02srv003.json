@@ -19,8 +19,8 @@
 	}, 
 
 	"readout": {
-		"thread_pinning_file":"../cpupins/cpupin-eth-stream-scaling-recording-swtpg-np02srv003.json",
-    "default_data_file": "asset://?label=WIBEth&subsystem=readout",
+		"thread_pinning_file":"../cpupins/cpupin-eth-stream_scaling_recording_swtpg-np02srv003.json",
+    "default_data_file": "../wibeth_output_ALL_ZEROS.bin",
 		"enable_raw_recording": true,
 		"raw_recording_output_dir":"/mnt/nvm_raid1/eth_recording_swtpg_np02srv003/",
 		"latency_buffer_size": 124992,
