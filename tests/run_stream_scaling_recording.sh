@@ -2,7 +2,7 @@
 
 if [ $# -ne 5 ]; then
   echo "Usage: ./run_stream_scaling_recording.sh <envir_name> <run_num_init> <test_name> <server> <NUMA_node_num>"
-  echo "All run numbers up to run_num_init+7 must be unused."
+  echo "All run numbers up to run_num_init+5 must be unused."
   exit 2
 fi
 
@@ -19,15 +19,12 @@ do
 	# disk throughput
     iostat -m -t 1 120 > iostat_${i}.txt &
 
-	# path to recording
-	mkdir /mnt/nvm_raid1/$test_name/${i}
-	
 	echo "Scaling to ${i} streams"
-	run_num_increment=${i}/8 
+	run_num_increment=${i}/8
 	run_num=$(($run_num_init + $run_num_increment -1))
 
-	nanorc ${i} $envir_name boot conf start_run $run_num expert_command --timeout 10 $test_name/${i}/${i}/ru${server}eth${NUMA_node_num} record-cmd.json wait 600 stop_run shutdown
-	
+	nanorc ${i} $envir_name boot conf start_run $run_num expert_command --timeout 10 ${i}/${i}/ru${server}eth${NUMA_node_num} ../record-cmd.json wait 600 stop_run shutdown
+
 	# move log files
 	mkdir RunConf_$run_num/logs
 	mv log_*.txt RunConf_$run_num/logs

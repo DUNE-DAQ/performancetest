@@ -21,9 +21,9 @@
 		"thread_pinning_file":"../cpupins/cpupin-eth-stream_scaling_recording-np02srv004.json",
     	"default_data_file": "../wibeth_output_ALL_ZEROS.bin",
 		"enable_raw_recording": true,
-		"raw_recording_output_dir":"/mnt/nvm_raid1/",
+		"raw_recording_output_dir":"/mnt/nvm_raid0/",
 		"latency_buffer_size": 124992,
-		"emulator_mode": true,
+		"generate_periodic_adc_pattern": true,
 		"use_fake_cards": true
 	},
 

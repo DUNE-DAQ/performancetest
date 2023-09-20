@@ -22,7 +22,7 @@
 		"thread_pinning_file":"../cpupins/cpupin-eth-stream_scaling_swtpg-np02srv003.json",
     "default_data_file": "../wibeth_output_ALL_ZEROS.bin",
 		"latency_buffer_size": 499968,
-		"emulator_mode": true,
+		"generate_periodic_adc_pattern": true,
 		"use_fake_cards": true,
     "enable_tpg": true,
     "tpg_threshold": 1000,
