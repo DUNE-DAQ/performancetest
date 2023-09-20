@@ -5,11 +5,11 @@
 Run benchmark-rate_limiter.sh script on host to test :
 
 ```
-./benchmark_rate_limiter.sh <frequency> <device(s)_to_test> <test_time> <num_applications> <output_folder>
+./benchmark_rate_limiter.sh <frequency> <device(s)_to_test> <test_time> <num_applications> <buffer_sizes> <output_folder>
 ```
 Ex :
 ```
-./benchmark_rate_limiter.sh 166 'md0 md1 md2' 100 10 results_test_rate
+./benchmark_rate_limiter.sh 166 'md0 md1 md2' 100 10 4096 results_test_rate
 ```
 ---
 Then create graphs from generated data :
