@@ -1,0 +1,91 @@
+{  
+  "daq_application": {
+
+    "--name runp02srv004eth0": {
+    "parent": "0,128,1,129,2,130,3,131",
+    "threads": {
+      "fakeprod-(0|12)": [4,132],
+      "fakeprod-(1|13)": [5,133],
+      "fakeprod-(2|14)": [6,135],
+      "fakeprod-(3|15)": [7,136],
+      "fakeprod-(4|16)": [8,136],
+      "fakeprod-(5|17)": [9,137],
+      "fakeprod-(6|18)": [10,138],
+      "fakeprod-(7|19)": [11,139],
+      "fakeprod-(8|20)": [12,140],
+      "fakeprod-(9|21)": [13,141],
+      "fakeprod-(10|22)": [14,142],
+      "fakeprod-(11|23)": [15,143],
+
+      "consumer-(0|12)": [34,162],
+      "consumer-(1|13)": [35,163],
+      "consumer-(2|14)": [36,164],
+      "consumer-(3|15)": [37,165],
+      "consumer-(4|16)": [38,166],
+      "consumer-(5|17)": [39,167],
+      "consumer-(6|18)": [40,168],
+      "consumer-(7|19)": [41,169],
+      "consumer-(8|20)": [42,170],
+      "consumer-(9|21)": [43,171],
+      "consumer-(10|22)": [44,172],
+      "consumer-(11|23)": [45,173]
+      }
+    },
+
+    "--name runp02srv004eth1": {
+    "parent": "64,192,65,193,66,194,67,195",
+    "threads": {
+      "fakeprod-24": [68,196],
+      "fakeprod-25": [69,197],
+      "fakeprod-26": [70,198],
+      "fakeprod-27": [71,199],
+      "fakeprod-28": [72,200],
+      "fakeprod-29": [73,201],
+      "fakeprod-30": [74,202],
+      "fakeprod-31": [75,203],
+      "fakeprod-32": [76,204],
+      "fakeprod-33": [77,205],
+      "fakeprod-34": [78,206],
+      "fakeprod-35": [79,207],
+      "fakeprod-36": [80,208],
+      "fakeprod-37": [81,209],
+      "fakeprod-38": [82,210],
+      "fakeprod-39": [83,211],
+      "fakeprod-40": [84,212],
+      "fakeprod-41": [85,213],
+      "fakeprod-42": [86,214],
+      "fakeprod-43": [87,215],
+      "fakeprod-44": [88,216],
+      "fakeprod-45": [89,217],
+      "fakeprod-46": [90,218],
+      "fakeprod-47": [91,219],
+
+      "consumer-24": [92,220],
+      "consumer-25": [93,221],
+      "consumer-26": [94,222],
+      "consumer-27": [95,223],
+      "consumer-28": [96,224],
+      "consumer-29": [97,225],
+      "consumer-30": [98,226],
+      "consumer-31": [99,227],
+      "consumer-32": [100,228],
+      "consumer-33": [101,229],
+      "consumer-34": [102,230],
+      "consumer-35": [103,231],
+      "consumer-36": [104,232],
+      "consumer-37": [105,233],
+      "consumer-38": [106,234],
+      "consumer-39": [107,235],
+      "consumer-40": [108,236],
+      "consumer-41": [109,237],
+      "consumer-42": [110,238],
+      "consumer-43": [111,239],
+      "consumer-44": [112,240],
+      "consumer-45": [113,241],
+      "consumer-46": [114,242],
+      "consumer-47": [115,243]
+      }
+    }
+  }
+}
+

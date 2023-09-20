@@ -1,0 +1,36 @@
+{
+	"detector": {
+        "clock_speed_hz": 62500000
+    },
+
+    "daq_common": {
+        "data_rate_slowdown_factor": 1.0
+    },
+
+	"boot": {
+		"use_connectivity_service": true,
+		"start_connectivity_service": true,
+		"connectivity_service_host": "localhost",
+		"connectivity_service_port": 15432,
+		"disable_trace": false,
+		"opmon_impl": "cern",
+		"ers_impl":"cern"
+	}, 
+
+	"readout": {
+		"thread_pinning_file":"../cpupins/cpupin-eth-stream_scaling-np02srv004.json",
+		"default_data_file": "../wibeth_output_ALL_ZEROS.bin",
+		"latency_buffer_size": 124992,
+		"generate_periodic_adc_pattern": true,
+		"use_fake_cards": true
+	},
+
+	"trigger": {
+		"trigger_window_before_ticks": 2144,
+		"trigger_window_after_ticks": 260000
+	},
+
+	"hsi": {
+        "random_trigger_rate_hz": 0.1
+    }
+  }
