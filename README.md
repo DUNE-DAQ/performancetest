@@ -66,6 +66,9 @@ Optionally you can run in batch mode, which also lets you configure pre and post
 
 Then run the test suite in batch mode like this `phoronix-test-suite batch-benchmark <suite-name>`. You will only be prompted for what you selected, and results will be uploaded to OpenBenchmarking at the link given.
 
+## Creating the performance report
+TBA
+
 ## DAQ performance tests
 
 The performance test suite has the following dependencies to install:
@@ -76,8 +79,9 @@ yum install hwloc-gui
 yum install htop
 yum install sysstat
 
-git clone https://github.com/DUNE-DAQ/nanorc.git -b plasorak/batch-expert-command
-pip install nanorc
+git clone https://github.com/DUNE-DAQ/performancetest.git
+git clone https://github.com/DUNE-DAQ/nanorc.git
+cd nanorc/; pip install .
 ```
 
 ### PCM Grafana
@@ -145,34 +149,45 @@ htop
 
 Since cpu pinning configurations are fully dependent on hardware topology, different servers may need different configs. The important thing to look for is how cores/threads are distributed across NUMA nodes. Example configurations can be found [here](https://github.com/DUNE-DAQ/performancetest/tree/develop/cpupins) and [here](https://github.com/DUNE-DAQ/readoutlibs/blob/develop/config/cpupins).
 
-### Link scaling performance tests
+### Stream scaling performance tests
 
-The readout app performance test for a particular system configuration, with scaling from 1-24 data links, will be described here. This will produce configurations for 1-24 data links, hosting readout locally and all other apps at a given host. At 12 minutes per run (10m run, 2m cooldown), this full test is expected to take just under 5 hours. Ensure first that PCM monitoring is active, so that results can be exported from grafana. The link scaling tests were run with dunedaq v3.1.0.
+The readout app performance test for a particular system configuration will be described here, with scaling for 8, 16, 24, 32, 40, and 48 streams. This will produce configurations for these streams, hosting readout locally, and all other apps at a given host. At 12 minutes per run (10m run, 2m cooldown), this full test is expected to take just under 2 hours. Ensure first that PCM monitoring is active so that results can be exported from Grafana. The stream scaling tests were run with fddaq-v4.1.0.
 
 ```
-# Run this only once to disable higher level core sleep states
+# Run this only once to disable higher-level core sleep states
 sudo ./scripts/cpu-perf-mode.sh
-
-# Run this only once to generate config files for each run at n=1-24 links, giving it the address to host non-readout apps, and the full path to the cpu pin file
-./tests/link_scaling_gen.sh <test_name> <host_address> <pin_file>
-
-# To run the test, give it a run number and ensure all run numbers up to run_number+23 are unused
-./tests/link_scaling_run.sh <run_number>
 ```
 
-### Link scaling SNB recording performance test
+### Stream scaling SNB recording performance test
 
-This is a performance test for the SNB recording, scaling from 1-24 links. It is configured with software TPG enabled, CPU pinning, non-local hosting for non-readout apps, and raw recording enabled. The recording is run for the first 100s of the 10 minute run per link, and requires ~1TB of space in the recording directory. The results can be exported from the grafana monitoring as usual. And it will again take about 5 hours to complete.
-
-```
-# Run this only once to generate config files for each run at n=1-24 links, giving it the address to host non-readout apps, and the full path to the cpu pin file
-./tests/snb_write_gen.sh <test_name> <host_address> <pin_file> <output_path>
-
-# To run the test, give it a run number and ensure all run numbers up to run_number+23 are unused
-./tests/snb_write_run.sh <run_number>
-```
+This is a performance test for the SNB recording, with scaling for 8, 16, 24, 32, 40, and 48 streams. It is configured with software TPG enabled, CPU pinning, non-local hosting for non-readout apps, and raw recording enabled. The recording is run for the first 100s of the 10 minute run per stream, and requires ~1TB of space in the recording directory. The results can be exported from the grafana monitoring as usual. And it will again take about 5 hours to complete.
 
 ### RAID throughput
 
 Recording to RAID disks should have a throughput of about 880 MB/s per data link. The throughput can be plotted, scaled down by the number of data links, for each run in the test. After running the performance test with recording to disk, view the RAID throughput with: `./analysis/iostat_plotter.py <test_directory>`
 
+## How to run tests
+- Generate config files for streams [8, 16, 24, 32, 40, 48]:
+    - Usage option 1: `./config_gen.sh <path_to_performancetest> <server_readout> <NUMA_node_num> <data_format> <test> <dunedaq_version> <server_others>`
+        - `<server_readout>`: server that will run the readout app
+        - `<NUMA_node_num>`: 0, 1, or 01 (when using both)
+        - `<data_format>`: eth of wib2
+        - `<test>`: ex. stream_scaling
+        - `<dunedaq_version>`: v4_1_1
+        - `<server_others>`: local server that runs all the apps except the readout
+    - Usage option 2: `daqconf_multiru_gen -c <daqconf_file.json> --detector-readout-map-file <readoutmap.json> <test_name>`
+- Start monitoring for AMD:
+    - `cd sourcecode/performancetest/scripts/`
+    - `sudo ./start_uprof.sh <test_path> <test_name> <duration_seconds>`
+    - If error in Power monitoring do: `sudo ./opt/AMDuProf_4.0-341/bin/AMDPowerProfilerDriver.sh install`
+- Run the test:
+    - Usage option 1: `./run_stream_scaling.sh <envir_name> <run_num_init> <test_name>`
+    - Usage option 1: `./run_scaling_scaling_recording.sh <envir_name> <run_num_init> <test_name> <server>`
+    - Usage option 2: `nanorc <test_name> dvargas-perf`
+        - `boot; conf; start_run <run_num>; stop_run`
+- Move output files from raw recording:
+    - `cd sourcecode/performancetest/scripts/`
+    - `sudo ./move_raw_data.sh <test_name>/<streams>`
+
+## Creating the performance report
+TBA
