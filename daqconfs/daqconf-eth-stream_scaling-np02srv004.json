@@ -20,7 +20,7 @@
 	"readout": {
 		"thread_pinning_file":"../cpupins/cpupin-eth-stream_scaling-np02srv004.json",
 		"default_data_file": "asset://?checksum=dd156b4895f1b06a06b6ff38e37bd798",
-		"latency_buffer_size": 124992,
+		"latency_buffer_size": 139008,
 		"generate_periodic_adc_pattern": true,
 		"use_fake_cards": true
 	},

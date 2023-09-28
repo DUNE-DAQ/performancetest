@@ -175,7 +175,7 @@ Recording to RAID disks should have a throughput of about 880 MB/s per data link
         - `<test>`: ex. stream_scaling
         - `<dunedaq_version>`: v4_1_1
         - `<server_others>`: local server that runs all the apps except the readout
-    - Usage option 2: `daqconf_multiru_gen -c <daqconf_file.json> --detector-readout-map-file <readoutmap.json> <test_name>`
+    - Usage option 2: `fddaqconf_gen -c <daqconf_file.json> --detector-readout-map-file <readoutmap.json> <test_name>`
 - Start monitoring for AMD:
     - `cd sourcecode/performancetest/scripts/`
     - `sudo ./start_uprof.sh <test_path> <test_name> <duration_seconds>`

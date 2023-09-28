@@ -21,7 +21,7 @@
 	"readout": {
 		"thread_pinning_file":"../cpupins/cpupin-eth-stream_scaling_swtpg-np02srv004.json",
     	"default_data_file": "asset://?checksum=dd156b4895f1b06a06b6ff38e37bd798",
-		"latency_buffer_size": 124992,
+		"latency_buffer_size": 139008,
 		"generate_periodic_adc_pattern": true,
 		"use_fake_cards": true,
 		"enable_tpg": true,
@@ -46,7 +46,7 @@
 		"trigger_window_before_ticks": 2144,
 		"trigger_window_after_ticks": 260000,
 		"trigger_activity_config": {
-            "prescale": 1000
+            "prescale": 2000
         },
         "mlt_merge_overlapping_tcs": false
 	},
