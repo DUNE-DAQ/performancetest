@@ -89,7 +89,7 @@
             "det_id": 3,
             "crate_id": 1,
             "slot_id": 0,
-            "stream_id": 4
+            "stream_id": 64
         },
         "kind": "eth",
         "parameters": {
@@ -110,7 +110,7 @@
             "det_id": 3,
             "crate_id": 1,
             "slot_id": 0,
-            "stream_id": 5
+            "stream_id": 65
         },
         "kind": "eth",
         "parameters": {
@@ -131,7 +131,7 @@
             "det_id": 3,
             "crate_id": 1,
             "slot_id": 0,
-            "stream_id": 6
+            "stream_id": 66
         },
         "kind": "eth",
         "parameters": {
@@ -152,7 +152,7 @@
             "det_id": 3,
             "crate_id": 1,
             "slot_id": 0,
-            "stream_id": 7
+            "stream_id": 67
         },
         "kind": "eth",
         "parameters": {

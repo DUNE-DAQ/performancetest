@@ -89,7 +89,7 @@
             "det_id": 3,
             "crate_id": 1,
             "slot_id": 0,
-            "stream_id": 4
+            "stream_id": 64
         },
         "kind": "eth",
         "parameters": {
@@ -110,7 +110,7 @@
             "det_id": 3,
             "crate_id": 1,
             "slot_id": 0,
-            "stream_id": 5
+            "stream_id": 65
         },
         "kind": "eth",
         "parameters": {
@@ -131,7 +131,7 @@
             "det_id": 3,
             "crate_id": 1,
             "slot_id": 0,
-            "stream_id": 6
+            "stream_id": 66
         },
         "kind": "eth",
         "parameters": {
@@ -152,7 +152,7 @@
             "det_id": 3,
             "crate_id": 1,
             "slot_id": 0,
-            "stream_id": 7
+            "stream_id": 67
         },
         "kind": "eth",
         "parameters": {
@@ -172,8 +172,8 @@
         "geo_id": {
             "det_id": 3,
             "crate_id": 1,
-            "slot_id": 0,
-            "stream_id": 8
+            "slot_id": 1,
+            "stream_id": 0
         },
         "kind": "eth",
         "parameters": {
@@ -193,8 +193,8 @@
         "geo_id": {
             "det_id": 3,
             "crate_id": 1,
-            "slot_id": 0,
-            "stream_id": 9
+            "slot_id": 1,
+            "stream_id": 1
         },
         "kind": "eth",
         "parameters": {
@@ -214,8 +214,8 @@
         "geo_id": {
             "det_id": 3,
             "crate_id": 1,
-            "slot_id": 0,
-            "stream_id": 10
+            "slot_id": 1,
+            "stream_id": 2
         },
         "kind": "eth",
         "parameters": {
@@ -235,8 +235,8 @@
         "geo_id": {
             "det_id": 3,
             "crate_id": 1,
-            "slot_id": 0,
-            "stream_id": 11
+            "slot_id": 1,
+            "stream_id": 3
         },
         "kind": "eth",
         "parameters": {
@@ -256,8 +256,8 @@
         "geo_id": {
             "det_id": 3,
             "crate_id": 1,
-            "slot_id": 0,
-            "stream_id": 12
+            "slot_id": 1,
+            "stream_id": 64
         },
         "kind": "eth",
         "parameters": {
@@ -277,8 +277,8 @@
         "geo_id": {
             "det_id": 3,
             "crate_id": 1,
-            "slot_id": 0,
-            "stream_id": 13
+            "slot_id": 1,
+            "stream_id": 65
         },
         "kind": "eth",
         "parameters": {
@@ -298,8 +298,8 @@
         "geo_id": {
             "det_id": 3,
             "crate_id": 1,
-            "slot_id": 0,
-            "stream_id": 14
+            "slot_id": 1,
+            "stream_id": 66
         },
         "kind": "eth",
         "parameters": {
@@ -319,8 +319,8 @@
         "geo_id": {
             "det_id": 3,
             "crate_id": 1,
-            "slot_id": 0,
-            "stream_id": 15
+            "slot_id": 1,
+            "stream_id": 67
         },
         "kind": "eth",
         "parameters": {
@@ -340,8 +340,8 @@
         "geo_id": {
             "det_id": 3,
             "crate_id": 1,
-            "slot_id": 0,
-            "stream_id": 16
+            "slot_id": 2,
+            "stream_id": 0
         },
         "kind": "eth",
         "parameters": {
@@ -361,8 +361,8 @@
         "geo_id": {
             "det_id": 3,
             "crate_id": 1,
-            "slot_id": 0,
-            "stream_id": 17
+            "slot_id": 2,
+            "stream_id": 1
         },
         "kind": "eth",
         "parameters": {
@@ -382,8 +382,8 @@
         "geo_id": {
             "det_id": 3,
             "crate_id": 1,
-            "slot_id": 0,
-            "stream_id": 18
+            "slot_id": 2,
+            "stream_id": 2
         },
         "kind": "eth",
         "parameters": {
@@ -403,8 +403,8 @@
         "geo_id": {
             "det_id": 3,
             "crate_id": 1,
-            "slot_id": 0,
-            "stream_id": 19
+            "slot_id": 2,
+            "stream_id": 3
         },
         "kind": "eth",
         "parameters": {
@@ -424,8 +424,8 @@
         "geo_id": {
             "det_id": 3,
             "crate_id": 1,
-            "slot_id": 0,
-            "stream_id": 20
+            "slot_id": 2,
+            "stream_id": 64
         },
         "kind": "eth",
         "parameters": {
@@ -445,8 +445,8 @@
         "geo_id": {
             "det_id": 3,
             "crate_id": 1,
-            "slot_id": 0,
-            "stream_id": 21
+            "slot_id": 2,
+            "stream_id": 65
         },
         "kind": "eth",
         "parameters": {
@@ -466,8 +466,8 @@
         "geo_id": {
             "det_id": 3,
             "crate_id": 1,
-            "slot_id": 0,
-            "stream_id": 22
+            "slot_id": 2,
+            "stream_id": 66
         },
         "kind": "eth",
         "parameters": {
@@ -487,8 +487,8 @@
         "geo_id": {
             "det_id": 3,
             "crate_id": 1,
-            "slot_id": 0,
-            "stream_id": 23
+            "slot_id": 2,
+            "stream_id": 67
         },
         "kind": "eth",
         "parameters": {

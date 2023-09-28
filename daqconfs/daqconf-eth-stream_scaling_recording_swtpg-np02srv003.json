@@ -20,7 +20,7 @@
 
 	"readout": {
 		"thread_pinning_file":"../cpupins/cpupin-eth-stream_scaling_recording_swtpg-np02srv003.json",
-    "default_data_file": "../wibeth_output_ALL_ZEROS.bin",
+    "default_data_file": "asset://?checksum=dd156b4895f1b06a06b6ff38e37bd798",
 		"enable_raw_recording": true,
 		"raw_recording_output_dir":"/mnt/nvm_raid0/",
 		"latency_buffer_size": 124992,
@@ -46,7 +46,11 @@
 
 	"trigger": {
 		"trigger_window_before_ticks": 2144,
-		"trigger_window_after_ticks": 260000
+		"trigger_window_after_ticks": 260000,
+		"trigger_activity_config": {
+            "prescale": 1000
+        },
+        "mlt_merge_overlapping_tcs": false
 	},
 	
 	"hsi": {
