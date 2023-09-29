@@ -11,6 +11,11 @@ output_path=$2
 test_name=$3
 test_suite=dunedaq-srv-benchmark
 
+
+# trim disks
+{ time sudo fstrim -v /mnt/nvm_raid0; } 2> $output_path/fstrim_benchmark_raid0.time
+{ time sudo fstrim -v /mnt/nvm_raid1; } 2> $output_path/fstrim_benchmark_raid1.time
+
 cp $path/benchmark/user-config.xml ~/.phoronix-test-suite/
 cp -r $path/benchmark/local/ ~/.phoronix-test-suite/test-suites/
 
