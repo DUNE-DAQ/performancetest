@@ -74,8 +74,11 @@ benchmark_path = '../results'
 ./benchmark.sh <path_to_performancetest> <benchmark_path>
 ```
 
-## Creating the benchmark report
+## Benchmark report
 The report can be created using the python3 notebook `Benchmark_report.ipynb` Important to have all the output_files in one foder and give the correct path to them (`benchmark_path`). Also, is necesary to expecify the path to the forder where the report will be store (`report_path`). This pahts should be diferents.
+
+### Creating the report
+
 ```
 # Phoronix data 
 report_path = '../reports'

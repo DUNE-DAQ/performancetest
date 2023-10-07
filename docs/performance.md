@@ -118,7 +118,7 @@ Then configure grafana to plot the metrics. The same grafana instance can be use
 
 ## How to run tests
 
-We have 2 cases, we can run the automate scaling or a single test at a time. Important, in the case of an INTEL server skip step 2 (it is only for AMD servers).
+We have 2 cases, we can run the automatic scaling or a single test at a time. Important, in the case of an INTEL server skip step 2 (it is only for AMD servers).
 
 - The single test:
     1. Generate config file: `fddaqconf_gen -c <daqconf_file.json> --detector-readout-map-file <readoutmap.json> <test_name>`
@@ -130,7 +130,7 @@ We have 2 cases, we can run the automate scaling or a single test at a time. Imp
         - for recording: `expert_command --timeout 10 <test_name>/<test_name>/<readout_app> ../record-cmd.json`
         - `stop_run; exit`
     
-- The automate scaling:
+- The automatic scaling:
     1. Generate config files for streams [8, 16, 24, 32, 40, 48]:
         - `./config_gen.sh <path_to_performancetest> <server_readout> <NUMA_node_num> <data_format> <test> <dunedaq_version> <server_others>`
             - `<server_readout>`: server that will run the readout app
@@ -147,7 +147,7 @@ We have 2 cases, we can run the automate scaling or a single test at a time. Imp
             - Move output files from raw recording: `cd sourcecode/performancetest/scripts/; sudo ./move_raw_data.sh <test_name>/<streams>`
         - with recording: `./run_scaling_scaling_recording.sh <envir_name> <run_num_init> <test_name> <server>`
 
-## Creating the performance report
+## Performance report
 
 The report can be created using the python3 notebook `Performance_report.ipynb` Important to have all the output_files in one foder and give the correct path to them (`results_path`). Also, is necesary to expecify the path to the forder where the report will be store (`report_path`). This pahts should be diferents.
 
@@ -180,7 +180,7 @@ for delta_time_list, output_csv_file_list in zip(delta_time, output_csv_file):
     extract_data_and_stats_from_panel(grafana_url, dashboard_uid, delta_time=delta_time_list, host=host_used, input_dir=results_path, output_csv_file=output_csv_file_list)
     
 ```
-### Performance report
+### Creating the report
 
 Note: change the paths to fit yours
 ```
