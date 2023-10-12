@@ -21,11 +21,10 @@ from datetime import datetime as dt
 from fpdf import FPDF 
 from fpdf.enums import XPos, YPos
 
-cs8_os = ['np04srv001', 'np04srv002', 'np04srv003', 'np04srv008', 'np04srv010', 'np04srv012', 
-          'np04srv014', 'np04srv023', 'np04onl003', 'np02srv002', 'np02srv003']
+cs8_os = ['np04srv001', 'np04srv002', 'np04srv003', 'np04srv008', 'np04srv010', 'np04srv014', 'np04srv023', 'np04onl003', 'np02srv003']
 c7_os = ['np04srv007', 'np04srv009', 'np04crt001']
 
-columns_list_tpg = [['Socket0 Instructions Per Cycle', 'Socket0 Instructions Retired Any (Million)'], [' ', ' ']]
+columns_list_tpg = [['Socket0 Instructions Per Cycle', 'Socket0 Instructions Retired Any (Million)'], ['IPC (Sys + User) Socket0', ' ']]
 label_names_tpg = ['Instructions Per Cycle', 'Instructions Retired Any (Million)']
 tpg_test_list = ['tpg_SimpletTreshold_standalone', 'tpg_AbsRS_standalone']
 
@@ -41,9 +40,7 @@ label_names = ['Memory Bandwidth (GB/sec)', 'L2 Cache Misses (Million)', 'L3 Cac
 #for uprof [' Utilization (%) Socket0', 'Utilization (%) Socket1', 'L2 Hit Ratio Socket0', 'L2 Hit Ratio Socket1']
 
 label_columns = ['Socket0', 'Socket1'] 
-color_list = ['red', 'blue', 'green', 'cyan', 'orange', 'yellow', 'magenta', 'lime', 'purple', 'navy', 'hotpink', 'olive', 'salmon', 'teal', 'darkblue', 'darkgreen', 'darkcyan', 'darkorange', 
-              'deepskyblue', 'darkmagenta', 'sienna', 'chocolate', 'orangered', 'gray', 'royalblue', 'gold', 'peru', 'seagreen', 'violet', 'tomato', 'lightsalmon', 'crimson', 'lightblue', 
-              'lightgreen', 'lightpink', 'black', 'darkgray', 'lightgray', 'saddlebrown', 'brown', 'khaki', 'tan', 'turquoise', 'linen', 'lawngreen', 'coral']
+color_list = ['red', 'blue', 'green', 'cyan', 'orange', 'navy', 'magenta', 'lime', 'purple', 'hotpink', 'olive', 'salmon', 'teal', 'darkblue', 'darkgreen', 'darkcyan', 'darkorange', 'deepskyblue', 'darkmagenta', 'sienna', 'chocolate', 'orangered', 'gray', 'royalblue', 'gold', 'peru', 'seagreen', 'violet', 'tomato', 'lightsalmon', 'crimson', 'lightblue', 'lightgreen', 'lightpink', 'black', 'darkgray', 'lightgray', 'saddlebrown', 'brown', 'khaki', 'tan', 'turquoise', 'linen', 'lawngreen']
 linestyle_list = ['solid', 'dotted', 'dashed', 'dashdot','solid', 'dotted', 'dashed', 'dashdot']
 
 marker_list = ['s','o','.','p','P','^','<','>','*','+','x','X','d','D','h','H']
@@ -145,18 +142,28 @@ def create_var_list(file_list, var_list):
     return files_srv_list
 
 def fetch_grafana_panels(grafana_url, dashboard_uid):
+    panels = []
     # Get dashboard configuration
-    dashboard_url = '{}/api/dashboards/uid/{}'.format(grafana_url, dashboard_uid)   
-    response = requests.get(dashboard_url)
-    
-    if response.status_code != 200:
-        print('Error in fetch_grafana_panels: Failed to fetch dashboard data. Status code: ', response.status_code)
-        return None
-    
-    dashboard_data = response.json()
-    # Extract panels data
-    panels = dashboard_data['dashboard']['panels']
-    return panels
+    dashboard_url = '{}/api/dashboards/uid/{}'.format(grafana_url, dashboard_uid)     
+    try:
+        response = requests.get(dashboard_url)
+        if response.status_code == 200:
+            content_type = response.headers.get('Content-Type')
+
+            if content_type and 'application/json' in content_type:
+                dashboard_data = response.json()  
+                # Extract panels data
+                panels = dashboard_data['dashboard']['panels']
+                return panels
+            else:
+                print('Warning: Response is not in JSON format. Content-Type:', content_type)
+                html_content = response.text
+                
+        else:
+            print('Error: Failed to fetch dashboard data. Status code:', response.status_code)
+        
+    except requests.exceptions.RequestException as e:
+        print('Error: Request failed with the following exception:', e)
 
 def get_query_urls(panel, host):
     targets = panel.get('targets', [])
