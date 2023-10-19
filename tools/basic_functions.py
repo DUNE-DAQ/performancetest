@@ -21,29 +21,8 @@ from datetime import datetime as dt
 from fpdf import FPDF 
 from fpdf.enums import XPos, YPos
 
-cs8_os = ['np04srv001', 'np04srv002', 'np04srv003', 'np04srv008', 'np04srv010', 'np04srv014', 'np04srv023', 'np04onl003', 'np02srv003']
+cs8_os = ['np04srv001', 'np04srv002', 'np04srv003', 'np04srv008', 'np04srv010', 'np04srv014', 'np04srv023', 'np04onl003']
 c7_os = ['np04srv007', 'np04srv009', 'np04crt001']
-
-columns_list_tpg = [['Socket0 Instructions Per Cycle', 'Socket0 Instructions Retired Any (Million)'], ['IPC (Sys + User) Socket0', ' ']]
-label_names_tpg = ['Instructions Per Cycle', 'Instructions Retired Any (Million)']
-tpg_test_list = ['tpg_SimpletTreshold_standalone', 'tpg_AbsRS_standalone']
-
-columns_list_CPU = [['C0 Core C-state residency'], ['CPU Utilization']]
-label_CPU = 'CPU Utilization (%)'
-pcm_columns_list_0 = ['Socket0 Memory Bandwidth', 'Socket0 L2 Cache Misses', 'Socket0 L3 Cache Misses', 'Package Joules Consumed Socket0 Energy Consumption']
-pcm_columns_list_1 = ['Socket1 Memory Bandwidth', 'Socket1 L2 Cache Misses', 'Socket1 L3 Cache Misses', 'Package Joules Consumed Socket1 Energy Consumption']
-uprof_columns_list_0 = ['Total Mem Bw (GB/s) Socket0', 'L2 Miss (pti) Socket0', 'L3 Miss Socket0', 'socket0-package-power']
-uprof_columns_list_1 = ['Total Mem Bw (GB/s) Socket1', 'L2 Miss (pti) Socket1', 'L3 Miss Socket1', 'socket1-package-power']
-label_names = ['Memory Bandwidth (GB/sec)', 'L2 Cache Misses (Million)', 'L3 Cache Misses (Million)', 'CPU Power Consumption (Watt)']
-
-#for pcm ['Socket0 L2 Cache Misses Per Instruction', 'Socket1 L2 Cache Misses Per Instruction']
-#for uprof [' Utilization (%) Socket0', 'Utilization (%) Socket1', 'L2 Hit Ratio Socket0', 'L2 Hit Ratio Socket1']
-
-label_columns = ['Socket0', 'Socket1'] 
-color_list = ['red', 'blue', 'green', 'cyan', 'orange', 'navy', 'magenta', 'lime', 'purple', 'hotpink', 'olive', 'salmon', 'teal', 'darkblue', 'darkgreen', 'darkcyan', 'darkorange', 'deepskyblue', 'darkmagenta', 'sienna', 'chocolate', 'orangered', 'gray', 'royalblue', 'gold', 'peru', 'seagreen', 'violet', 'tomato', 'lightsalmon', 'crimson', 'lightblue', 'lightgreen', 'lightpink', 'black', 'darkgray', 'lightgray', 'saddlebrown', 'brown', 'khaki', 'tan', 'turquoise', 'linen', 'lawngreen']
-linestyle_list = ['solid', 'dotted', 'dashed', 'dashdot','solid', 'dotted', 'dashed', 'dashdot']
-
-marker_list = ['s','o','.','p','P','^','<','>','*','+','x','X','d','D','h','H']
 
 def directory(input_dir):
     # Create directory (if it doesn't exist yet):
@@ -284,7 +263,7 @@ def uprof_pcm_formatter(input_dir, file):
             header_new = ['Timestamp']
             for package,header in zip(header1,header2):
                 if (package=='\n') or (header=='\n'):
-                    header_new += ['L2 Hit Ratio Socket0', 'L2 Hit Ratio Socket1', 'CPU Utilization', '\n']
+                    header_new += ['CPU Utilization', '\n']
                     header_new_str = ','.join(header_new)
                     f_new.write(header_new_str)
                 if 'Package' in package:
@@ -309,21 +288,13 @@ def uprof_pcm_formatter(input_dir, file):
             day_n  = (day0 + hour_carryover)
             date_n = '{year_month}-{day:02d} {hour:02d}:{min:02d}:{sec:02d}'.format(year_month=full_date[0:7], day=day_n, hour=hour_n, min=min_n, sec=sec_n)
             line_n = re.sub('..:..:..:...', date_n, line)
-            
-            # calculate L2 Hit ratio
             line_list = line_n.split(',')
-            l2_hit_ratio_0 = float(line_list[19]) / (float(line_list[19]) + float(line_list[15])) * 100
-            l2_hit_ratio_0 = str(round(l2_hit_ratio_0, 2))
-            l2_hit_ratio_1 = float(line_list[41]) / (float(line_list[41]) + float(line_list[37])) * 100
-            l2_hit_ratio_1 = str(round(l2_hit_ratio_1, 2))
 
             # CPU Utilization
             cpu_utiliz = float(line_list[1]) + float(line_list[22])
             cpu_utiliz = str(round(cpu_utiliz, 2))
             
-            line_list[-1] = l2_hit_ratio_0
-            line_list.append(l2_hit_ratio_1)
-            line_list.append(cpu_utiliz)
+            line_list[-1] = cpu_utiliz
             line_list.append('\n')
             line_n = ','.join(line_list)
             f_new.write(line_n)   
@@ -367,30 +338,9 @@ def uprof_timechart_formatter(input_dir, file):
     f_new.close()
 
 def month2num(month_str):
-    if month_str=='Jan':
-        return 1
-    elif month_str=='Feb':
-        return 2
-    elif month_str=='Mar':
-        return 3
-    elif month_str=='Apr':
-        return 4
-    elif month_str=='May':
-        return 5
-    elif month_str=='Jun':
-        return 6
-    elif month_str=='Jul':
-        return 7
-    elif month_str=='Aug':
-        return 8
-    elif month_str=='Sep':
-        return 9
-    elif month_str=='Oct':
-        return 10
-    elif month_str=='Nov':
-        return 11
-    elif month_str=='Dec':
-        return 12
+    months = {'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4, 'May': 5, 'Jun': 6, 'Jul': 7, 'Aug': 8, 'Sep': 9, 'Oct': 10, 'Nov': 11, 'Dec': 12}
+    if month_str in months:
+        return months[month_str]
     else:
         print('Warning: invalid month')
         
@@ -415,12 +365,11 @@ def break_file_name(file):
     return info
 
 def check_OS(server):
-    OS = 'Alma9'
     if server in cs8_os:
-        OS = 'CS8'
+        return 'CS8'
     elif server in c7_os:
-        OS = 'C7'
-    return OS 
+        return 'C7'
+    return 'Alma9'
 
 def add_new_time_format(input_dir, file):
     data_frame = pd.read_csv('{}/{}.csv'.format(input_dir, file))  
@@ -483,6 +432,13 @@ def get_column_val(df, columns, labels, file):
             Y = Y_tmp.values.tolist()
             val.append(Y)
             label.append('{} {} {}'.format(info[5], info[2] , label_j))
+            
+        elif columns_j in ['Package Joules Consumed Socket0 Energy Consumption', 'Package Joules Consumed Socket1 Energy Consumption']:
+            #Y_tmp = df[columns_j] - 40
+            Y_tmp = df[columns_j]
+            Y = Y_tmp.values.tolist()
+            val.append(Y)
+            label.append('{} {} {}'.format(info[5], info[2] , label_j))    
         else:
             Y = df[columns_j].values.tolist()
             val.append(Y)
@@ -554,6 +510,30 @@ def json_info(file_daqconf, file_cpupins, input_dir, var, pdf, if_pdf=False):
                     pass
             pdf.write(5,'\n')
 
-            
-            
+def append_lists(list1, list2):
+    for i in list2:
+        list1.append(i)
+    return list1
 
+def get_parents(cpus_node):
+    parents0_tmp=cpus_node[0]
+    parents1_tmp=cpus_node[1]
+    parents0=parents0_tmp[:4]
+    parents1=parents1_tmp[:4]
+    parents=append_lists(parents0, parents1)
+    return parents 
+          
+def cpupins_files(readout_app, node, cpus, amd_use=False):
+    parents = get_parents(cpus)
+    print(' ------------- ', file_conf, ' ------------')
+    print('{')
+    print(f'    "daq_application": {{')
+    print(f'        "--name {readout_app}": {{')
+    print(f'            "parent": "{parents}",')
+    print(f'            "threads": {{')
+    function(node, cpu_pins=cpus, amd_use=amd_use)
+    print(f'            }}')
+    print(f'        }}')
+    print(f'    }}')
+    
+    
