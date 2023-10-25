@@ -19,15 +19,24 @@ def atoi(text):
 def natural_keys(text):
     return [ atoi(c) for c in re.split(r'(\d+)', text) ]
 
-# Check if input folder is given
-if len(sys.argv) != 2:
-    print("Usage: python3 generate_graph_rate_limited_test.py <data_folder>")
-    sys.exit(1)
+def fstrim_time_reader(file):
+    f = open(file, 'r')
+    output = []
+    pattern_text = r'(?P<minutes>\d+)m(?P<seconds>\d+)\.(?P<ms>\d+)s'
+    pattern_fstrim = re.compile(pattern_text)
+    
+    for line in f.readlines():
+        if line.split('\t')[0] != 'real':
+            continue
+            
+        real_time_str = line.split('\t')[1]
+        groups = pattern_fstrim.match(real_time_str).groupdict()
+        real_time = float(groups['minutes'])*60.0 + float(groups['seconds']) + float(groups['ms'])/1000.0
+        output.append(round(real_time,3))
+    
+    return output
 
-input_folder = sys.argv[1]
-output_folder = input_folder
-
-# Add iostat data to data dict
+# Parse datafiles and add to data dict
 def add_data(file, file_path, data):
 
     print("Reading "+file+" dataset")
@@ -35,17 +44,19 @@ def add_data(file, file_path, data):
     # Different data manipulation depending on the source
     if "iostat" in file:
         df = np.loadtxt(file_path, dtype=str, delimiter=';', skiprows=0, usecols=lines_to_save_iostat)
-    else:
+    elif "readout" in file:
         df = np.loadtxt(file_path, delimiter=';', skiprows=3, usecols=0)
+    elif "time" in file:
+        df = fstrim_time_reader(file_path)
 
     device_name = file.split('-')[0]
 
     # Create dictionary entry for current device
     if not device_name in data:
-        data[device_name] = {'iostat': {}, 'thread': {}}
+        data[device_name] = {'iostat': {}, 'thread': {}, 'fstrim': []}
 
     # Save data
-    # 2 types of data: iostat and thread
+    # types of data: iostat, thread, fstrim
     if "iostat" in file:
         # line by line to save differents disks data
         for line in df:
@@ -56,11 +67,13 @@ def add_data(file, file_path, data):
             data[device_name]['iostat'][line[0]]['wMB/s'].append(float(line[1]))
             data[device_name]['iostat'][line[0]]['w_await'].append(float(line[2]))
             data[device_name]['iostat'][line[0]]['util'].append(float(line[3]))
-    else:
+    elif "readout" in file:
         # thread data, save all in one list
         data[device_name]['thread'][file.split('-')[2]] = df[:]
+    elif "time" in file:
+        data[device_name]['fstrim'] += df
 
-# parse metric from iostat data in data dict, and plot on ax
+# parse metric from iostat data in data dict, and plot on axs
 def iostat_plotter(axs, axs_index, data, metric, device):
     for iostat_device in data[device]['iostat']:
         if iostat_legend[iostat_device] != device:
@@ -82,31 +95,16 @@ def compute_folder(test_results_dir, data):
         
         if os.path.isdir(file_path):
             print("WARNING directory structure is wierd, at ", file_path)
-            #compute_folder(file_path, data)
         # checking if it is a file
-        elif os.path.isfile(file_path) and file.endswith('.csv'):
+        elif os.path.isfile(file_path) and (file.endswith('.csv') or file.endswith('.time')):
             add_data(file,file_path,data)
                     
     # Generating summary plots after reading all files in folder
     print(data.keys())
     for device in data:
-        #if device=="nvm_raid1":
-        #    print("generating summmary plots for device nvm_raid1", [device]['thread'])
         
         fig, axs = plt.subplots(2, figsize=(17,20))
         max_threads = 0
-        
-        # replace extremes values if inferior to threshold
-        # for thread in data[device]['thread']:
-        #     old_val = max(data[device]['thread'][thread])
-        #     for i in range(len(data[device]['thread'][thread])):
-        #         if data[device]['thread'][thread][i] < max(data[device]['thread'][thread])/1.1:
-        #             data[device]['thread'][thread][i] = old_val
-        #         if i > 1:
-        #             old_val = sum(data[device]['thread'][thread][:i]) / len(data[device]['thread'][thread][:i])
-        #         else: 
-        #             old_val = max(data[device]['thread'][thread])
-                            
                         
         # thread summary figure
         print("starting thread summary figure", device)
@@ -122,16 +120,9 @@ def compute_folder(test_results_dir, data):
         axs[0].legend(loc='lower right')
         axs[0].set_title(device+' individual tasks write speed')
 
+        # write speed summary figure
         iostat_plotter(axs, 1, data, 'wMB/s', device)
         
-        #for iostat in data[device]['iostat']:
-        #    if "nvme" in iostat:
-                # full line for raid
-        #        axs[1].plot(np.arange(0, len(data[device]['iostat'][iostat]['wMB/s'])-1, 1), data[device]['iostat'][iostat]['wMB/s'][1:], '--', label=iostat)
-            #else:
-            #    axs[1].plot(np.arange(0, len(data[device]['iostat'][iostat]['wMB/s'])-1, 1), data[device]['iostat'][iostat]['wMB/s'][1:], '-', label=iostat)
-        
-        # write speed summary figure
         axs[1].set_xlabel('time (s)')
         axs[1].set_ylabel('write speed (MB/s)')
         axs[1].tick_params(axis='x', labelrotation=45)
@@ -146,52 +137,59 @@ def compute_folder(test_results_dir, data):
         
         fig, axs = plt.subplots(2, figsize=(17,20))
 
+        # Device utilization summary figure 
         iostat_plotter(axs, 0, data, 'util', device)
-        # Device utilization summary figure    
-        #for iostat in data[device]['iostat']:
-        #    if "nvme" in iostat:
-        #        axs[0].plot(np.arange(0, len(data[device]['iostat'][iostat]['util'])-1, 1), data[device]['iostat'][iostat]['util'][1:], '--', label=iostat)
-            #else:
-            #    axs[0].plot(np.arange(0, len(data[device]['iostat'][iostat]['util'])-1, 1), data[device]['iostat'][iostat]['util'][1:], '-', label=iostat)
-        
+
         axs[0].set_xlabel('time (s)')
         axs[0].set_ylabel('device utilization (%)')
         axs[0].tick_params(axis='x', labelrotation=45)
         axs[0].legend(loc='upper right')
         axs[0].set_title(device+' Device utilization')
         
-        iostat_plotter(axs, 1, data, 'w_await', device)
-
-        #for iostat in data[device]['iostat']:
-        #    if "nvme" in iostat:
-        #        axs[1].plot(np.arange(0, len(data[device]['iostat'][iostat]['w_await'])-1, 1), data[device]['iostat'][iostat]['w_await'][1:], '--', label=iostat)
-            #else:
-            #    axs[1].plot(np.arange(0, len(data[device]['iostat'][iostat]['w_await'])-1, 1), data[device]['iostat'][iostat]['w_await'][1:], '-', label=iostat)
         
         # write await summary figure
+        iostat_plotter(axs, 1, data, 'w_await', device)
+        
         axs[1].set_xlabel('time (s)')
         axs[1].set_ylabel('w_await (ms)')
         axs[1].tick_params(axis='x', labelrotation=45)
         axs[1].legend(loc='upper right')
         axs[1].set_title(device+' average write request latency')
         
-        #plt.title(device+' resume')
         plt.savefig(os.path.join(plot_output_dir, device+'_'+test_name+'_detail.png'))
         plt.close()
 
 
 if __name__ == '__main__':
+    # Check if input folder is given
+    if len(sys.argv) != 2:
+        print("Usage: python3 generate_graph_rate_limited_test.py <data_folder>")
+        sys.exit(1)
+
+    input_folder = sys.argv[1]
+    output_folder = input_folder
+    plot_output_dir = os.path.join(output_folder, 'plots')
+
     # loop through each results dir structure. Each test for each device
     for device_folder in sorted(os.listdir(input_folder), key=natural_keys):
         device_dir = os.path.join(input_folder, device_folder)
         if device_folder == 'plots':
             continue
 
+        trim_times = []
+
         if os.path.isdir(device_dir):
             for test_folder in sorted(os.listdir(device_dir), key=natural_keys):
                 test_results_dir = os.path.join(device_dir, test_folder)
                 data = {}
                 compute_folder(test_results_dir, data)
+
+                trim_times += data[device_folder]['fstrim']
+        #print(device_folder, "trim time max: ", np.max(trim_times), ", trim time median: ", np.median(trim_times))
+        trim_times = [str(i)+',' for i in trim_times]
+        fstrim_output_file = os.path.join(plot_output_dir, device_folder+'_fstrim_times.txt')
+        with open(fstrim_output_file, 'w') as f:
+            f.writelines(trim_times)
 
 
 
