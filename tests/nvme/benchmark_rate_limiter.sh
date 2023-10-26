@@ -1,52 +1,23 @@
 #!/bin/bash
 # need to source the environment file first
 
-if [ $# -ne 6 ]; then
-  echo "Usage: ./benchmark_rate_limiter.sh <frequency> <device(s)_to_test> <test_time> <num_applications> <buffer_sizes> <output_folder>"
-  echo "Ex: ./benchmark_rate_limiter.sh 30.5 'nvm_raid0 nvm_raid1' 100 12 8388608 results_test_rate"
+if [ $# -ne 7 ]; then
+  echo "Usage: ./benchmark_rate_limiter.sh <frequency> <device(s)_to_test> <test_time> <num_applications> <buffer_sizes> <output_folder> <cpu_affinity>"
+  echo "Ex: ./benchmark_rate_limiter.sh 30.5 'nvm_raid0 nvm_raid1' 100 12 8388608 results_test_rate '0,56 1,57'"
   exit 2
 fi
 
 # Script parameters
-# freqs="166"
-# devices="md0 md1 md2"
-# test_time=100
-# num_applic=10
-# RESULTS_FOLDER="results_rate"
 freqs=$1
 devices=($2)
 test_time=$3
 num_applic=$4
 RESULTS_FOLDER=$6
+cpu_affinity=($7)
 mkdir -p $RESULTS_FOLDER
 USER=$(whoami)
 
-#cpu_affinity=("0" "1")
 device_count=$((${#devices[@]}-1))
-
-if [ $num_applic -lt 9 ]
-then
-	cpu_affinity=("0" "1")
-elif [ $num_applic -lt 17 ]
-then
-	cpu_affinity=("0,56" "1,57")
-elif [ $num_applic -lt 25 ]
-then
-
-	cpu_affinity=("0,2,56" "1,3,57")
-elif [ $num_applic -lt 33 ]
-then
-	cpu_affinity=("0,2,4,56,58" "1,3,5,57,59")
-elif [ $num_applic -lt 41 ]
-then
-	cpu_affinity=("0,2,4,56,58,60" "1,3,5,57,59,61")
-elif [ $num_applic -lt 49 ]
-then
-	cpu_affinity=("0,2,4,6,56,58,60" "1,3,5,7,57,59,61")
-else
-	cpu_affinity=("0-111")
-fi
-
 
 for ((device_num=0; device_num<=$device_count; device_num++)); do
     device=${devices[$device_num]}
@@ -59,7 +30,7 @@ for ((device_num=0; device_num<=$device_count; device_num++)); do
             mkdir -p "$CURRENT_FOLDER"
 
 	    echo "pre-trimming device $device"
-            { time sudo fstrim -v /mnt/$device; } 2> $CURRENT_FOLDER/fstrim_${device}.time
+            { time sudo fstrim -v /mnt/$device; } 2> $CURRENT_FOLDER/${device}-fstrim.time
 
 	    echo "> number of applications : $num_applic - freq : $freq kHz - buffer size : $buffer_size"
             
@@ -99,7 +70,7 @@ for ((device_num=0; device_num<=$device_count; device_num++)); do
             sync
 
             echo "post-trimming device $device"
-            { time sudo fstrim -v /mnt/$device; } 2>> $CURRENT_FOLDER/fstrim_${device}.time
+            { time sudo fstrim -v /mnt/$device; } 2>> $CURRENT_FOLDER/${device}-fstrim.time
 
         done;
     done;
