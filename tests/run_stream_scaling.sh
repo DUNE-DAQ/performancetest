@@ -21,7 +21,7 @@ do
 	run_num_increment=${i}/8 
 	run_num=$(($run_num_init + $run_num_increment -1))
 
-	nanorc ${i} $envir_name boot conf start_run $run_num wait 300 stop_run shutdown
+	nanorc ${i} $envir_name boot conf start_run $run_num wait 600 stop_run shutdown
 		
 	# move log files
 	mkdir RunConf_$run_num/logs

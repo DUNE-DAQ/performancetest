@@ -100,8 +100,9 @@ Then configure grafana to plot the metrics. The same grafana instance can be use
                                     31, 33, 35, 37, 39, 41, 43,  45,  47,  49,  51,  53,  55], 
                                    [57, 59, 61, 63, 65, 67, 69, 71, 73, 75, 77, 79, 81, 83, 85, 
                                     87, 89, 91, 93, 95, 97, 99, 101, 103, 105, 107, 109, 111]]
-        
-            cpupins_files(readout_app=['runp02srv003eth0', 'runp02srv003eth1'], cpus=[np02srv003_node0_cpus, np02srv003_node1_cpus], use_raw_recording=True, use_swtpgs=True)
+
+            cpupins(node=0, cpus=np02srv003_node0_cpus, 
+                    tops=[[12, 12, 0, 0], [8, 8, 0, 6], [12, 12, 12, 0], [4, 12, 12, 6]])
         ```
 - DAQ configuration generation:
     - needed files for each run: `daqconf.json`, `hrdware-map-file.txt`, and `cpupin.json`
@@ -118,6 +119,8 @@ Then configure grafana to plot the metrics. The same grafana instance can be use
 
 ## How to run tests
 
+NOTE: First do the pre-checks. Not sure if cpu-perf-mode.sh is automaticlly run. 
+
 We have 2 cases, we can run the automatic scaling or a single test at a time. Important, in the case of an INTEL server skip step 2 (it is only for AMD servers).
 
 - The single test:
@@ -133,12 +136,12 @@ We have 2 cases, we can run the automatic scaling or a single test at a time. Im
 - The automatic scaling:
     1. Generate config files for streams [8, 16, 24, 32, 40, 48]:
         - `./config_gen.sh <path_to_performancetest> <server_readout> <NUMA_node_num> <data_format> <test> <dunedaq_version> <server_others>`
-            - `<server_readout>`: server that will run the readout app
+            - `<server_readout>`: ex. server that will run the readout app, ex. np02-srv-004
             - `<NUMA_node_num>`: 0, 1, or 2 (when using both)
             - `<data_format>`: eth of wib2
             - `<test>`: ex. stream_scaling
-            - `<dunedaq_version>`: v4_1_1
-            - `<server_others>`: local server that runs all the apps except the readout
+            - `<dunedaq_version>`: ex. v4_1_1 or NFD23_09_28
+            - `<server_others>`: local server that runs all the apps except the readout, ex. np04-srv-003
     2. Start monitoring for AMD: 
         - `cd sourcecode/performancetest/scripts/; sudo ./start_uprof.sh <test_path> <test_name> <duration_seconds>`
         - If error in Power monitoring do: `cd /opt/AMDuProf_4.0-341/bin/; sudo ./AMDPowerProfilerDriver.sh install`
