@@ -515,25 +515,18 @@ def append_lists(list1, list2):
         list1.append(i)
     return list1
 
-def get_parents(cpus_node):
-    parents0_tmp=cpus_node[0]
-    parents1_tmp=cpus_node[1]
-    parents0=parents0_tmp[:4]
-    parents1=parents1_tmp[:4]
-    parents=append_lists(parents0, parents1)
-    return parents 
-          
-def cpupins_files(readout_app, node, cpus, amd_use=False):
-    parents = get_parents(cpus)
-    print(' ------------- ', file_conf, ' ------------')
-    print('{')
-    print(f'    "daq_application": {{')
-    print(f'        "--name {readout_app}": {{')
-    print(f'            "parent": "{parents}",')
-    print(f'            "threads": {{')
-    function(node, cpu_pins=cpus, amd_use=amd_use)
-    print(f'            }}')
-    print(f'        }}')
-    print(f'    }}')
+def readoutmap_change_var(file, input_dir, var):
+    with open('{}/{}.json'.format(input_dir, file), 'r') as ff:
+        data = json.load(ff)
+        info = json.dumps(data, skipkeys = True, allow_nan = True, indent=4)
     
-    
+    print(len(data))
+    print(info)
+
+    for value_i in data[0]:
+        if value_i == var:
+            print(value_i, ': ', data[0][value_i])
+            data[0][value_i]=int(data[0][value_i])+1
+            print(value_i, ': ', data[0][value_i])
+        else:
+            pass
