@@ -9,7 +9,7 @@ envir_name=$1
 run_num=$2
 test_name=$3
 
-nanorc $test_name $envir_name boot conf start_run $run_num wait 1200 stop_run shutdown
+nanorc $test_name $envir_name boot conf start_run $run_num wait 900 stop_run shutdown
 	
 # move log files
 mkdir RunConf_$run_num/logs

@@ -24,5 +24,5 @@ cd $test_name
 
 for i in {8..48..8}
 do
-  fddaqconf_gen -c $path/daqconfs/daqconf-$data_format-$test-$server_readout.json --detector-readout-map-file $path/readoutmaps/RM-$server_readout-$NUMA_node_num-streams${i}.json ${i}
+  fddaqconf_gen -c $path/daqconfs/daqconf-$data_format-$test-$server_readout-$NUMA_node_num.json --detector-readout-map-file $path/readoutmaps/RM-$server_readout-$NUMA_node_num-streams${i}.json ${i}
 done

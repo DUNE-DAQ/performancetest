@@ -19,7 +19,7 @@
 	}, 
 
 	"readout": {
-		"thread_pinning_file":"../cpupins/cpupin-eth-stream_scaling_swtpg-np02srv003.json",
+		"thread_pinning_file":"../cpupins/cpupin-eth-stream_scaling_swtpg-np02srv003-0.json",
     	"default_data_file": "asset://?checksum=dd156b4895f1b06a06b6ff38e37bd798",
 		"enable_raw_recording": false,
 		"raw_recording_output_dir":"/mnt/nvm_raid0/",

@@ -11,7 +11,7 @@ test_name=$3
 server=$4
 NUMA_node_num=$5
 
-nanorc $test_name $envir_name boot conf start_run $run_num expert_command --timeout 10 $test_name/$test_name/ru${server}eth${NUMA_node_num} record-cmd.json wait 1200 stop_run shutdown
+nanorc $test_name $envir_name boot conf start_run $run_num expert_command --timeout 10 $test_name/$test_name/ru${server}eth${NUMA_node_num} record-cmd.json wait 900 stop_run shutdown
 
 # move log files
 mkdir RunConf_$run_num/logs
