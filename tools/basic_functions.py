@@ -23,7 +23,7 @@ from fpdf.enums import XPos, YPos
 
 cs8_os = ['np04srv001', 'np04srv002', 'np04srv003', 'np04srv008', 'np04srv010', 'np04srv014', 'np04srv023', 'np04onl003']
 c7_os = ['np04srv007', 'np04srv009', 'np04crt001']
-
+    
 def directory(input_dir):
     # Create directory (if it doesn't exist yet):
     for dir_path in input_dir:
@@ -75,13 +75,7 @@ def make_name_list(input_dir):
     l=os.listdir(input_dir)
     name_list=[x.split('.')[0] for x in l]
     
-    all_list = []
-    all_plots_list = []
-    pcm_list = []
-    uprof_list = []
-    time_list = []
-    reformated_uprof_list = []
-    reformated_time_list = []
+    all_list, all_plots_list, all_plots_power_list, pcm_list, uprof_list, time_list, reformated_uprof_list, reformated_time_list = [], [], [], [], [], [], [], []
     
     for i, name_i in enumerate(name_list):
         if 'reformatter_uprof-' in name_i:
@@ -90,6 +84,7 @@ def make_name_list(input_dir):
             
         elif 'reformatter_timechart-' in name_i:
             reformated_time_list.append(name_i)
+            all_plots_power_list.append(name_i)
             
         elif 'uprof-' in name_i:
             uprof_list.append(name_i)
@@ -102,11 +97,12 @@ def make_name_list(input_dir):
             pcm_list.append(name_i)
             all_list.append(name_i)
             all_plots_list.append(name_i)
+            all_plots_power_list.append(name_i)
             
         else:
             pass
 
-    return pcm_list, uprof_list, time_list, reformated_uprof_list, reformated_time_list, all_list, all_plots_list
+    return pcm_list, uprof_list, time_list, reformated_uprof_list, reformated_time_list, all_list, all_plots_list, all_plots_power_list
 
 def create_var_list(file_list, var_list):
     files_srv_list = [] 
@@ -446,15 +442,7 @@ def get_column_val(df, columns, labels, file):
     
     return val, label
 
-def json_info(file_daqconf, file_cpupins, input_dir, var, pdf, if_pdf=False):  
-    with open('{}/cpupins/{}.json'.format(input_dir, file_cpupins), 'r') as ff:
-        data_cpupins = json.load(ff)
-        
-        info_daq_application = json.dumps(data_cpupins['daq_application']['--name {}'.format(var)], skipkeys = True, allow_nan = True)
-        data_list = json.loads(info_daq_application)
-        data_threads = convert(data_list['threads'])
-        max_file = int(len(data_threads)/3)
-       
+def json_info(file_daqconf, input_dir, var, pdf, if_pdf=False):     
     with open('{}/daqconfs/{}.json'.format(input_dir, file_daqconf), 'r') as f:
         data_daqconf = json.load(f)
         
@@ -470,45 +458,51 @@ def json_info(file_daqconf, file_cpupins, input_dir, var, pdf, if_pdf=False):
         info_readout = json.dumps(data_daqconf['readout'], skipkeys = True, allow_nan = True)
         data_readout_list = json.loads(info_readout)
         data_readout = convert(data_readout_list)
-        
-        if if_pdf:
-            pdf.set_font('Times', '', 10)
-            pdf.write(5, 'daqconf file: {} \n'.format(file_daqconf))
-            for i, value_i in enumerate(data_boot):
-                if value_i in ['use_connectivity_service']:
-                    pdf.write(5, '    * {}: {} \n'.format(value_i, data_boot_list[value_i]))
-                else:
-                    pass
-                
-            for j, value_j in enumerate(data_hsi):
-                if value_j in ['random_trigger_rate_hz']: 
-                    pdf.write(5, '    * {}: {} \n'.format(value_j, data_hsi_list[value_j]))
-                else:
-                    pass
-                
-            for k, value_k in enumerate(data_trigger):
-                if value_k in ['trigger_activity_config']: 
-                    pdf.write(5, '    * {}: prescale: {} \n'.format(value_k, data_trigger_list[value_k]['prescale']))
-                else:
-                    pass
-            
-            for l, value_l in enumerate(data_readout):
-                if value_l in ['latency_buffer_size','generate_periodic_adc_pattern','use_fake_cards','enable_raw_recording','raw_recording_output_dir','enable_tpg','tpg_threshold','tpg_algorithm']: 
-                    pdf.write(5, '    * {}: {} \n'.format(value_l, data_readout_list[value_l]))
-                else:
-                    pass
-            for m, value_m in enumerate(data_readout):
-                if value_m in ['thread_pinning_file']: 
-                    pdf.write(5, '    * {}: {} \n'.format(value_m, data_readout_list[value_m]))
-                    pdf.set_font('Times', '', 8)
-                    pdf.write(5, '        - {} \n'.format(var))
-                    pdf.write(5, '        - "parent": "{}" \n'.format(data_list['parent']))
-                    pdf.write(5, '        - "threads": \n')
-                    for i in range(0, max_file):
-                        pdf.write(5, '                "{}": {}    "{}": {}     "{}": {} \n'.format(data_threads[i], data_list['threads'][data_threads[i]], data_threads[i+max_file], data_list['threads'][data_threads[i+max_file]], data_threads[i+2*max_file], data_list['threads'][data_threads[i+2*max_file]]))
-                else:
-                    pass
-            pdf.write(5,'\n')
+
+        for m, value_m in enumerate(data_readout):
+            if value_m in ['thread_pinning_file']: 
+                file_cpupins=data_readout_list[value_m]
+
+    with open('{}/cpupins/{}'.format(input_dir, file_cpupins), 'r') as ff:
+        data_cpupins = json.load(ff)
+
+        info_daq_application = json.dumps(data_cpupins['daq_application']['--name {}'.format(var)], skipkeys = True, allow_nan = True)
+        data_list = json.loads(info_daq_application)
+        data_threads = convert(data_list['threads'])
+        max_file = int(len(data_threads)/3)
+
+    if if_pdf:
+        pdf.set_font('Times', '', 10)
+        pdf.write(5, 'daqconf file: {} \n'.format(file_daqconf))
+        for i, value_i in enumerate(data_boot):
+            if value_i in ['use_connectivity_service']:
+                pdf.write(5, '    * {}: {} \n'.format(value_i, data_boot_list[value_i]))
+            else:
+                pass
+
+        for j, value_j in enumerate(data_hsi):
+            if value_j in ['random_trigger_rate_hz']: 
+                pdf.write(5, '    * {}: {} \n'.format(value_j, data_hsi_list[value_j]))
+            else:
+                pass
+
+        for l, value_l in enumerate(data_readout):
+            if value_l in ['latency_buffer_size','generate_periodic_adc_pattern','use_fake_cards','enable_raw_recording', 'raw_recording_output_dir','enable_tpg','tpg_threshold','tpg_algorithm']: 
+                pdf.write(5, '    * {}: {} \n'.format(value_l, data_readout_list[value_l]))
+            else:
+                pass
+        for m, value_m in enumerate(data_readout):
+            if value_m in ['thread_pinning_file']: 
+                pdf.write(5, '    * {}: {} \n'.format(value_m, data_readout_list[value_m]))
+                pdf.set_font('Times', '', 8)
+                pdf.write(5, '        - {} \n'.format(var))
+                pdf.write(5, '        - "parent": "{}" \n'.format(data_list['parent']))
+                pdf.write(5, '        - "threads": \n')
+                for i in range(0, max_file):
+                    pdf.write(5, '                "{}": {}    "{}": {}     "{}": {} \n'.format(data_threads[i], data_list['threads'][data_threads[i]], data_threads[i+max_file], data_list['threads'][data_threads[i+max_file]], data_threads[i+2*max_file], data_list['threads'][data_threads[i+2*max_file]]))
+            else:
+                pass
+        pdf.write(5,'\n')
 
 def append_lists(list1, list2):
     for i in list2:

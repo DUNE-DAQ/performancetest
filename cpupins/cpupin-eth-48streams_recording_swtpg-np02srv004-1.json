@@ -3,14 +3,14 @@
         "--name runp02srv004eth0": {
             "parent": "65, 66, 193, 194",
             "threads": {
+                "rte-worker-67": "67",
                 "rte-worker-68": "68",
+                "rte-worker-69": "69",
                 "rte-worker-70": "70",
-                "rte-worker-72": "72",
-                "rte-worker-74": "74",
+                "rte-worker-195": "195",
                 "rte-worker-196": "196",
+                "rte-worker-197": "197",
                 "rte-worker-198": "198",
-                "rte-worker-200": "200",
-                "rte-worker-202": "202",
       
                 "fakeprod-2..": "67,68,69,70,195,196,197,198",
       
