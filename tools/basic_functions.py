@@ -29,7 +29,12 @@ def directory(input_dir):
     for dir_path in input_dir:
         if not os.path.exists(dir_path):
             os.makedirs(dir_path)
-            
+
+def current_time():
+    now = dt.now()
+    current_dnt = now.strftime('%Y-%m-%d %H:%M:%S')
+    return current_dnt
+    
 def get_unix_timestamp(time_str):
     formats = ['%Y-%m-%d %H:%M:%S.%f', '%Y-%m-%d %H:%M:%S']
     for fmt in formats:
@@ -442,7 +447,7 @@ def get_column_val(df, columns, labels, file):
     
     return val, label
 
-def json_info(file_daqconf, input_dir, var, pdf, if_pdf=False):     
+def json_info(file_daqconf, input_dir, var, pdf, if_pdf=False, repin_threads_file=None):     
     with open('{}/daqconfs/{}.json'.format(input_dir, file_daqconf), 'r') as f:
         data_daqconf = json.load(f)
         
@@ -462,6 +467,9 @@ def json_info(file_daqconf, input_dir, var, pdf, if_pdf=False):
         for m, value_m in enumerate(data_readout):
             if value_m in ['thread_pinning_file']: 
                 file_cpupins=data_readout_list[value_m]
+                
+        if repin_threads_file:
+            file_cpupins=repin_threads_file
 
     with open('{}/cpupins/{}'.format(input_dir, file_cpupins), 'r') as ff:
         data_cpupins = json.load(ff)
@@ -493,7 +501,11 @@ def json_info(file_daqconf, input_dir, var, pdf, if_pdf=False):
                 pass
         for m, value_m in enumerate(data_readout):
             if value_m in ['thread_pinning_file']: 
-                pdf.write(5, '    * {}: {} \n'.format(value_m, data_readout_list[value_m]))
+                if repin_threads_file:
+                    pdf.write(5, '    * {}: {} \n'.format(value_m, repin_threads_file))
+                else:
+                    pdf.write(5, '    * {}: {} \n'.format(value_m, data_readout_list[value_m]))
+                
                 pdf.set_font('Times', '', 8)
                 pdf.write(5, '        - {} \n'.format(var))
                 pdf.write(5, '        - "parent": "{}" \n'.format(data_list['parent']))
