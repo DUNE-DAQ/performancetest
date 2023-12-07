@@ -86,7 +86,7 @@ def make_name_list(input_dir):
     l=os.listdir(input_dir)
     name_list=[x.split('.')[0] for x in l]
     
-    all_list, all_plots_list, pcm_list, uprof_list, time_list, reformated_uprof_list, reformated_time_list = [], [], [], [], [], [], [], []
+    all_list, all_plots_list, pcm_list, uprof_list, time_list, reformated_uprof_list, reformated_time_list = [], [], [], [], [], [], []
     
     for i, name_i in enumerate(name_list):
         if 'reformatter_uprof-' in name_i:
@@ -269,7 +269,6 @@ def uprof_pcm_formatter(input_dir, file):
             for package,header in zip(header1,header2):
                 if (package=='\n') or (header=='\n'):
                     header_new += ['CPU Utilization', '\n']
-                    #header_new += ['CPU Utilization', 'L2/L3 Miss Socket0', 'L2/L3 Miss Socket1', '\n']
                     header_new_str = ','.join(header_new)
                     f_new.write(header_new_str)
                 if 'Package' in package:
@@ -299,12 +298,6 @@ def uprof_pcm_formatter(input_dir, file):
             # CPU Utilization
             cpu_utiliz = float(line_list[1]) + float(line_list[22])
             cpu_utiliz = str(round(cpu_utiliz, 2))
-            '''
-            L23rate_0 = float(line_list[15]) / float(line_list[46])
-            L23rate_0 = str(round(L23rate_0, 5))
-            L23rate_1 = float(line_list[37]) / float(line_list[50])
-            L23rate_1 = str(round(L23rate_1, 5))
-            '''
             line_list[-1] = cpu_utiliz
             line_list.append('\n')
             line_n = ','.join(line_list)
@@ -409,22 +402,26 @@ def get_column_val(df, columns, labels, file):
         if columns_j in ['NewTime', 'Timestamp']:
             continue
         elif columns_j == 'Socket0 L2 Cache Misses':
-            Y_tmp = df[columns_j].div('Socket0 L3 Cache Misses')
+            Y_tmp = df[columns_j]/df['Socket0 L3 Cache Misses']
+            #df['Socket0 L2/L3 Cache Misses'] = df[columns_j]/df['Socket0 L3 Cache Misses']
             Y = Y_tmp.values.tolist()
             val.append(Y)
             label.append('{} {} {}'.format(info[5], info[2] , label_j))
         elif columns_j == 'Socket1 L2 Cache Misses':
-            Y_tmp = df[columns_j].div('Socket1 L3 Cache Misses')
+            Y_tmp = df[columns_j]/df['Socket1 L3 Cache Misses']
+            #df['Socket0 L2/L3 Cache Misses'] = df[columns_j]/df['Socket1 L3 Cache Misses']
             Y = Y_tmp.values.tolist()
             val.append(Y)
             label.append('{} {} {}'.format(info[5], info[2] , label_j))
         elif columns_j == 'L2 Miss (pti) Socket0':
-            Y_tmp = df[columns_j].div('L3 Miss Socket0')
+            Y_tmp = df[columns_j]/df['L3 Miss Socket0']
+            #df['Socket0 L2/L3 Cache Misses'] = df[columns_j]/df['L3 Miss Socket0']
             Y = Y_tmp.values.tolist()
             val.append(Y)
             label.append('{} {} {}'.format(info[5], info[2] , label_j))
         elif columns_j == 'L2 Miss (pti) Socket1':
-            Y_tmp = df[columns_j].div('L3 Miss Socket0')
+            Y_tmp = df[columns_j]/df['L3 Miss Socket1']
+            #df['Socket0 L2/L3 Cache Misses'] = df[columns_j]/df['L3 Miss Socket0']
             Y = Y_tmp.values.tolist()
             val.append(Y)
             label.append('{} {} {}'.format(info[5], info[2] , label_j))
