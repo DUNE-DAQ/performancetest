@@ -401,27 +401,8 @@ def get_column_val(df, columns, labels, file):
     for j, (columns_j, label_j) in enumerate(zip(columns, labels)):
         if columns_j in ['NewTime', 'Timestamp']:
             continue
-        elif columns_j == 'Socket0 L2 Cache Misses':
-            Y_tmp = df[columns_j]/df['Socket0 L3 Cache Misses']
-            #df['Socket0 L2/L3 Cache Misses'] = df[columns_j]/df['Socket0 L3 Cache Misses']
-            Y = Y_tmp.values.tolist()
-            val.append(Y)
-            label.append('{} {} {}'.format(info[5], info[2] , label_j))
-        elif columns_j == 'Socket1 L2 Cache Misses':
-            Y_tmp = df[columns_j]/df['Socket1 L3 Cache Misses']
-            #df['Socket0 L2/L3 Cache Misses'] = df[columns_j]/df['Socket1 L3 Cache Misses']
-            Y = Y_tmp.values.tolist()
-            val.append(Y)
-            label.append('{} {} {}'.format(info[5], info[2] , label_j))
-        elif columns_j == 'L2 Miss (pti) Socket0':
-            Y_tmp = df[columns_j]/df['L3 Miss Socket0']
-            #df['Socket0 L2/L3 Cache Misses'] = df[columns_j]/df['L3 Miss Socket0']
-            Y = Y_tmp.values.tolist()
-            val.append(Y)
-            label.append('{} {} {}'.format(info[5], info[2] , label_j))
-        elif columns_j == 'L2 Miss (pti) Socket1':
-            Y_tmp = df[columns_j]/df['L3 Miss Socket1']
-            #df['Socket0 L2/L3 Cache Misses'] = df[columns_j]/df['L3 Miss Socket0']
+        elif columns_j in ['Socket0 L2 Cache Misses', 'Socket1 L2 Cache Misses', 'L2 Miss (pti) Socket0', 'L2 Miss (pti) Socket1', 'Socket0 L3 Cache Misses', 'Socket1 L3 Cache Misses', 'L3 Miss Socket0', 'L3 Miss Socket1']:
+            Y_tmp = df[columns_j].div(100)
             Y = Y_tmp.values.tolist()
             val.append(Y)
             label.append('{} {} {}'.format(info[5], info[2] , label_j))
@@ -440,7 +421,6 @@ def get_column_val(df, columns, labels, file):
             Y = Y_tmp.values.tolist()
             val.append(Y)
             label.append('{} {} {}'.format(info[5], info[2] , label_j))
-            
         elif columns_j in ['Package Joules Consumed Socket0 Energy Consumption', 'Package Joules Consumed Socket1 Energy Consumption']:
             #Y_tmp = df[columns_j] - 40
             Y_tmp = df[columns_j]
