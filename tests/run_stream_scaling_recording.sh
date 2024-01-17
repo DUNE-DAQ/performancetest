@@ -25,12 +25,17 @@ do
 
 	nanorc ${i} $envir_name boot conf start_run $run_num expert_command --timeout 10 ${i}/${i}/ru${server}eth${NUMA_node_num} ../record-cmd.json wait 600 stop_run shutdown
 
+	# move log files
+	mkdir RunConf_$run_num/logs
+	mv log_*.txt RunConf_$run_num/logs
+	grep -R "ERROR" RunConf_$run_num/logs >> error_summary.txt
+
+	# move output files
 	mkdir RunConf_$run_num/output
-	mv log_*.txt RunConf_$run_num/output
-	grep -R "ERROR" RunConf_$run_num/output >> error_summary.txt
-	rm *.hdf5
+	mv *.hdf5 RunConf_$run_num/output
 	mv logbook_*.txt RunConf_$run_num/output
-        #mv iostat_*.txt RunConf_$run_num/output
+	mv error_summary.txt RunConf_$run_num/output
+	#mv iostat_*.txt RunConf_$run_num/output
 
 	echo "wait for 120s for resources to return to baseline"
 	sleep 120

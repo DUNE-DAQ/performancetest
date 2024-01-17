@@ -13,12 +13,17 @@ NUMA_node_num=$5
 
 nanorc $test_name $envir_name boot conf start $run_num expert_command --timeout 10 $test_name/$test_name/ru${server}eth${NUMA_node_num} record-cmd.json wait 900 stop_run shutdown
 
-mkdir RunConf_$run_num/output
+# move log files
+mkdir RunConf_$run_num/logs
 mv log_*.txt RunConf_$run_num/logs
 grep -R "ERROR" RunConf_$run_num/logs >> error_summary.txt
-rm *.hdf5 
+
+# move output files
+mkdir RunConf_$run_num/output
+mv *.hdf5 RunConf_$run_num/output
 mv logbook_*.txt RunConf_$run_num/output
+mv error_summary.txt RunConf_$run_num/output
 mv RunConf_$run_num $test_name/
-	
+
 echo "wait for 100s for resources to return to baseline"
 sleep 100
