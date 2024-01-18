@@ -1,9 +1,8 @@
-# performancetest/docs
-
-
+# benchmark/docs
 ## Benchmark testing suite
+18-January-2024 - Work in progress, feedback is welcome - Matthew Man and Danaisis Vargas
 
-The various benchmark tests can be run through the Phoronix Test Suite (pts). It automates installing and executing tests, and uploads results to https://openbenchmarking.org/
+The following instructions are aimed at users who want to run and create a benchmark report. The various benchmark tests can be run through the Phoronix Test Suite (pts). It automates installing and executing tests, and uploads results to https://openbenchmarking.org/
 
 To install pts (in CentOS Stream 8):
 `yum install phoronix-test-suite`
@@ -18,7 +17,6 @@ Or do both install and run:
 `phoronix-test-suite benchmark <test>`
 
 ### Memory bandwidth test
-
 To benchmark the memory bandwidth (in MB/s) of the system , we use STREAM. The details of the STREAM test can be found here https://www.cs.virginia.edu/stream/ref.html
 
 To install the test, you first must set the CFLAGS env var:
@@ -30,7 +28,6 @@ phoronix-test-suite benchmark pts/stream
 Follow the prompts, and when prompted for memory test configuration, select 'test all options'. Once the test is complete, results can be uploaded with a given link to https://openbenchmarking.org/
 
 ### Disk I/O speed test
-
 To benchmark the read and write performance of storage disks, we use fio. Ensure first that the disks to be tested are mounted and have a filesystem on them (eg. xfs). Then to run the test:
 
 `phoronix-test-suite benchmark pts/fio`
@@ -78,7 +75,6 @@ benchmark_path = '../results'
 The report can be created using the python3 notebook `Benchmark_report.ipynb` Important to have all the output_files in one foder and give the correct path to them (`benchmark_path`). Also, is necesary to expecify the path to the forder where the report will be store (`report_path`). This pahts should be diferents.
 
 ### Creating the report
-
 ```
 # Phoronix data 
 report_path = '../reports'

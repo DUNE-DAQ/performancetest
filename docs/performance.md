@@ -1,8 +1,8 @@
 # performancetest/docs
-
-
 ## Pre-checks
+18-January-2024 - Work in progress, feedback is welcome - Danaisis Vargas and Matthew Man
 
+The following instructions are aimed at users who want to run and create a performance report. 
 - **Server configuration:**
     - cpu-perf-mode script doesn’t work because the intel-pstate driver isn’t loaded
         - cause: BIOS Speedselect mode enable/disable (basically retest what we did with OTHER perf. governors.)
@@ -52,7 +52,7 @@
         - Note: this didn't work, the device file `/dev/md0` was forgotten on reboot so it crashed
     - Also, to query drive info you can use: `sudo smartctl -a /dev/nvme0n1`
 - **CPU pinning:**
-    
+
     In order to optimize the server for a high-performance use case such as this, we must use CPU pinning, which binds processes to a CPU thread to prevent the latency involved in moving the process to a different thread and re-caching the data. First there are some tools to explore the hardware topology to determine the appropriate pinning configuration.
     
     - Problems encountered: Parent used any cores -> allocation of LBs is undeterministic
@@ -66,7 +66,6 @@
         - `htop`
 
 ### uProf Grafana
-
 To monitor the performance of an AMD CPU server while running DAQ apps, we use uProf. Since a grafana integration is not yet supported by AMD, the process is less smooth than for the Intel case. Nonetheless, installing and running the tool, as well as monitoring with grafana, will all be described in this section.
 
 The uProf tool rpm can be downloaded from here https://developer.amd.com/amd-uprof/#download
@@ -84,26 +83,6 @@ Monitoring a link scaling test with this tool is done as follows (after running 
 Then configure grafana to plot the metrics. The same grafana instance can be used as for the Intel case. In the grafana browser, go to Configuration->Plugins and install the CSV plugin. Configure two CSV datasources in local mode, one for the reformatted uProfPcm file, and one for the timechart. For local access, the data files should be saved to either `/var/lib/grafana/csv` or the volume mount `grafana/grafana_volume/csv`. Then upload the [uProfPcm dashboard](https://github.com/DUNE-DAQ/performancetest/blob/develop/grafana/uProf_PCM_Dashboard.json). 
 
 ## DAQ Performance Tests
-
-- CPU pinning preparation:
-    - Exploring target: Single socket
-    - NOTE: In the tools of this package there is a python3 notebook (`Cpupins.ipynb`) that when feed the cpu pin distribution of the server it will create a basic cpupin file. For example:
-        
-        ```
-        #CPUPINING FILE for np02srv003
-            np02srv003_node0_cpus=[[ 0,  2,  4,  6,  8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 
-                                    28, 30, 32, 34, 36, 38, 40, 42,  44,  46,  48,  50,  52,  54], 
-                                   [56, 58, 60, 62, 64, 66, 68, 70, 72, 74, 76, 78, 80, 82, 84, 86, 
-                                    88, 90, 92, 94, 96, 98, 100, 102, 104, 106, 108, 110]]
-        
-            np02srv003_node1_cpus=[[ 1,  3,  5,  7,  9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 
-                                    31, 33, 35, 37, 39, 41, 43,  45,  47,  49,  51,  53,  55], 
-                                   [57, 59, 61, 63, 65, 67, 69, 71, 73, 75, 77, 79, 81, 83, 85, 
-                                    87, 89, 91, 93, 95, 97, 99, 101, 103, 105, 107, 109, 111]]
-
-            cpupins(node=0, cpus=np02srv003_node0_cpus, 
-                    tops=[[12, 12, 0, 0], [8, 8, 0, 6], [12, 12, 12, 0], [4, 12, 12, 6]])
-        ```
 - DAQ configuration generation:
     - needed files for each run: `daqconf.json`, `hrdware-map-file.txt`, and `cpupin.json`
     
@@ -118,7 +97,6 @@ Then configure grafana to plot the metrics. The same grafana instance can be use
         - `sudo ./test_bufferedfilewriter.sh /mnt/nvm_raid0/results_bufferedfilewriter_<server>`
 
 ## How to run tests
-
 NOTE: First do the pre-checks. Not sure if cpu-perf-mode.sh is automaticlly run. 
 
 We have 2 cases, we can run the automatic scaling or a single test at a time. Important, in the case of an INTEL server skip step 2 (it is only for AMD servers).
@@ -135,13 +113,12 @@ We have 2 cases, we can run the automatic scaling or a single test at a time. Im
     
 - The automatic scaling:
     1. Generate config files for streams [8, 16, 24, 32, 40, 48]:
-        - `./config_gen.sh <path_to_performancetest> <server_readout> <NUMA_node_num> <data_format> <test> <dunedaq_version> <server_others>`
+        - `./config_gen.sh <server_readout> <NUMA_node_num> <data_format> <test> <dunedaq_version> `
             - `<server_readout>`: ex. server that will run the readout app, ex. np02-srv-004
             - `<NUMA_node_num>`: 0, 1, or 2 (when using both)
             - `<data_format>`: eth of wib2
             - `<test>`: ex. stream_scaling
             - `<dunedaq_version>`: ex. v4_1_1 or NFD23_09_28
-            - `<server_others>`: local server that runs all the apps except the readout, ex. np04-srv-003
     2. Start monitoring for AMD: 
         - `cd sourcecode/performancetest/scripts/; sudo ./start_uprof.sh <test_path> <test_name> <duration_seconds>`
         - If error in Power monitoring do: `cd /opt/AMDuProf_4.0-341/bin/; sudo ./AMDPowerProfilerDriver.sh install`
@@ -151,11 +128,9 @@ We have 2 cases, we can run the automatic scaling or a single test at a time. Im
         - with recording: `./run_scaling_scaling_recording.sh <envir_name> <run_num_init> <test_name> <server>`
 
 ## Performance report
-
 The report can be created using the python3 notebook `Performance_report.ipynb` Important to have all the output_files in one foder and give the correct path to them (`results_path`). Also, is necesary to expecify the path to the forder where the report will be store (`report_path`). This pahts should be diferents.
 
-### Proccesing data from Grafana
-
+### Proccesing data from Grafana and creating the report
 Note: change the paths to fit yours
 
 To extract the data from a given dashboard in grafana:
@@ -167,8 +142,8 @@ To extract the data from a given dashboard in grafana:
 * delta_time is [start, end] given in the format '%Y-%m-%d %H:%M:%S'
 * host is the name of the server in study for example: "np02-srv-003"     
 
-file_name: [version]-[server_app_tested]-[numa node]-[data format]-[tests_name]-[server rest_of the apps]
-* example of name: v4_1_1-np02srv003-0-eth-stream_scaling-np04srv003
+file_name (for performance tests): [version]-[server_app_tested]-[numa node]-[data format]-[tests_name]
+* example of name: v4_1_1-np02srv003-0-eth-stream_scaling
 ```
 grafana_url = 'http://np04-srv-009.cern.ch:3000' 
 dashboard_uid = ['91zWmJEVk']
@@ -178,19 +153,18 @@ delta_time = [['2023-10-01 01:42:30', '2023-10-01 02:54:35'],
 output_csv_file = ['NFD23_09_28-np02srv003-0-eth-stream_scaling-np04srv003', 
                    'NFD23_09_28-np02srv003-0-eth-stream_scaling_swtpg-np04srv003']
 results_path = '../performance_results'
-
-for delta_time_list, output_csv_file_list in zip(delta_time, output_csv_file):
-    extract_data_and_stats_from_panel(grafana_url, dashboard_uid, delta_time=delta_time_list, host=host_used, input_dir=results_path, output_csv_file=output_csv_file_list)
-    
-```
-### Creating the report
-
-Note: change the paths to fit yours
-```
-results_path = '../performance_results'
 report_path = '../reports'
 performancetest_path = '../sourcecode/performancetest'
 
-create_report_performance(input_dir=results_path, output_dir=report_path, daqconfs_cpupins_folder_parent_dir=performancetest_path, process_pcm_files=False, process_uprof_files=False, print_info=True)
+for delta_time_list, output_csv_file_list in zip(delta_time, output_csv_file):
+    extract_data_and_stats_from_panel(grafana_url, dashboard_uid, delta_time=delta_time_list, host=host_used, 
+                                      input_dir=results_path, output_csv_file=output_csv_file_list)
+
+create_report_performance(input_dir=results_path, output_dir=report_path,
+                          daqconfs_cpupins_folder_parent_dir=performancetest_path, 
+                          process_pcm_files=False, process_uprof_files=False, 
+                          print_info=True, streams='8, 16, 24, 32, 40, and 48', 
+                          pdf_name='performancetest_without_recording', 
+                          elog_message=['0.1 Hz', '0.1 Hz second'])
 
 ```
