@@ -1,10 +1,9 @@
-# tpg_testing/docs
-## Trigger Primitive Generation Standalone Testing 
+# Trigger Primitive Generation Standalone Testing 
 10-October-2023 - Work in progress, feedback is welcome - Adam Abed Abud
 
 The following instructions are aimed at users who want to exercise different Trigger Primitive Generation (TPG) algorithms using a standalone application without relying on other DAQ sub-systems. These TPG tests can be done using the AVX2 implementation of the Simple Threshold or the Absolute Running Sum (AbsRS) algorithms. The objective of this testing is to evaluate the performance and resource utilization of different TPG algorithms across different server nodes. 
 
-### Create a FD development SW area 
+## Create a FD development SW area 
  You need to build a DAQ software area in order to use the TPG test application. Here are are the steps: 
  ```sh
 cd <directory_above_where_you_want_the_new_software_area>
@@ -15,7 +14,7 @@ cd <work_dir>/sourcecode
 ```
 Further instructions for setting up an FD development software area can be found [here](https://github.com/DUNE-DAQ/daqconf/wiki/Instructions-for-setting-up-an-FD-development-software-area). 
 
-### Testing Application
+## Testing Application
 The testing application iterates for two minutes over a WIBEthernet frame file and executes the selected TPG  algorithm. The application is a single thread, pinned to core 0. 
 
 Example of command line to run the Simple Threshold algorithm: 
@@ -31,13 +30,13 @@ When testing it is useful to monitor performance metrics on the selected server.
 
 Note: the command lines mentioned above used a specif WIBEthernet frame file that was built with a value above threshold (TPG threshold is 500) on a single channel. It will be added to the asset files but for the moment it is available at the following path on any NP04 machine where NFS is mounted: `/nfs/home/aabedabu/work_area/frame_file/wibeth_frame_file.bin`
 
-##### Output after testing
+### Output after testing
 The output of the test application after two min of execution using the given frame file will result in the following:
 ```
 ===============================
 Found in total 1770000 hits.
 ```
-### Results
+## Results
 
 The main objective of the standalone testing application is to compare different generations of platforms when executing resource intensive applications such as the TPG. The nodes used for testing are the following three Intel platforms: 
 |                  	|               np04-srv-025               	|               np04-srv-028               	|               np02-srv-002               	|
@@ -56,7 +55,7 @@ The main objective of the standalone testing application is to compare different
 
 
 
-### Performance Report
+## Performance Report
 After collecting performance metrics, it is possible to extract the data from Grafana (Intel PCM dashboard) and make some plots. It is also possible to produce an automated performance report. The report can be created using the python3 notebook `Performance_report.ipynb` Important to have all the output_files in one folder and give the correct path to them (`results_path`). Also, is necesary to expecify the path to the folder where the report will be stored (`report_path`). This pahts should be diferents. The code for the performance report is available [here](https://github.com/DUNE-DAQ/performancetest/tree/develop/tools).
 
 Note: change the paths to fit yours
@@ -86,7 +85,7 @@ for delta_time_list, output_csv_file_list in zip(delta_time, output_csv_file):
     extract_data_and_stats_from_panel(grafana_url, dashboard_uid, delta_time=delta_time_list, host=host_used, input_dir=results_path, output_csv_file=output_csv_file_list)
     
 ```
-#### Creating the report
+## Creating the report
 
 Note: change the paths to fit yours
 ```
@@ -97,7 +96,7 @@ performancetest_path = '../sourcecode/performancetest'
 create_report_performance_TPG(input_dir=results_path, output_dir=report_path, daqconfs_cpupins_folder_parent_dir=performancetest_path, process_pcm_files=False, process_uprof_files=False, print_info=True)
 
 ```
-### Other
+## Other
 
 You can also collect some metrics of the executing thread using `perf`. Here is the command line for collecting performance metrics of the TPG thread for 60 seconds: 
 ```sh

@@ -1,18 +1,15 @@
-# cpupins/docs
-## CPU Pinning
-18-January-2024 - Work in progress, feedback is welcome - Danaisis Vargas and Matthew Man
+# CPU Pinning
+18-January-2024 - Work in progress, feedback is welcome - Danaisis Vargas
 
 The following instructions are aimed at users who want to create cpupinnig files or use the ones in this package. 
 
-The following instructions are aimed at users who want to create cpupinnig files or use the ones in this package. 
-
-### Using cpupinning existing files
+## Using cpupinning existing files
 In this package you can find a folder called `cpupins` contening several files used for previus tests. The naming squeme of this files is: cpupin-<data_format>-<test>-<readout_server>-<numa_node>.json
-* IMPORTAN: each information is separated by `-` while each word inside each information is separated by `_`. You can always add information at the end (after <numa_node>) but this order should not vary. 
-<data_format>: eth of wib2
-<test>: ex. basic_recording_swtpg
-<readout_server>: np02srv003
-<numa_node>: 0, 1 or 01 (when using both)
+NOTE: each information is separated by `-` while each word inside each information is separated by `_`. You can always add information at the end (after <numa_node>) but this order should not vary. 
+- <data_format>: eth of wib2
+- <test>: ex. basic_recording_swtpg
+- <readout_server>: np02srv003
+- <numa_node>: 0, 1 or 01 (when using both)
 
 Here is a list of the cpupining files available.
 
@@ -33,18 +30,18 @@ Here is a list of the cpupining files available.
 | cpupin-eth-basic_recording_swtpg_multinode-np02srv003-1.json | 48 streams test with recording and TPG on server np02srv003 pining to both numa nodes |
 | cpupin-eth-1stream_recording_swtpg_oneL3-np02srv004-0.json | 1 stream test with recording and TPG on server np02srv004 pining only the first L3 of numa node 0 |
 
-### Creating cpupinning
+## Creating cpupinning
 In the tools of this package there is a python3 notebook (`Cpupins.ipynb`) that when feed the cpu pin distribution of the server it will create a basic cpupin file. 
 
-"readout_app" is related to the server and the node you will to use for readout (ex. 'runp02srv003eth0')
-* for now regardless of the node being use the name will alway use node 0
-"node" is the node being use (ex. 1 or 0) # working in adding multinode use 
-"cpus" is the cpu nodes distribution to be used base on the server you want to use for readout (ex. np02srv003_node0_cpus)
-"tops" is the number of pins pars to dedicate to each pin_type (ex. [8, 8, 21, 18, 18, 1, 1]):
-* pin_type=["rte-worker", "fakeprod", "postproc-0", "consumer", "recording", "tpset", "cleanup"]
-* If tops = 0, that mean to not use that type
-* So for the example is producing a basic distribution with raw recording and tpg distribution
-"steps" is ....
+- "readout_app" is related to the server and the node you will to use for readout (ex. 'runp02srv003eth0')
+    * for now regardless of the node being use the name will alway use node 0
+- "node" is the node being use (ex. 1 or 0) # working in adding multinode use 
+- "cpus" is the cpu nodes distribution to be used base on the server you want to use for readout (ex. np02srv003_node0_cpus)
+- "tops" is the number of pins pars to dedicate to each pin_type (ex. [8, 8, 21, 18, 18, 1, 1]):
+    * pin_type=["rte-worker", "fakeprod", "postproc-0", "consumer", "recording", "tpset", "cleanup"]
+    * If tops = 0, that mean to not use that type
+    * So for the example is producing a basic distribution with raw recording and tpg distribution
+- "steps" is ....
 
 ```
 #CPUPINING FILE for np02srv003

@@ -1,5 +1,4 @@
-# performancetest/docs
-## Pre-checks
+# Pre-checks
 18-January-2024 - Work in progress, feedback is welcome - Danaisis Vargas and Matthew Man
 
 The following instructions are aimed at users who want to run and create a performance report. 
@@ -65,7 +64,7 @@ The following instructions are aimed at users who want to run and create a perfo
     - This next tool may or may not be useful. To monitor cpu utilization by core, to diagnose if the pinning is working, needs to be used before sourcing dunedaq.
         - `htop`
 
-### uProf Grafana
+## uProf Grafana
 To monitor the performance of an AMD CPU server while running DAQ apps, we use uProf. Since a grafana integration is not yet supported by AMD, the process is less smooth than for the Intel case. Nonetheless, installing and running the tool, as well as monitoring with grafana, will all be described in this section.
 
 The uProf tool rpm can be downloaded from here https://developer.amd.com/amd-uprof/#download
@@ -82,7 +81,7 @@ Monitoring a link scaling test with this tool is done as follows (after running 
 
 Then configure grafana to plot the metrics. The same grafana instance can be used as for the Intel case. In the grafana browser, go to Configuration->Plugins and install the CSV plugin. Configure two CSV datasources in local mode, one for the reformatted uProfPcm file, and one for the timechart. For local access, the data files should be saved to either `/var/lib/grafana/csv` or the volume mount `grafana/grafana_volume/csv`. Then upload the [uProfPcm dashboard](https://github.com/DUNE-DAQ/performancetest/blob/develop/grafana/uProf_PCM_Dashboard.json). 
 
-## DAQ Performance Tests
+# DAQ Performance Tests
 - DAQ configuration generation:
     - needed files for each run: `daqconf.json`, `hrdware-map-file.txt`, and `cpupin.json`
     
@@ -96,7 +95,7 @@ Then configure grafana to plot the metrics. The same grafana instance can be use
         - `cd ../dunedaq-*/sourcecode/performancetest/tests/`
         - `sudo ./test_bufferedfilewriter.sh /mnt/nvm_raid0/results_bufferedfilewriter_<server>`
 
-## How to run tests
+# How to run tests
 NOTE: First do the pre-checks. Not sure if cpu-perf-mode.sh is automaticlly run. 
 
 We have 2 cases, we can run the automatic scaling or a single test at a time. Important, in the case of an INTEL server skip step 2 (it is only for AMD servers).
@@ -127,10 +126,10 @@ We have 2 cases, we can run the automatic scaling or a single test at a time. Im
             - Move output files from raw recording: `cd sourcecode/performancetest/scripts/; sudo ./move_raw_data.sh <test_name>/<streams>`
         - with recording: `./run_scaling_scaling_recording.sh <envir_name> <run_num_init> <test_name> <server>`
 
-## Performance report
+# Performance report
 The report can be created using the python3 notebook `Performance_report.ipynb` Important to have all the output_files in one foder and give the correct path to them (`results_path`). Also, is necesary to expecify the path to the forder where the report will be store (`report_path`). This pahts should be diferents.
 
-### Proccesing data from Grafana and creating the report
+## Proccesing data from Grafana and creating the report
 Note: change the paths to fit yours
 
 To extract the data from a given dashboard in grafana:
