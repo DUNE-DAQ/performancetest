@@ -3,7 +3,7 @@
 
 The following instructions are aimed at users who want to create cpupinnig files or use the ones in this package. 
 
-## Using cpupinning existing files
+## Using existing CPU pinning files
 In this package you can find a folder called `cpupins` contening several files used for previus tests. The naming squeme of this files is: cpupin-<data_format>-<test_name>-<readout_server>-<numa_node>.json
 NOTE: each information is separated by `-` while each word inside each information is separated by `_`. You can always add information at the end (after <numa_node>) but this order should not vary. 
 - <data_format>: eth of wib2
@@ -30,7 +30,7 @@ Here is a list of the cpupining files available.
 | cpupin-eth-basic_recording_swtpg_multinode-np02srv003-1.json | 48 streams test with recording and TPG on server np02srv003 pining to both numa nodes |
 | cpupin-eth-1stream_recording_swtpg_oneL3-np02srv004-0.json | 1 stream test with recording and TPG on server np02srv004 pining only the first L3 of numa node 0 |
 
-## Creating cpupinning
+## Creating a CPU pinning
 In the tools of this package there is a python3 notebook (`Cpupins.ipynb`) that when feed the cpu pin distribution of the server it will create a basic cpupin file. 
 
 - "readout_app" is related to the server and the node you will to use for readout (ex. 'runp02srv003eth0')
@@ -126,6 +126,4 @@ for RO_list, node_list, cpus_list, tops_list, steps_list in zip(All_readout_app,
                 "postproc-0-1..": "26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,154,155,156,157,158,159,160,161,162,163,164,165,166,167,168,169,170,171",
             }
         }
-    }
-}
-```
+ 
