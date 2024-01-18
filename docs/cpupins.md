@@ -4,10 +4,10 @@
 The following instructions are aimed at users who want to create cpupinnig files or use the ones in this package. 
 
 ## Using cpupinning existing files
-In this package you can find a folder called `cpupins` contening several files used for previus tests. The naming squeme of this files is: cpupin-<data_format>-<test>-<readout_server>-<numa_node>.json
+In this package you can find a folder called `cpupins` contening several files used for previus tests. The naming squeme of this files is: cpupin-<data_format>-<test_name>-<readout_server>-<numa_node>.json
 NOTE: each information is separated by `-` while each word inside each information is separated by `_`. You can always add information at the end (after <numa_node>) but this order should not vary. 
 - <data_format>: eth of wib2
-- <test>: ex. basic_recording_swtpg
+- <test_name>: ex. basic_recording_swtpg
 - <readout_server>: np02srv003
 - <numa_node>: 0, 1 or 01 (when using both)
 
