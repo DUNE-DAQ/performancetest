@@ -1,0 +1,18 @@
+{ 
+    "daq_application": { 
+        "--name runp02srv004eth0": { 
+            "parent": "1, 2, 129, 130", 
+            "threads": { 
+                "fakeprod-100": "3,131",  
+                "consumer-100": "4,5,132,133",
+                "recording-100": "4,5,132,133",
+                "postproc-0-100": "6,134",     
+                
+                "consumer-0": "7,135",
+                "tpset-0": "7,135",
+                "cleanup-0": "7,135",
+                "recording-0": "7,135"
+            } 
+        }
+    } 
+}

@@ -39,6 +39,7 @@ do
 	mv *.hdf5 RunConf_$run_num/output
 	mv logbook_*.txt RunConf_$run_num/output
 	mv error_summary.txt RunConf_$run_num/output
+
 	mv iostat_*.txt RunConf_$run_num/output
 	mv fstrim_raid0_${run_num}.time RunConf_$run_num/output
         mv fstrim_raid1_${run_num}.time RunConf_$run_num/output
