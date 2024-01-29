@@ -473,41 +473,46 @@ def get_column_val(df, columns, labels, file):
         if columns_j in ['NewTime', 'Timestamp']:
             continue
         elif columns_j in ['Socket0 L2 Cache Hits']:
-            Y_tmp = df[columns_j] / df['Socket0 L2 Cache Misses'].mul(100)
+            Y_tmp =  df['Socket0 L2 Cache Misses'].div(df[columns_j]+df['Socket0 L2 Cache Misses']).mul(100)
             Y = Y_tmp.values.tolist()
             val.append(Y)
             label.append('{} {} {}'.format(info[5], info[2] , label_j))
         elif columns_j in ['Socket0 L3 Cache Hits']:
-            Y_tmp = df[columns_j] / df['Socket0 L3 Cache Misses'].mul(100)
+            Y_tmp =  df['Socket0 L3 Cache Misses'].div(df[columns_j]+df['Socket0 L3 Cache Misses']).mul(100)
             Y = Y_tmp.values.tolist()
             val.append(Y)
             label.append('{} {} {}'.format(info[5], info[2] , label_j))  
         elif columns_j in ['Socket1 L2 Cache Hits']:
-            Y_tmp = df[columns_j] / df['Socket1 L2 Cache Misses'].mul(100)
+            Y_tmp = df['Socket1 L2 Cache Misses'].div(df[columns_j]+df['Socket1 L2 Cache Misses']).mul(100)
             Y = Y_tmp.values.tolist()
             val.append(Y)
             label.append('{} {} {}'.format(info[5], info[2] , label_j))  
         elif columns_j in ['Socket1 L3 Cache Hits']:
-            Y_tmp = df[columns_j] / df['Socket1 L3 Cache Misses'].mul(100)
+            Y_tmp = df['Socket1 L3 Cache Misses'].div(df[columns_j]+df['Socket1 L3 Cache Misses']).mul(100)
             Y = Y_tmp.values.tolist()
             val.append(Y)
             label.append('{} {} {}'.format(info[5], info[2] , label_j))  
-        elif columns_j in ['L2 Hit (pti) Socket0']:
-            Y_tmp = df[columns_j] / df['L2 Miss (pti) Socket0'].mul(100)
+        elif columns_j in ['L2 Access (pti) Socket0']:
+            Y_tmp = df['L2 Miss (pti) Socket0'].div(df[columns_j]).mul(100)
             Y = Y_tmp.values.tolist()
             val.append(Y)
             label.append('{} {} {}'.format(info[5], info[2] , label_j))  
-        elif columns_j in ['L2 Hit (pti) Socket1']:
-            Y_tmp = df[columns_j] / df['L2 Miss (pti) Socket1'].mul(100)
+        elif columns_j in ['L2 Access (pti) Socket1']:
+            Y_tmp = df['L2 Miss (pti) Socket1'].div(df[columns_j]).mul(100)
             Y = Y_tmp.values.tolist()
             val.append(Y)
-            label.append('{} {} {}'.format(info[5], info[2] , label_j))      
+            label.append('{} {} {}'.format(info[5], info[2] , label_j))
+        elif columns_j in ['L2 Access (pti) Socket1.1']:
+            Y_tmp = df['L2 Miss (pti) Socket1.1'].div(df[columns_j]).mul(100)
+            Y = Y_tmp.values.tolist()
+            val.append(Y)
+            label.append('{} {} {}'.format(info[5], info[2] , label_j))  
         elif columns_j in ['Socket0 L2 Cache Misses', 'Socket1 L2 Cache Misses', 'L2 Miss (pti) Socket0', 'L2 Miss (pti) Socket1', 'Socket0 L3 Cache Misses', 'Socket1 L3 Cache Misses', 'L3 Miss % Socket0', 'L3 Miss % Socket1', 'Ave L3 Miss Latency Socket0', 'Ave L3 Miss Latency Socket1']:
             Y_tmp = df[columns_j].div(1)
             Y = Y_tmp.values.tolist()
             val.append(Y)
             label.append('{} {} {}'.format(info[5], info[2] , label_j))
-        elif columns_j in ['L3 Miss Socket0', 'L3 Miss Socket1']:
+        elif columns_j in ['L3 Miss Socket0', 'L3 Miss Socket1', 'L3 Miss Socket1.1']:
             Y_tmp = df[columns_j].div(1000000000)
             Y = Y_tmp.values.tolist()
             val.append(Y)
