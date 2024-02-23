@@ -1,0 +1,21 @@
+{
+  "rubberdaq_test_mock_dlh": {
+    "--run_secs": {
+      "parent": "0-63,128-191",
+      "threads": {
+        "rte-worker-1": "1",
+        "rte-worker-3": "2",
+        "rte-worker-5": "3",
+        "rte-worker-129": "129",
+        "rte-worker-130": "130",
+        "rte-worker-131": "131",
+
+        "cleanup-.": "0-7,128-135",
+
+        "producer-.": "8-15,136-143",
+
+	"consumer-.": "16-23,144-151"
+      }
+    }
+  }
+}
