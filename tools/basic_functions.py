@@ -1,3 +1,28 @@
+#This Python file contains imports and variable definitions to support data analysis and visualization tasks. This would allow another script to easily generate plots, tables, PDFs etc for data analysis without having to redefine these each time. The file provides some reusable variables and utilities to build on. Overall these provide some common utility functions for working with files, directories, times, and data in Python.
+
+#* It imports common Python packages like os, sys, csv, time, json, re, shutil, subprocess, requests, matplotlib, numpy, pickle, pandas, pathlib, datetime, fpdf, dateutil, tabulate, getpass, flask. These provide functionality for system calls, file I/O, data manipulation, plotting, PDF generation, date parsing, formatting tables, getting passwords, and web apps.
+
+#* It defines some lists:
+#    * color_list - a list of color names for plotting/visualization
+#    * linestyle_list - a list of line style names (solid, dotted, etc) for plotting
+#    * marker_list - a list of marker symbols (circles, squares, etc) for plotting
+#    * not_alma9_os - a list of hostnames, possibly for some filtering logic
+#    * list_py_package - a list of the imported Python package names
+
+#This is a collection of utility functions in Python:
+#* debug_missing_module - This checks if a module is installed and prints an error message if not. It takes a module name as input and returns a bool indicating if the module is installed. This is useful for debugging missing dependencies before running a script.
+#* get_access - This securely gets a username and password from the user, without echoing the password typed. It uses the getpass module. The input is the prompt strings, and the output is the username and password variables.
+#* directory - This creates directories if they don't already exist. It takes a list of directory paths as input. The output is the directories being created if needed.
+#* current_time - This returns a string with the current date and time formatted a certain way. There are no inputs. The output is the formatted time string.
+#* get_unix_timestamp - This converts a time string to a unix timestamp integer. It takes a time string as input and tries different formats until one works. The output is the integer timestamp.
+#* make_column_list - This reads a CSV file and returns a list of the column names. It takes the filename and directory as input and outputs the column name list.
+#* datenum - This calculates the elapsed time in seconds between two datetime objects. It takes the two datetimes as input and outputs the time difference as a float.
+#* is_hidden - This checks if a filename indicates a hidden file. It takes a filename/path as input and returns a bool.
+#* make_file_list - This builds a list of files in a directory, omitting hidden files. It takes the directory path as input and outputs a list of file paths.
+#* make_name_list_benchmark - This extracts the base filenames from a directory into a list. It takes the directory path as input and outputs a list of base filenames without extensions.
+#* make_name_list - This categorizes filenames in a directory into different lists based on patterns in the names. It takes the directory path as input and outputs several lists of filenames grouped by the patterns found.
+#* create_var_list - This filters a list of filenames based on a list of substrings. It takes a file list and string list as input and outputs a list of lists of filenames containing each substring. 
+
 import os
 import sys
 import csv
@@ -977,4 +1002,4 @@ def pins_type_list(node, cpus, pin_type, top, step):
         print(f'                {pin_str_postproc} {pin_num_postproc},')
 
 
-
+    
