@@ -603,10 +603,10 @@ def json_info(file_daqconf, file_core, input_directory, input_dir, var, pdf, if_
     table_cpupins(columns_data=[pinning_table, cpu_core_table, cpu_utilization_table], pdf=pdf, if_pdf=if_pdf)
     
 # Function to extract the information of the cpupinning info for a non-DAQ-run (eg. test apps)
-def json_info_general(file_core, input_directory, input_dir, var, pdf, if_pdf=False, file_cpupin=None, emu_mode=True):   
+def json_info_general(file_core, input_directory, input_dir, var, pdf, if_pdf=False, file_cpupin=None, emu_mode=True, use_daqconf=False):   
     emu_mode = None
 
-    data_list = cpupining_info(input_directory, file_cpupin, var)
+    data_list = cpupining_info(input_directory, file_cpupin, var, use_daqconf)
     if if_pdf:
         pdf.set_font('Times', '', 10)
         pdf.write(5, '    * {} \n'.format(file_cpupin))
@@ -616,12 +616,12 @@ def json_info_general(file_core, input_directory, input_dir, var, pdf, if_pdf=Fa
     table_cpupins(columns_data=[pinning_table, cpu_core_table, cpu_utilization_table], pdf=pdf, if_pdf=if_pdf)
 
 # Function to extract the information of the cpupinning file.
-def cpupining_info(input_dir, file, var):
+def cpupining_info(input_dir, file, var, use_daqconf=True):
     with open('{}/cpupins/{}'.format(input_dir, file), 'r') as ff:
         data_cpupins = json.load(ff)
-        try:
+        if use_daqconf:
             info_daq_application = json.dumps(data_cpupins['daq_application']['--name {}'.format(var)], skipkeys = True, allow_nan = True)
-        except:
+        else:
             info_daq_application = json.dumps(data_cpupins['rubberdaq_test_mock_dlh']['--run_secs'], skipkeys = True, allow_nan = True)
         data_list = json.loads(info_daq_application)
         
@@ -676,16 +676,13 @@ def extract_table_data(input_dir, file_core, data_list, emu_mode):
 
     # Calculate averages for each CPU core configuration
     for cpu_cores_i in cpu_core_table:
-        try:
-            cpu_cores = [int(num) for num in cpu_cores_i.split(',')]
-        except:
-            cpu_cores = []
-            for cores in cpu_cores_i.split(','):
-                if '-' in cores:
-                    core_range = range(int(cores.split('-')[0]), int(cores.split('-')[1])+1)
-                else:
-                    core_range = int(cores)
-                cpu_cores+=core_range
+        cpu_cores = []
+        for cores in cpu_cores_i.split(','):
+            if '-' in cores:
+                core_range = range(int(cores.split('-')[0]), int(cores.split('-')[1])+1)
+            else:
+                core_range = [int(cores)]
+            cpu_cores+=core_range
 
         for core_i in cpu_cores:
             
