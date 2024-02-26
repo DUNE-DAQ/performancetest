@@ -1,0 +1,14 @@
+{
+  "rubberdaq_test_mock_dlh": {
+    "--run_secs": {
+      "parent": "64-127,192-255",
+      "threads": {
+        "cleanup-.": "64-71,192-199",
+
+        "producer-.": "72-79,200-207",
+
+	"consumer-.": "80-87,208-215"
+      }
+    }
+  }
+}
