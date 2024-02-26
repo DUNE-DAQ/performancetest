@@ -1,0 +1,41 @@
+{
+  "rubberdaq_test_mock_dlh": {
+    "--run_secs": {
+      "parent": "64-127,192-255",
+      "threads": {
+        "cleanup-0": "64,192",
+	"cleanup-1": "64,192",
+	"cleanup-2": "67,195",
+	"cleanup-3": "67,195",
+	"cleanup-4": "72,200",
+	"cleanup-5": "72,200",
+	"cleanup-6": "75,203",
+	"cleanup-7": "75,203",
+	"cleanup-8": "80,208",
+	"cleanup-9": "80,208",
+
+        "producer-0": "65,193",
+	"producer-1": "65,193",
+	"producer-2": "68,196",
+	"producer-3": "68,196",
+	"producer-4": "73,201",
+	"producer-5": "73,201",
+	"producer-6": "76,204",
+        "producer-7": "76,204",
+	"producer-8": "81,209",
+        "producer-9": "81,209",
+
+	"consumer-0": "66,194",
+	"consumer-1": "66,194",
+	"consumer-2": "69,197",
+	"consumer-3": "69,197",
+	"consumer-4": "74,202",
+        "consumer-5": "74,202",
+	"consumer-6": "77,205",
+        "consumer-7": "77,205",
+	"consumer-8": "82,210",
+        "consumer-9": "82,210"
+      }
+    }
+  }
+}
