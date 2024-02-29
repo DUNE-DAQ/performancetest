@@ -13,6 +13,8 @@
         "rte-worker-4": "4",
         "rte-worker-36": "36",
 
+	"fakeprod-1..": "1,33,2,34,3,35,4,36",
+	
         "tpset-0": "0,32",
         "consumer-0": "0,32",
 	"cleanup-0":"0,32",
@@ -167,6 +169,7 @@
         "rte-worker-47": "47",
         "rte-worker-48": "48",
         "rte-worker-49": "49",
+	"fakeprod-1..": "1-50",
         "tpset-0": [0,32],
         "consumer-0": [0,32],
         "consumer-(100|101|102|103)": "2",
@@ -202,6 +205,9 @@
         "rte-worker-61": "61",
         "rte-worker-63": "63",
 
+	"fakeprod-1..": "3,5,7,59,61,63",
+	"fakeprod-2..": "3,5,7,59,61,63",
+	      
         "tpset-0": "1,57",
         "consumer-0": "1,57",
         "cleanup-0": "1,57",
@@ -231,6 +237,7 @@
         "rte-worker-28": "28",
         "rte-worker-5": "5",
         "rte-worker-29": "29",
+	"fakeprod-1..": "1,25,2,26,3,27,4,28,5,29",
         "tpset-2": [
           0,
           24
@@ -257,6 +264,7 @@
         "rte-worker-28": "28",
         "rte-worker-5": "5",
         "rte-worker-29": "29",
+	"fakeprod-1..": "1,25,2,26,3,27,4,28,5,29",
         "tpset-3": [
           0,
           24
@@ -282,6 +290,7 @@
         "rte-worker-39": "39",
         "rte-worker-9": "9",
         "rte-worker-41": "41",
+	"fakeprod-1..": "1,33,3,35,5,37,7,39,9,41",
         "tpset-0": [
           0,
           32
@@ -307,6 +316,7 @@
         "rte-worker-39": "39",
         "rte-worker-9": "9",
         "rte-worker-41": "41",
+	"fakeprod-1..": "1,33,3,35,5,37,7,39,9,41",
         "tpset-1": [
           0,
           32
