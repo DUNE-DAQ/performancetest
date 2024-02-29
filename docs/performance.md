@@ -113,7 +113,7 @@ We have 2 cases, we can run the automatic scaling or a single test at a time. Im
 - The automatic scaling:
     1. Generate config files for streams [8, 16, 24, 32, 40, 48]:
         - `./config_gen.sh <server_readout> <NUMA_node_num> <data_format> <test> <dunedaq_version> `
-            - `<server_readout>`: ex. server that will run the readout app, ex. np02-srv-004
+            - `<server_readout>`: ex. server that will run the readout app, ex. np02srv004
             - `<NUMA_node_num>`: 0, 1, or 2 (when using both)
             - `<data_format>`: eth of wib2
             - `<test>`: ex. stream_scaling
