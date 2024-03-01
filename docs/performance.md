@@ -47,6 +47,7 @@ The following instructions are aimed at users who want to run and create a perfo
         sudo chown <user> /mnt/nvm_raid0/fiofile
         ```
 
+    - Make sure np04daq user has write access to the directory
     - Modify `/etc/fstab` to mount on boot up.
         - Note: this didn't work, the device file `/dev/md0` was forgotten on reboot so it crashed
     - Also, to query drive info you can use: `sudo smartctl -a /dev/nvme0n1`
