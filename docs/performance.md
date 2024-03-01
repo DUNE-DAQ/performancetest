@@ -103,9 +103,12 @@ We have 2 cases, we can run the automatic scaling or a single test at a time. Im
 
 - The single test:
     1. Generate config file: `fddaqconf_gen -c <daqconf_file.json> --detector-readout-map-file <readoutmap.json> <test_name>`
-    2. Start monitoring for AMD: 
+    2. Start monitoring and CPU utilization recording (this is run on the readout server in use): 
+    - for INTEL do:
+        - `cd sourcecode/performancetest/scripts/; ./core_utilization_INTEL.sh <test_path> <test_name>`
+    - for AMD do:
         - `cd sourcecode/performancetest/scripts/; sudo ./start_uprof.sh <test_path> <test_name> <duration_seconds>`
-        - If error in Power monitoring do: `cd /opt/AMDuProf_4.0-341/bin/; sudo ./AMDPowerProfilerDriver.sh install`
+        - If there is an error in Power monitoring do: `cd /opt/AMDuProf_4.0-341/bin/; sudo ./AMDPowerProfilerDriver.sh install`
     3. Run the test: `nanorc <test_name> test-perf` 
         - `boot; conf; start_run <run_num>;`
         - for recording: `expert_command --timeout 10 <test_name>/<test_name>/<readout_app> ../record-cmd.json`
@@ -119,9 +122,12 @@ We have 2 cases, we can run the automatic scaling or a single test at a time. Im
             - `<data_format>`: eth of wib2
             - `<test>`: ex. stream_scaling
             - `<dunedaq_version>`: ex. v4_1_1 or NFD23_09_28
-    2. Start monitoring for AMD: 
+    2. Start monitoring and CPU utilization recording (this is run on the readout server in use): 
+    - for INTEL do:
+        - `cd sourcecode/performancetest/scripts/; ./core_utilization_INTEL.sh <test_path> <test_name>`
+    - for AMD do:
         - `cd sourcecode/performancetest/scripts/; sudo ./start_uprof.sh <test_path> <test_name> <duration_seconds>`
-        - If error in Power monitoring do: `cd /opt/AMDuProf_4.0-341/bin/; sudo ./AMDPowerProfilerDriver.sh install`
+        - If there is an error in Power monitoring do: `cd /opt/AMDuProf_4.0-341/bin/; sudo ./AMDPowerProfilerDriver.sh install`
     3. Run the test: 
         - without recording: `./run_stream_scaling.sh <envir_name> <run_num_init> <test_name>`
             - Move output files from raw recording: `cd sourcecode/performancetest/scripts/; sudo ./move_raw_data.sh <test_name>/<streams>`
