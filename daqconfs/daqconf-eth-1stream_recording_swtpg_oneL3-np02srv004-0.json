@@ -19,8 +19,21 @@
 	}, 
 
 	"readout": {
-		"thread_pinning_file":"../cpupins/cpupin-eth-1stream_recording_swtpg_oneL3-np02srv004-0.json",
-    	"default_data_file": "asset://?checksum=dd156b4895f1b06a06b6ff38e37bd798",
+    	"thread_pinning_files": [
+            {
+                "file": "${PWD}/../cpupins/cpupin-all.json",
+                "after": "boot"
+            },
+            {
+                "file": "${PWD}/../cpupins/cpupin-all.json",
+                "after": "conf"
+            },
+            {
+                "file": "${PWD/../cpupins/cpupin-eth-1stream_recording_swtpg_oneL3-np02srv004-0.json",
+                "after": "start"
+            }
+        ],
+		"default_data_file": "asset://?checksum=dd156b4895f1b06a06b6ff38e37bd798",
 		"enable_raw_recording": true,
 		"raw_recording_output_dir":"/mnt/nvm_raid0/dvargas/eth_recording_swtpg_1stream_oneL3/",
 		"latency_buffer_size": 139008,

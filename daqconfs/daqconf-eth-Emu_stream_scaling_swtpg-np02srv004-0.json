@@ -19,9 +19,22 @@
 	}, 
 
 	"readout": {
-		"thread_pinning_file":"../cpupins/cpupin-eth-basic_recording_swtpg-np02srv003-0.json",
+		"thread_pinning_files": [
+            {
+                "file": "${PWD}/../cpupins/cpupin-all.json",
+                "after": "boot"
+            },
+            {
+                "file": "${PWD}/../cpupins/cpupin-all.json",
+                "after": "conf"
+            },
+            {
+                "file": "${PWD/../cpupins/cpupin-all-running.json ",
+                "after": "start"
+            }
+        ],
     	"default_data_file": "asset://?checksum=dd156b4895f1b06a06b6ff38e37bd798",
-		"enable_raw_recording": true,
+		"enable_raw_recording": false,
 		"raw_recording_output_dir":"/mnt/nvm_raid0/",
 		"latency_buffer_size": 139008,
 		"generate_periodic_adc_pattern": true,
@@ -34,7 +47,7 @@
 			"default_latency_numa_aware": true,
 			"exceptions": [
 				{
-				"host": "np02-srv-003",
+				"host": "np02-srv-004",
 				"card": 0,
 				"numa_id": 0,
 				"latency_buffer_numa_aware": true,
@@ -53,8 +66,13 @@
 		"trigger_candidate_config": [{ "prescale": 5000 }],
         "mlt_merge_overlapping_tcs": false
 	},
-	
+
 	"hsi": {
     	"random_trigger_rate_hz": 0.1
   	}
 }
+
+
+
+
+
