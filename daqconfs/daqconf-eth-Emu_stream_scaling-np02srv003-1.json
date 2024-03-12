@@ -28,7 +28,7 @@
                 "after": "conf"
             },
             {
-                "file": "${PWD/../cpupins/cpupin-all-running.json ",
+                "file": "${PWD/../cpupins/cpupin-all-running.json",
                 "after": "start"
             }
         ],
