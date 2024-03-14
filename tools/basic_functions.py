@@ -640,9 +640,9 @@ def json_info(file_daqconf, file_core, input_directory, input_dir, var, pdf, if_
                 pass
             
     emu_mode = True if data_readout_list['generate_periodic_adc_pattern'] else False
-    pinning_table, cpu_core_table, cpu_utilization_table = extract_table_data(input_dir, file_core, data_list, emu_mode=emu_mode)
+    pinning_table, cpu_core_table, cpu_utilization_table, cpu_utilization_maximum_table = extract_table_data(input_dir, file_core, data_list, emu_mode=emu_mode)
     pdf.ln(5)
-    table_cpupins(columns_data=[pinning_table, cpu_core_table, cpu_utilization_table], pdf=pdf, if_pdf=if_pdf)
+    table_cpupins(columns_data=[pinning_table, cpu_core_table, cpu_utilization_table, cpu_utilization_maximum_table], pdf=pdf, if_pdf=if_pdf)
 
 # Function to extract the information of the cpupinning file.
 def cpupining_info(input_dir, file, var):
@@ -673,7 +673,7 @@ def core_utilization(input_dir, file):
 
 # Function to format, combine and calculate the data to be printed in the table.
 def extract_table_data(input_dir, file_core, data_list, emu_mode):
-    pinning_table, cpu_core_table, cpu_utilization_table = [], [], []
+    pinning_table, cpu_core_table, cpu_utilization_table, cpu_utilization_maximum_table, max_tmp = [], [], [], [], []
     cpu_core, cpu_utilization = core_utilization(input_dir, file_core)
     deno, sum_utilization = 0, 0
 
@@ -704,17 +704,22 @@ def extract_table_data(input_dir, file_core, data_list, emu_mode):
         try:
             cpu_cores = [int(num) for num in cpu_cores_i.split(',')]
         except ValueError:
-            print('Check the format of the cpu pinning file. The [#,#] will not work.')
+            print('Check the format of the cpu pinning file. The ["#,#"] or "#-#" will not work.')
 
         for core_i in cpu_cores:
             deno += 1
             sum_utilization += cpu_utilization[core_i] 
-            
-        utilization_average = round((sum_utilization / deno), 1)
+            max_tmp.append(cpu_utilization[core_i])
+        
+        utilization_average = round((sum_utilization / deno), 2)
+        #print('utilization_average, sum_utilization, deno = ', utilization_average, sum_utilization, deno)
+        #print('max_tmpo = ', max_tmp)
+        #print('max(max_tmp) = ', max(max_tmp))
         cpu_utilization_table.append(utilization_average)
+        cpu_utilization_maximum_table.append(max(max_tmp))
         deno, sum_utilization = 0, 0                # Reset variables for the next iteration
 
-    return pinning_table, cpu_core_table, cpu_utilization_table
+    return pinning_table, cpu_core_table, cpu_utilization_table, cpu_utilization_maximum_table
 
 # Function to create the cpupins utilization table base in the data suplied as input. The input "columns_data" comes from the extract_table_data funtion.
 def table_cpupins(columns_data, pdf, if_pdf=False):
@@ -723,7 +728,7 @@ def table_cpupins(columns_data, pdf, if_pdf=False):
         return
 
     rows_data = []
-    headers = ['Pinning', 'CPU cores', 'CPU use ave (%)']
+    headers = ['Pinning', 'CPU cores', 'CPU ave (%)', 'CPU max (%)']
     rows_data.append(headers)
     
     # Transpose the data to convert columns to rows
@@ -731,7 +736,7 @@ def table_cpupins(columns_data, pdf, if_pdf=False):
     rows_data = rows_data + line
     
     line_height = pdf.font_size * 2.1
-    col_width = [pdf.epw/7.2, pdf.epw/1.55, pdf.epw/6.8]
+    col_width = [pdf.epw/7.2, pdf.epw/2., pdf.epw/7.5, pdf.epw/7.5]
     
     lh_list = [] #list with proper line_height for each row
 
