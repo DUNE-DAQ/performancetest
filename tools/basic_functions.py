@@ -211,6 +211,7 @@ def fetch_grafana_panels(grafana_url, dashboard_uid):
     panels = []
     # Get dashboard configuration
     dashboard_url = '{}/api/dashboards/uid/{}'.format(grafana_url, dashboard_uid)     
+    
     try:
         response = requests.get(dashboard_url)
         if response.status_code == 200:
@@ -231,8 +232,9 @@ def fetch_grafana_panels(grafana_url, dashboard_uid):
         print('Error: Request failed with the following exception:', e)
 
 # Function to 
-def get_query_urls(panel, host):
+def get_query_urls(panel, host, partition):
     targets = panel.get('targets', [])
+    
     queries = []
     queries_label = []
     for target in targets:
@@ -240,18 +242,31 @@ def get_query_urls(panel, host):
             query = target['expr'].replace('${host}', host)
             queries.append(query)
             queries_label.append(target['legendFormat'])
-    
+        elif 'query' in target:
+            query = target['query'].replace('${partition}', partition)
+            queries.append(query)
+            queries_label.append(target['refId'])
+        else:
+            print('Missing expr or query in targets.')
+
     return queries, queries_label if queries else None
     
 # Function to 
-def extract_data_and_stats_from_panel(grafana_url, dashboard_uid, delta_time, host, input_dir, output_csv_file):
+def extract_data_and_stats_from_panel(grafana_url, dashboard_uid, delta_time, host, partition=None, input_dir='', output_csv_file=''):
     for dashboard_uid_to_use in dashboard_uid:
         panels_data = fetch_grafana_panels(grafana_url, dashboard_uid_to_use)
         if not panels_data:
             print('Error in extract_data_and_stats_from_panel: Failed to fetch dashboard panels data.')
             return
         
+        #url = http://np04-srv-009.cern.ch:3000/d/91zWmJEVk/intel-r-performance-counter-monitor-intel-r-pcm-dashboard?orgId=1&refresh=5s&var-host=np04-squery_rangerv-021
         url = '{}/api/datasources/proxy/1/api/v1/query_range'.format(grafana_url)
+        
+        if partition:
+            #url = 'http://np04-srv-017.cern.ch:31023/d/v4_3_0-frontend_ethernet/frontend-ethernet?from=1710261229606&to=1710273051890&var-influxdb=ffedc550-6555-4a16-a113-aabf2b980c30&var-postgresql=c7e9e333-25c9-49e7-b209-b9492f70d419&var-partition=np04hddev&var-hsi_series=&var-hsi_field=&var-run_time=0&orgId=1'
+            #url = '{}/api/datasources/proxy/v1/{}/api/1/query_range'.format(grafana_url, partition)
+            url = '{}/api/datasources/proxy/v1/query_range'.format(grafana_url)
+            
         start_timestamp = get_unix_timestamp(delta_time[0])
         end_timestamp = get_unix_timestamp(delta_time[1])
         all_dataframes = []
@@ -261,9 +276,9 @@ def extract_data_and_stats_from_panel(grafana_url, dashboard_uid, delta_time, ho
                 print('Skipping panel ', panel['title'], ' with no targets.')
                 continue
             
-            query_urls, queries_label = get_query_urls(panel, host)
+            query_urls, queries_label = get_query_urls(panel, host, partition)
             if not query_urls:
-                print('Skipping panel ', panel['title'], ' with no valid query URL.')
+                print('Skipping panel ', panel['title'], ' with no valid query URL')
                 continue
             
             for i, query_url in enumerate(query_urls):
@@ -274,16 +289,18 @@ def extract_data_and_stats_from_panel(grafana_url, dashboard_uid, delta_time, ho
                     'end': end_timestamp,
                     'step': 2
                 }
-
+                
                 response = requests.post(url, data=data)
                 response_data = response.json()
                 
+                print('response_data = ', response_data)
+                
                 if response.status_code != 200:
-                    print('Error: Failed to fetch dashboard data. Status code:content ', response.status_code, ':', response.content)
+                    print('Error: Failed to fetch dashboard data. Status code: content ', response.status_code, ':', response.content)
                     print('Response panel:data:content for panel ', panel['title'], ':', response_data, ':', response.content)
                     return None
 
-                if 'data' not in response_data or 'resultType' not in response_data['data'] or response_data['data']['resultType'] != 'matrix':
+                if 'data' not in response_data or 'resultType' not in response_data['data'] or response_data['data']['resultType'] != 'matrix' or response_data['data']['result']==[]:
                     print('Skipping query with no valid response in panel: ', panel['title'])
                     continue
 
@@ -348,7 +365,7 @@ def uprof_pcm_formatter(input_dir, file):
                 if 'Package' in package:
                     package_num = package[-1]
                 header_new += [header+' Socket' + package_num]
-          
+
         # generate full timestamps
         if re.search('..:..:..:...,', line):
             msec_n_old = int(line[9:12])
@@ -501,67 +518,67 @@ def get_column_val(df, columns, labels, file):
             Y_tmp =  df['Socket0 L2 Cache Misses'].div(df[columns_j]+df['Socket0 L2 Cache Misses']).mul(100)
             Y = Y_tmp.values.tolist()
             val.append(Y)
-            label.append('{} {} {}'.format(info[5], info[2] , label_j))
+            label.append('{} {} {} {}'.format(info[1], info[5], info[2], label_j))
         elif columns_j in ['Socket0 L3 Cache Hits']:
             Y_tmp =  df['Socket0 L3 Cache Misses'].div(df[columns_j]+df['Socket0 L3 Cache Misses']).mul(100)
             Y = Y_tmp.values.tolist()
             val.append(Y)
-            label.append('{} {} {}'.format(info[5], info[2] , label_j))  
+            label.append('{} {} {} {}'.format(info[1], info[5], info[2], label_j))  
         elif columns_j in ['Socket1 L2 Cache Hits']:
             Y_tmp = df['Socket1 L2 Cache Misses'].div(df[columns_j]+df['Socket1 L2 Cache Misses']).mul(100)
             Y = Y_tmp.values.tolist()
             val.append(Y)
-            label.append('{} {} {}'.format(info[5], info[2] , label_j))  
+            label.append('{} {} {} {}'.format(info[1], info[5], info[2], label_j))  
         elif columns_j in ['Socket1 L3 Cache Hits']:
             Y_tmp = df['Socket1 L3 Cache Misses'].div(df[columns_j]+df['Socket1 L3 Cache Misses']).mul(100)
             Y = Y_tmp.values.tolist()
             val.append(Y)
-            label.append('{} {} {}'.format(info[5], info[2] , label_j))  
+            label.append('{} {} {} {}'.format(info[1], info[5], info[2], label_j))  
         elif columns_j in ['L2 Access (pti) Socket0']:
             Y_tmp = df['L2 Miss (pti) Socket0'].div(df[columns_j]).mul(100)
             Y = Y_tmp.values.tolist()
             val.append(Y)
-            label.append('{} {} {}'.format(info[5], info[2] , label_j))  
+            label.append('{} {} {} {}'.format(info[1], info[5], info[2], label_j))  
         elif columns_j in ['L2 Access (pti) Socket1']:
             Y_tmp = df['L2 Miss (pti) Socket1'].div(df[columns_j]).mul(100)
             Y = Y_tmp.values.tolist()
             val.append(Y)
-            label.append('{} {} {}'.format(info[5], info[2] , label_j))
+            label.append('{} {} {} {}'.format(info[1], info[5], info[2], label_j))
         elif columns_j in ['L2 Access (pti) Socket1.1']:
             Y_tmp = df['L2 Miss (pti) Socket1.1'].div(df[columns_j]).mul(100)
             Y = Y_tmp.values.tolist()
             val.append(Y)
-            label.append('{} {} {}'.format(info[5], info[2] , label_j))  
+            label.append('{} {} {} {}'.format(info[1], info[5], info[2], label_j))  
         elif columns_j in ['Socket0 L2 Cache Misses', 'Socket1 L2 Cache Misses', 'L2 Miss (pti) Socket0', 'L2 Miss (pti) Socket1', 'Socket0 L3 Cache Misses', 'Socket1 L3 Cache Misses', 'L3 Miss % Socket0', 'L3 Miss % Socket1', 'Ave L3 Miss Latency Socket0', 'Ave L3 Miss Latency Socket1']:
             Y_tmp = df[columns_j].div(1)
             Y = Y_tmp.values.tolist()
             val.append(Y)
-            label.append('{} {} {}'.format(info[5], info[2] , label_j))
+            label.append('{} {} {} {}'.format(info[1], info[5], info[2], label_j))
         elif columns_j in ['L3 Miss Socket0', 'L3 Miss Socket1', 'L3 Miss Socket1.1']:
             Y_tmp = df[columns_j].div(1000000000)
             Y = Y_tmp.values.tolist()
             val.append(Y)
-            label.append('{} {} {}'.format(info[5], info[2] , label_j))
+            label.append('{} {} {} {}'.format(info[1], info[5], info[2], label_j))
         elif columns_j in ['Socket0 Memory Bandwidth', 'Socket1 Memory Bandwidth']:
             Y_tmp = df[columns_j].div(1000)
             Y = Y_tmp.values.tolist()
             val.append(Y)
-            label.append('{} {} {}'.format(info[5], info[2] , label_j))
+            label.append('{} {} {} {}'.format(info[1], info[5], info[2], label_j))
         elif columns_j in ['Socket0 L2 Cache Misses Per Instruction', 'Socket1 L2 Cache Misses Per Instruction']:
             Y_tmp = df[columns_j].mul(100)
             Y = Y_tmp.values.tolist()
             val.append(Y)
-            label.append('{} {} {}'.format(info[5], info[2] , label_j))
+            label.append('{} {} {} {}'.format(info[1], info[5], info[2], label_j))
         elif columns_j in ['Package Joules Consumed Socket0 Energy Consumption', 'Package Joules Consumed Socket1 Energy Consumption']:
             #Y_tmp = df[columns_j] - 40
             Y_tmp = df[columns_j]
             Y = Y_tmp.values.tolist()
             val.append(Y)
-            label.append('{} {} {}'.format(info[5], info[2] , label_j))    
+            label.append('{} {} {} {}'.format(info[1], info[5], info[2], label_j))    
         else:
             Y = df[columns_j].values.tolist()
             val.append(Y)
-            label.append('{} {} {}'.format(info[5], info[2] , label_j))
+            label.append('{} {} {} {}'.format(info[1], info[5], info[2], label_j))
     
     return val, label
 
@@ -585,8 +602,8 @@ def json_info(file_daqconf, file_core, input_directory, input_dir, var, pdf, if_
         data_readout = convert(data_readout_list)
 
         for m, value_m in enumerate(data_readout):
-            if value_m in ['thread_pinning_file']: 
-                file_cpupins = data_readout_list[value_m]
+            if value_m in ['thread_pinning_files']: 
+                file_cpupins = data_readout_list[value_m][2]['file']
                 
         if repin_threads_file:
             file_cpupins = repin_threads_file
@@ -684,7 +701,10 @@ def extract_table_data(input_dir, file_core, data_list, emu_mode):
 
     # Calculate averages for each CPU core configuration
     for cpu_cores_i in cpu_core_table:
-        cpu_cores = [int(num) for num in cpu_cores_i.split(',')]
+        try:
+            cpu_cores = [int(num) for num in cpu_cores_i.split(',')]
+        except ValueError:
+            print('Check the format of the cpu pinning file. The [#,#] will not work.')
 
         for core_i in cpu_cores:
             deno += 1

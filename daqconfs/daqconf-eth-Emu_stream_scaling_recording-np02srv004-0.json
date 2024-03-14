@@ -20,15 +20,15 @@
 	"readout": {
 		"thread_pinning_files": [
             {
-                "file": "${PWD}/../cpupins/cpupin-all.json",
+                "file": "../cpupins/cpupin-all.json",
                 "after": "boot"
             },
             {
-                "file": "${PWD}/../cpupins/cpupin-all.json",
+                "file": "../cpupins/cpupin-all.json",
                 "after": "conf"
             },
             {
-                "file": "${PWD/../cpupins/cpupin-all-running.json",
+                "file": "../cpupins/cpupin-all-running.json",
                 "after": "start"
             }
         ],

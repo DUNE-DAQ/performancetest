@@ -2,7 +2,7 @@
   "_comment": "For np02-srv-002, eth, SWTPG enabled, concentrating on as few CPUs as reasonable",
   "daq_application": {
     "--name runp02srv002eth0": {
-      "parent": "4-5,36-37",
+      "parent": "4,5,36,37",
       "threads": {
         "rte-worker-1": "1",
         "rte-worker-33": "33",
@@ -19,8 +19,8 @@
         "consumer-0": "0,32",
 	      "cleanup-0": "0,32",
 	  
-        "consumer-1..": "6-8,38-40",
-        "postproc-0-1..": "9-15,41-47"
+        "consumer-1..": "6,7,8,38,39,40",
+        "postproc-0-1..": "9,10,11,12,13,14,15,41,42,43,44,45,46,47"
       }
     },
     "--name runp02srv001eth0": {
@@ -175,7 +175,7 @@
       }
     },
     "--name runp02srv004eth0": {
-      "parent": "0-4,128-132",
+      "parent": "0,1,2,3,4,128,129,130,131,132",
       "threads": {
         "rte-worker-5": "5",
         "rte-worker-6": "6",
@@ -233,5 +233,3 @@
     } 
   } 
 }
-
-
