@@ -1,28 +1,3 @@
-#This Python file contains imports and variable definitions to support data analysis and visualization tasks. This would allow another script to easily generate plots, tables, PDFs etc for data analysis without having to redefine these each time. The file provides some reusable variables and utilities to build on. Overall these provide some common utility functions for working with files, directories, times, and data in Python.
-
-#* It imports common Python packages like os, sys, csv, time, json, re, shutil, subprocess, requests, matplotlib, numpy, pickle, pandas, pathlib, datetime, fpdf, dateutil, tabulate, getpass, flask. These provide functionality for system calls, file I/O, data manipulation, plotting, PDF generation, date parsing, formatting tables, getting passwords, and web apps.
-
-#* It defines some lists:
-#    * color_list - a list of color names for plotting/visualization
-#    * linestyle_list - a list of line style names (solid, dotted, etc) for plotting
-#    * marker_list - a list of marker symbols (circles, squares, etc) for plotting
-#    * not_alma9_os - a list of hostnames, possibly for some filtering logic
-#    * list_py_package - a list of the imported Python package names
-
-#This is a collection of utility functions in Python:
-#* debug_missing_module - This checks if a module is installed and prints an error message if not. It takes a module name as input and returns a bool indicating if the module is installed. This is useful for debugging missing dependencies before running a script.
-#* get_access - This securely gets a username and password from the user, without echoing the password typed. It uses the getpass module. The input is the prompt strings, and the output is the username and password variables.
-#* directory - This creates directories if they don't already exist. It takes a list of directory paths as input. The output is the directories being created if needed.
-#* current_time - This returns a string with the current date and time formatted a certain way. There are no inputs. The output is the formatted time string.
-#* get_unix_timestamp - This converts a time string to a unix timestamp integer. It takes a time string as input and tries different formats until one works. The output is the integer timestamp.
-#* make_column_list - This reads a CSV file and returns a list of the column names. It takes the filename and directory as input and outputs the column name list.
-#* datenum - This calculates the elapsed time in seconds between two datetime objects. It takes the two datetimes as input and outputs the time difference as a float.
-#* is_hidden - This checks if a filename indicates a hidden file. It takes a filename/path as input and returns a bool.
-#* make_file_list - This builds a list of files in a directory, omitting hidden files. It takes the directory path as input and outputs a list of file paths.
-#* make_name_list_benchmark - This extracts the base filenames from a directory into a list. It takes the directory path as input and outputs a list of base filenames without extensions.
-#* make_name_list - This categorizes filenames in a directory into different lists based on patterns in the names. It takes the directory path as input and outputs several lists of filenames grouped by the patterns found.
-#* create_var_list - This filters a list of filenames based on a list of substrings. It takes a file list and string list as input and outputs a list of lists of filenames containing each substring. 
-
 import os
 import sys
 import csv
@@ -50,14 +25,12 @@ from fpdf.enums import XPos, YPos
 from dateutil.parser import parse
 from tabulate import tabulate
 
-color_list = ['red', 'blue', 'green', 'cyan', 'orange', 'navy', 'magenta', 'lime', 'purple', 'hotpink', 
-              'olive', 'salmon', 'teal', 'darkblue', 'darkgreen', 'darkcyan', 'darkorange', 'deepskyblue', 
-              'darkmagenta', 'sienna', 'chocolate', 'orangered', 'gray', 'royalblue', 'gold', 'peru', 
-              'seagreen', 'violet', 'tomato', 'lightsalmon', 'crimson', 'lightblue', 'lightgreen', 'linen', 
-              'lightpink', 'black', 'darkgray', 'lightgray', 'saddlebrown', 'brown', 'khaki', 'tan']
-
+# color_list is a list of string values representing color names that can be used for plotting, styling, etc.
+color_list = ['red', 'blue', 'green', 'cyan', 'orange', 'navy', 'magenta', 'lime', 'purple', 'hotpink', 'olive', 'salmon', 
+              'teal', 'darkblue', 'darkgreen', 'darkcyan', 'darkorange', 'deepskyblue', 'darkmagenta', 'sienna', 'chocolate']
+# linestyle_list is a list of line styles that can be used when plotting with matplotlib. 
 linestyle_list = ['solid', 'dotted', 'dashed', 'dashdot','solid', 'dotted', 'dashed', 'dashdot']
-
+# marker_list is a list of string values representing marker styles that can be used when plotting with matplotlib
 marker_list = ['s','o','.','p','P','^','<','>','*','+','x','X','d','D','h','H'] 
 
 not_alma9_os = ['np04srv008', 'np04srv010', 'np04srv014', 'np04srv023', 'np04onl003', 'np04srv007', 'np04srv009', 'np04crt001']
@@ -210,7 +183,7 @@ def cpupins_utilazation_reformatter(input_dir):
 def fetch_grafana_panels(grafana_url, dashboard_uid):
     panels = []
     # Get dashboard configuration
-    dashboard_url = '{}/api/dashboards/uid/{}'.format(grafana_url, dashboard_uid)     
+    dashboard_url = '{}/api/dashboards/uid/{}'.format(grafana_url, dashboard_uid)
     
     try:
         response = requests.get(dashboard_url)
@@ -221,22 +194,26 @@ def fetch_grafana_panels(grafana_url, dashboard_uid):
                 dashboard_data = response.json()  
                 panels = dashboard_data['dashboard']['panels']        # Extract panels data
                 return panels
+            
             else:
-                print('Warning: Response is not in JSON format. Content-Type:', content_type)
+                print('In fetch_grafana_panels ---> Warning: Response is not in JSON format. Content-Type: ', content_type)
                 html_content = response.text
                 
         else:
-            print('Error: Failed to fetch dashboard data. Status code:', response.status_code)
+            print('........................................... here0 ...........................................')
+            print('In fetch_grafana_panels ---> Error: Failed to fetch dashboard data.')
+            print('Status code: ', response.status_code)
+            print('Content: ', response.content[0])
         
     except requests.exceptions.RequestException as e:
-        print('Error: Request failed with the following exception:', e)
+        print('In fetch_grafana_panels ---> Error: Request failed with the following exception:', e)
 
 # Function to 
 def get_query_urls(panel, host, partition):
     targets = panel.get('targets', [])
-    
     queries = []
     queries_label = []
+    
     for target in targets:
         if 'expr' in target:
             query = target['expr'].replace('${host}', host)
@@ -246,26 +223,36 @@ def get_query_urls(panel, host, partition):
             query = target['query'].replace('${partition}', partition)
             queries.append(query)
             queries_label.append(target['refId'])
+        elif 'rawSql' in target:
+            query = target['rawSql'].replace('${partition}', partition)
+            queries.append(query)
+            queries_label.append(target['refId'])
         else:
-            print('Missing expr or query in targets.')
+            print('Missing [expr , query, rawSql] in targets. Check the json file related to the dashboard.')
 
     return queries, queries_label if queries else None
-    
+
 # Function to 
-def extract_data_and_stats_from_panel(grafana_url, dashboard_uid, delta_time, host, partition=None, input_dir='', output_csv_file=''):
+def extract_data_and_stats_from_panel(grafana_url, dashboard_uid, delta_time, host=None, partition=None, input_dir='', output_csv_file=''):
     for dashboard_uid_to_use in dashboard_uid:
         panels_data = fetch_grafana_panels(grafana_url, dashboard_uid_to_use)
+        
         if not panels_data:
-            print('Error in extract_data_and_stats_from_panel: Failed to fetch dashboard panels data.')
+            print('In extract_data_and_stats_from_panel ---> Error: Failed to fetch dashboard panels data.')
             return
+
+        if dashboard_uid == 'v4_3_0-frontend_ethernet':
+            # RX Missed Errors ---> http://np04-srv-017.cern.ch:31023/d/v4_3_0-frontend_ethernet/frontend-ethernet?from=1710397225611&to=1710427613012&var-influxdb=ffedc550-6555-4a16-a113-aabf2b980c30&var-postgresql=c7e9e333-25c9-49e7-b209-b9492f70d419&var-partition=mman-crp4&var-hsi_series=&var-hsi_field=&var-run_time=2488502&orgId=1&var-application=All&viewPanel=28
+            # &var-influxdb=ffedc550-6555-4a16-a113-aabf2b980c30
+            # &var-postgresql=c7e9e333-25c9-49e7-b209-b9492f70d419
+            # &var-partition=mman-crp4
+            # &var-run_time=2488502
+            print('........................................... here1 ...........................................')
+            url = '{}/api/datasources/proxy/v1/{}/1/{}/query_range'.format(grafana_url, host, partition)
         
-        #url = http://np04-srv-009.cern.ch:3000/d/91zWmJEVk/intel-r-performance-counter-monitor-intel-r-pcm-dashboard?orgId=1&refresh=5s&var-host=np04-squery_rangerv-021
-        url = '{}/api/datasources/proxy/1/api/v1/query_range'.format(grafana_url)
-        
-        if partition:
-            #url = 'http://np04-srv-017.cern.ch:31023/d/v4_3_0-frontend_ethernet/frontend-ethernet?from=1710261229606&to=1710273051890&var-influxdb=ffedc550-6555-4a16-a113-aabf2b980c30&var-postgresql=c7e9e333-25c9-49e7-b209-b9492f70d419&var-partition=np04hddev&var-hsi_series=&var-hsi_field=&var-run_time=0&orgId=1'
-            #url = '{}/api/datasources/proxy/v1/{}/api/1/query_range'.format(grafana_url, partition)
-            url = '{}/api/datasources/proxy/v1/query_range'.format(grafana_url)
+        else:
+            print('........................................... here2 ...........................................')
+            url = '{}/api/datasources/proxy/1/api/v1/query_range'.format(grafana_url)
             
         start_timestamp = get_unix_timestamp(delta_time[0])
         end_timestamp = get_unix_timestamp(delta_time[1])
@@ -282,7 +269,11 @@ def extract_data_and_stats_from_panel(grafana_url, dashboard_uid, delta_time, ho
                 continue
             
             for i, query_url in enumerate(query_urls):
-                column_name = '{} {}'.format(queries_label[i], panel['title'])
+                try:
+                    column_name = '{} {}'.format(queries_label[i], panel['title'])
+                except KeyError:
+                    pass
+                
                 data = {
                     'query': query_url,
                     'start': start_timestamp,
@@ -293,11 +284,15 @@ def extract_data_and_stats_from_panel(grafana_url, dashboard_uid, delta_time, ho
                 response = requests.post(url, data=data)
                 response_data = response.json()
                 
-                print('response_data = ', response_data)
-                
                 if response.status_code != 200:
-                    print('Error: Failed to fetch dashboard data. Status code: content ', response.status_code, ':', response.content)
-                    print('Response panel:data:content for panel ', panel['title'], ':', response_data, ':', response.content)
+                    print('........................................... here3 ...........................................')
+                    print('In extract_data_and_stats_from_panel ---> Error: Failed to fetch dashboard data.')
+                    print('Status code: ', response.status_code)
+                    print('Content: ', response.content[0])
+                    print('Response panel: ', panel['title'])
+                    print('Data: ', data)
+                    print('Data response: ', response_data)
+                    print('url: ', url)
                     return None
 
                 if 'data' not in response_data or 'resultType' not in response_data['data'] or response_data['data']['resultType'] != 'matrix' or response_data['data']['result']==[]:
@@ -1025,6 +1020,3 @@ def pins_type_list(node, cpus, pin_type, top, step):
             pass
 
         print(f'                {pin_str_postproc} {pin_num_postproc},')
-
-
-    
