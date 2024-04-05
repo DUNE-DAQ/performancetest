@@ -172,6 +172,8 @@ if __name__ == '__main__':
     input_folder = sys.argv[1]
     output_folder = input_folder
     plot_output_dir = os.path.join(output_folder, 'plots')
+    if not os.path.exists(plot_output_dir):
+        os.makedirs(plot_output_dir)
 
     # loop through each results dir structure. Each test for each device
     for device_folder in sorted(os.listdir(input_folder), key=natural_keys):
