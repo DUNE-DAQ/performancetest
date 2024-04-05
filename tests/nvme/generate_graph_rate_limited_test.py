@@ -8,8 +8,9 @@ import re
 # Parameters
 lines_to_save_iostat = (0, 8, 11, 22)
 save_freq_test_buffer_ms = 100
-iostat_legend = {"md127":"nvm_raid0", "nvme0n1":"nvm_raid0", "nvme1n1":"nvm_raid0", "nvme2n1":"nvm_raid0", "nvme3n1":"nvm_raid0",
-        "md126":"nvm_raid1", "nvme4n1":"nvm_raid1", "nvme5n1":"nvm_raid1", "nvme6n1":"nvm_raid1", "nvme7n1":"nvm_raid1"}
+#iostat_legend = {"md127":"nvm_raid0", "nvme0n1":"nvm_raid0", "nvme1n1":"nvm_raid0", "nvme2n1":"nvm_raid0", "nvme3n1":"nvm_raid0",
+#        "md126":"nvm_raid1", "nvme4n1":"nvm_raid1", "nvme5n1":"nvm_raid1", "nvme6n1":"nvm_raid1", "nvme7n1":"nvm_raid1"}
+iostat_legend = {"nvme10n1":"singledisk"}
 
 # Natural sorting function
 def atoi(text):
@@ -76,7 +77,9 @@ def add_data(file, file_path, data):
 # parse metric from iostat data in data dict, and plot on axs
 def iostat_plotter(axs, axs_index, data, metric, device):
     for iostat_device in data[device]['iostat']:
-        if iostat_legend[iostat_device] != device:
+        if iostat_device not in iostat_legend.keys():
+            continue
+        elif iostat_legend[iostat_device] != device:
             continue
         elif "nvme" in iostat_device:
             axs[axs_index].plot(np.arange(0, len(data[device]['iostat'][iostat_device][metric])-1, 1), data[device]['iostat'][iostat_device][metric][1:], '--', label=iostat_device)
@@ -109,7 +112,7 @@ def compute_folder(test_results_dir, data):
         # thread summary figure
         print("starting thread summary figure", device)
         for thread in data[device]['thread']:
-            axs[0].plot(np.arange(0, len(data[device]['thread'][thread])*save_freq_test_buffer_ms/1000, save_freq_test_buffer_ms/1000), data[device]['thread'][thread][:], '-', label=thread)
+            axs[0].plot(np.arange(0, len(data[device]['thread'][thread])*save_freq_test_buffer_ms/1000.0, save_freq_test_buffer_ms/1000.0), data[device]['thread'][thread][:], '-', label=thread)
             if len(data[device]['thread'][thread]) > max_threads:
                 max_threads = max(data[device]['thread'][thread])
 
