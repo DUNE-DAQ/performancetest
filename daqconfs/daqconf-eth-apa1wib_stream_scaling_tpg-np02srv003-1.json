@@ -307,7 +307,20 @@
         "raw_recording_output_dir": ".",
         "source_queue_sleep_us": 500,
         "source_queue_timeout_ms": 0,
-        "thread_pinning_file": "${PWD}/cpupin_files/cpupin-all.json",
+        "thread_pinning_files": [
+            {
+                "file": "../cpupins/cpupin-all.json",
+                "after": "boot"
+            },
+            {
+                "file": "../cpupins/cpupin-all.json",
+                "after": "conf"
+            },
+            {
+                "file": "../cpupins/cpupin-all-running.json",
+                "after": "start"
+            }
+        ],
         "tpg_algorithm": "SimpleThreshold",
         "tpg_channel_mask": [
             5626,

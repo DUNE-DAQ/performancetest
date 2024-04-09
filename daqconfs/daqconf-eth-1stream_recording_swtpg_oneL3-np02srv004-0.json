@@ -19,17 +19,17 @@
 	}, 
 
 	"readout": {
-    	"thread_pinning_files": [
+		"thread_pinning_files": [
             {
-                "file": "${PWD}/../cpupins/cpupin-all.json",
+                "file": "../cpupins/cpupin-all.json",
                 "after": "boot"
             },
             {
-                "file": "${PWD}/../cpupins/cpupin-all.json",
+                "file": "../cpupins/cpupin-all.json",
                 "after": "conf"
             },
             {
-                "file": "${PWD/../cpupins/cpupin-eth-1stream_recording_swtpg_oneL3-np02srv004-0.json",
+                "file": "../cpupins/cpupin-eth-1stream_recording_swtpg_oneL3-np02srv004-0.json",
                 "after": "start"
             }
         ],

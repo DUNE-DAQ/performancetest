@@ -12,11 +12,11 @@
             "protocol": "udp",
             "mode": "fix_rate",
             "rx_iface": 0,
-            "rx_host": "np02-srv-004",
+            "rx_host": "np02-srv-003",
             "rx_mac": "00:00:00:00:00:00",
             "rx_pcie_dev": "0000:01:00.0", 
             "rx_ip": "0.0.0.0", 
-            "tx_host": "np02-srv-004",
+            "tx_host": "np02-srv-003",
             "tx_mac": "00:00:00:00:00:00",
             "tx_ip": "0.0.0.0"
         }	
@@ -34,11 +34,11 @@
             "protocol": "udp",
             "mode": "fix_rate",
             "rx_iface": 0,
-            "rx_host": "np02-srv-004",
+            "rx_host": "np02-srv-003",
             "rx_mac": "00:00:00:00:00:00",
             "rx_pcie_dev": "0000:01:00.0", 
             "rx_ip": "0.0.0.0", 
-            "tx_host": "np02-srv-004",
+            "tx_host": "np02-srv-003",
             "tx_mac": "00:00:00:00:00:00",
             "tx_ip": "0.0.0.0"
         }	
@@ -56,11 +56,11 @@
             "protocol": "udp",
             "mode": "fix_rate",
             "rx_iface": 0,
-            "rx_host": "np02-srv-004",
+            "rx_host": "np02-srv-003",
             "rx_mac": "00:00:00:00:00:00",
             "rx_pcie_dev": "0000:01:00.0", 
             "rx_ip": "0.0.0.0", 
-            "tx_host": "np02-srv-004",
+            "tx_host": "np02-srv-003",
             "tx_mac": "00:00:00:00:00:00",
             "tx_ip": "0.0.0.0"
         }	
@@ -78,11 +78,11 @@
             "protocol": "udp",
             "mode": "fix_rate",
             "rx_iface": 0,
-            "rx_host": "np02-srv-004",
+            "rx_host": "np02-srv-003",
             "rx_mac": "00:00:00:00:00:00",
             "rx_pcie_dev": "0000:01:00.0", 
             "rx_ip": "0.0.0.0", 
-            "tx_host": "np02-srv-004",
+            "tx_host": "np02-srv-003",
             "tx_mac": "00:00:00:00:00:00",
             "tx_ip": "0.0.0.0"
         }	
@@ -100,11 +100,11 @@
             "protocol": "udp",
             "mode": "fix_rate",
             "rx_iface": 0,
-            "rx_host": "np02-srv-004",
+            "rx_host": "np02-srv-003",
             "rx_mac": "00:00:00:00:00:00",
             "rx_pcie_dev": "0000:01:00.0", 
             "rx_ip": "0.0.0.0", 
-            "tx_host": "np02-srv-004",
+            "tx_host": "np02-srv-003",
             "tx_mac": "00:00:00:00:00:00",
             "tx_ip": "0.0.0.0"
         }	
@@ -122,11 +122,11 @@
             "protocol": "udp",
             "mode": "fix_rate",
             "rx_iface": 0,
-            "rx_host": "np02-srv-004",
+            "rx_host": "np02-srv-003",
             "rx_mac": "00:00:00:00:00:00",
             "rx_pcie_dev": "0000:01:00.0", 
             "rx_ip": "0.0.0.0", 
-            "tx_host": "np02-srv-004",
+            "tx_host": "np02-srv-003",
             "tx_mac": "00:00:00:00:00:00",
             "tx_ip": "0.0.0.0"
         }	
@@ -144,11 +144,11 @@
             "protocol": "udp",
             "mode": "fix_rate",
             "rx_iface": 0,
-            "rx_host": "np02-srv-004",
+            "rx_host": "np02-srv-003",
             "rx_mac": "00:00:00:00:00:00",
             "rx_pcie_dev": "0000:01:00.0", 
             "rx_ip": "0.0.0.0", 
-            "tx_host": "np02-srv-004",
+            "tx_host": "np02-srv-003",
             "tx_mac": "00:00:00:00:00:00",
             "tx_ip": "0.0.0.0"
         }	
@@ -166,11 +166,11 @@
             "protocol": "udp",
             "mode": "fix_rate",
             "rx_iface": 0,
-            "rx_host": "np02-srv-004",
+            "rx_host": "np02-srv-003",
             "rx_mac": "00:00:00:00:00:00",
             "rx_pcie_dev": "0000:01:00.0", 
             "rx_ip": "0.0.0.0", 
-            "tx_host": "np02-srv-004",
+            "tx_host": "np02-srv-003",
             "tx_mac": "00:00:00:00:00:00",
             "tx_ip": "0.0.0.0"
         }	
@@ -188,11 +188,11 @@
             "protocol": "udp",
             "mode": "fix_rate",
             "rx_iface": 0,
-            "rx_host": "np02-srv-004",
+            "rx_host": "np02-srv-003",
             "rx_mac": "00:00:00:00:00:00",
             "rx_pcie_dev": "0000:01:00.0", 
             "rx_ip": "0.0.0.0", 
-            "tx_host": "np02-srv-004",
+            "tx_host": "np02-srv-003",
             "tx_mac": "00:00:00:00:00:00",
             "tx_ip": "0.0.0.0"
         }	
@@ -210,11 +210,11 @@
             "protocol": "udp",
             "mode": "fix_rate",
             "rx_iface": 0,
-            "rx_host": "np02-srv-004",
+            "rx_host": "np02-srv-003",
             "rx_mac": "00:00:00:00:00:00",
             "rx_pcie_dev": "0000:01:00.0", 
             "rx_ip": "0.0.0.0", 
-            "tx_host": "np02-srv-004",
+            "tx_host": "np02-srv-003",
             "tx_mac": "00:00:00:00:00:00",
             "tx_ip": "0.0.0.0"
         }	
@@ -232,11 +232,11 @@
             "protocol": "udp",
             "mode": "fix_rate",
             "rx_iface": 0,
-            "rx_host": "np02-srv-004",
+            "rx_host": "np02-srv-003",
             "rx_mac": "00:00:00:00:00:00",
             "rx_pcie_dev": "0000:01:00.0", 
             "rx_ip": "0.0.0.0", 
-            "tx_host": "np02-srv-004",
+            "tx_host": "np02-srv-003",
             "tx_mac": "00:00:00:00:00:00",
             "tx_ip": "0.0.0.0"
         }	
@@ -254,11 +254,11 @@
             "protocol": "udp",
             "mode": "fix_rate",
             "rx_iface": 0,
-            "rx_host": "np02-srv-004",
+            "rx_host": "np02-srv-003",
             "rx_mac": "00:00:00:00:00:00",
             "rx_pcie_dev": "0000:01:00.0", 
             "rx_ip": "0.0.0.0", 
-            "tx_host": "np02-srv-004",
+            "tx_host": "np02-srv-003",
             "tx_mac": "00:00:00:00:00:00",
             "tx_ip": "0.0.0.0"
         }	
@@ -276,11 +276,11 @@
             "protocol": "udp",
             "mode": "fix_rate",
             "rx_iface": 0,
-            "rx_host": "np02-srv-004",
+            "rx_host": "np02-srv-003",
             "rx_mac": "00:00:00:00:00:00",
             "rx_pcie_dev": "0000:01:00.0", 
             "rx_ip": "0.0.0.0", 
-            "tx_host": "np02-srv-004",
+            "tx_host": "np02-srv-003",
             "tx_mac": "00:00:00:00:00:00",
             "tx_ip": "0.0.0.0"
         }	
@@ -298,11 +298,11 @@
             "protocol": "udp",
             "mode": "fix_rate",
             "rx_iface": 0,
-            "rx_host": "np02-srv-004",
+            "rx_host": "np02-srv-003",
             "rx_mac": "00:00:00:00:00:00",
             "rx_pcie_dev": "0000:01:00.0", 
             "rx_ip": "0.0.0.0", 
-            "tx_host": "np02-srv-004",
+            "tx_host": "np02-srv-003",
             "tx_mac": "00:00:00:00:00:00",
             "tx_ip": "0.0.0.0"
         }	
@@ -320,11 +320,11 @@
             "protocol": "udp",
             "mode": "fix_rate",
             "rx_iface": 0,
-            "rx_host": "np02-srv-004",
+            "rx_host": "np02-srv-003",
             "rx_mac": "00:00:00:00:00:00",
             "rx_pcie_dev": "0000:01:00.0", 
             "rx_ip": "0.0.0.0", 
-            "tx_host": "np02-srv-004",
+            "tx_host": "np02-srv-003",
             "tx_mac": "00:00:00:00:00:00",
             "tx_ip": "0.0.0.0"
         }	
@@ -342,11 +342,11 @@
             "protocol": "udp",
             "mode": "fix_rate",
             "rx_iface": 0,
-            "rx_host": "np02-srv-004",
+            "rx_host": "np02-srv-003",
             "rx_mac": "00:00:00:00:00:00",
             "rx_pcie_dev": "0000:01:00.0", 
             "rx_ip": "0.0.0.0", 
-            "tx_host": "np02-srv-004",
+            "tx_host": "np02-srv-003",
             "tx_mac": "00:00:00:00:00:00",
             "tx_ip": "0.0.0.0"
         }	
@@ -364,11 +364,11 @@
             "protocol": "udp",
             "mode": "fix_rate",
             "rx_iface": 0,
-            "rx_host": "np02-srv-004",
+            "rx_host": "np02-srv-003",
             "rx_mac": "00:00:00:00:00:00",
             "rx_pcie_dev": "0000:01:00.0", 
             "rx_ip": "0.0.0.0", 
-            "tx_host": "np02-srv-004",
+            "tx_host": "np02-srv-003",
             "tx_mac": "00:00:00:00:00:00",
             "tx_ip": "0.0.0.0"
         }	
@@ -386,11 +386,11 @@
             "protocol": "udp",
             "mode": "fix_rate",
             "rx_iface": 0,
-            "rx_host": "np02-srv-004",
+            "rx_host": "np02-srv-003",
             "rx_mac": "00:00:00:00:00:00",
             "rx_pcie_dev": "0000:01:00.0", 
             "rx_ip": "0.0.0.0", 
-            "tx_host": "np02-srv-004",
+            "tx_host": "np02-srv-003",
             "tx_mac": "00:00:00:00:00:00",
             "tx_ip": "0.0.0.0"
         }	
@@ -408,11 +408,11 @@
             "protocol": "udp",
             "mode": "fix_rate",
             "rx_iface": 0,
-            "rx_host": "np02-srv-004",
+            "rx_host": "np02-srv-003",
             "rx_mac": "00:00:00:00:00:00",
             "rx_pcie_dev": "0000:01:00.0", 
             "rx_ip": "0.0.0.0", 
-            "tx_host": "np02-srv-004",
+            "tx_host": "np02-srv-003",
             "tx_mac": "00:00:00:00:00:00",
             "tx_ip": "0.0.0.0"
         }	
@@ -430,11 +430,11 @@
             "protocol": "udp",
             "mode": "fix_rate",
             "rx_iface": 0,
-            "rx_host": "np02-srv-004",
+            "rx_host": "np02-srv-003",
             "rx_mac": "00:00:00:00:00:00",
             "rx_pcie_dev": "0000:01:00.0", 
             "rx_ip": "0.0.0.0", 
-            "tx_host": "np02-srv-004",
+            "tx_host": "np02-srv-003",
             "tx_mac": "00:00:00:00:00:00",
             "tx_ip": "0.0.0.0"
         }	
@@ -452,11 +452,11 @@
             "protocol": "udp",
             "mode": "fix_rate",
             "rx_iface": 0,
-            "rx_host": "np02-srv-004",
+            "rx_host": "np02-srv-003",
             "rx_mac": "00:00:00:00:00:00",
             "rx_pcie_dev": "0000:01:00.0", 
             "rx_ip": "0.0.0.0", 
-            "tx_host": "np02-srv-004",
+            "tx_host": "np02-srv-003",
             "tx_mac": "00:00:00:00:00:00",
             "tx_ip": "0.0.0.0"
         }	
@@ -474,11 +474,11 @@
             "protocol": "udp",
             "mode": "fix_rate",
             "rx_iface": 0,
-            "rx_host": "np02-srv-004",
+            "rx_host": "np02-srv-003",
             "rx_mac": "00:00:00:00:00:00",
             "rx_pcie_dev": "0000:01:00.0", 
             "rx_ip": "0.0.0.0", 
-            "tx_host": "np02-srv-004",
+            "tx_host": "np02-srv-003",
             "tx_mac": "00:00:00:00:00:00",
             "tx_ip": "0.0.0.0"
         }	
@@ -496,11 +496,11 @@
             "protocol": "udp",
             "mode": "fix_rate",
             "rx_iface": 0,
-            "rx_host": "np02-srv-004",
+            "rx_host": "np02-srv-003",
             "rx_mac": "00:00:00:00:00:00",
             "rx_pcie_dev": "0000:01:00.0", 
             "rx_ip": "0.0.0.0", 
-            "tx_host": "np02-srv-004",
+            "tx_host": "np02-srv-003",
             "tx_mac": "00:00:00:00:00:00",
             "tx_ip": "0.0.0.0"
         }	
@@ -518,11 +518,11 @@
             "protocol": "udp",
             "mode": "fix_rate",
             "rx_iface": 0,
-            "rx_host": "np02-srv-004",
+            "rx_host": "np02-srv-003",
             "rx_mac": "00:00:00:00:00:00",
             "rx_pcie_dev": "0000:01:00.0", 
             "rx_ip": "0.0.0.0", 
-            "tx_host": "np02-srv-004",
+            "tx_host": "np02-srv-003",
             "tx_mac": "00:00:00:00:00:00",
             "tx_ip": "0.0.0.0"
         }	
@@ -540,11 +540,11 @@
             "protocol": "udp",
             "mode": "fix_rate",
             "rx_iface": 0,
-            "rx_host": "np02-srv-004",
+            "rx_host": "np02-srv-003",
             "rx_mac": "00:00:00:00:00:00",
             "rx_pcie_dev": "0000:01:00.0", 
             "rx_ip": "0.0.0.0", 
-            "tx_host": "np02-srv-004",
+            "tx_host": "np02-srv-003",
             "tx_mac": "00:00:00:00:00:00",
             "tx_ip": "0.0.0.0"
         }	
@@ -562,11 +562,11 @@
             "protocol": "udp",
             "mode": "fix_rate",
             "rx_iface": 0,
-            "rx_host": "np02-srv-004",
+            "rx_host": "np02-srv-003",
             "rx_mac": "00:00:00:00:00:00",
             "rx_pcie_dev": "0000:01:00.0", 
             "rx_ip": "0.0.0.0", 
-            "tx_host": "np02-srv-004",
+            "tx_host": "np02-srv-003",
             "tx_mac": "00:00:00:00:00:00",
             "tx_ip": "0.0.0.0"
         }	
@@ -584,11 +584,11 @@
             "protocol": "udp",
             "mode": "fix_rate",
             "rx_iface": 0,
-            "rx_host": "np02-srv-004",
+            "rx_host": "np02-srv-003",
             "rx_mac": "00:00:00:00:00:00",
             "rx_pcie_dev": "0000:01:00.0", 
             "rx_ip": "0.0.0.0", 
-            "tx_host": "np02-srv-004",
+            "tx_host": "np02-srv-003",
             "tx_mac": "00:00:00:00:00:00",
             "tx_ip": "0.0.0.0"
         }	
@@ -606,11 +606,11 @@
             "protocol": "udp",
             "mode": "fix_rate",
             "rx_iface": 0,
-            "rx_host": "np02-srv-004",
+            "rx_host": "np02-srv-003",
             "rx_mac": "00:00:00:00:00:00",
             "rx_pcie_dev": "0000:01:00.0", 
             "rx_ip": "0.0.0.0", 
-            "tx_host": "np02-srv-004",
+            "tx_host": "np02-srv-003",
             "tx_mac": "00:00:00:00:00:00",
             "tx_ip": "0.0.0.0"
         }	
@@ -628,11 +628,11 @@
             "protocol": "udp",
             "mode": "fix_rate",
             "rx_iface": 0,
-            "rx_host": "np02-srv-004",
+            "rx_host": "np02-srv-003",
             "rx_mac": "00:00:00:00:00:00",
             "rx_pcie_dev": "0000:01:00.0", 
             "rx_ip": "0.0.0.0", 
-            "tx_host": "np02-srv-004",
+            "tx_host": "np02-srv-003",
             "tx_mac": "00:00:00:00:00:00",
             "tx_ip": "0.0.0.0"
         }	
@@ -650,11 +650,11 @@
             "protocol": "udp",
             "mode": "fix_rate",
             "rx_iface": 0,
-            "rx_host": "np02-srv-004",
+            "rx_host": "np02-srv-003",
             "rx_mac": "00:00:00:00:00:00",
             "rx_pcie_dev": "0000:01:00.0", 
             "rx_ip": "0.0.0.0", 
-            "tx_host": "np02-srv-004",
+            "tx_host": "np02-srv-003",
             "tx_mac": "00:00:00:00:00:00",
             "tx_ip": "0.0.0.0"
         }	
@@ -672,11 +672,11 @@
             "protocol": "udp",
             "mode": "fix_rate",
             "rx_iface": 0,
-            "rx_host": "np02-srv-004",
+            "rx_host": "np02-srv-003",
             "rx_mac": "00:00:00:00:00:00",
             "rx_pcie_dev": "0000:01:00.0", 
             "rx_ip": "0.0.0.0", 
-            "tx_host": "np02-srv-004",
+            "tx_host": "np02-srv-003",
             "tx_mac": "00:00:00:00:00:00",
             "tx_ip": "0.0.0.0"
         }	
@@ -694,11 +694,11 @@
             "protocol": "udp",
             "mode": "fix_rate",
             "rx_iface": 0,
-            "rx_host": "np02-srv-004",
+            "rx_host": "np02-srv-003",
             "rx_mac": "00:00:00:00:00:00",
             "rx_pcie_dev": "0000:01:00.0", 
             "rx_ip": "0.0.0.0", 
-            "tx_host": "np02-srv-004",
+            "tx_host": "np02-srv-003",
             "tx_mac": "00:00:00:00:00:00",
             "tx_ip": "0.0.0.0"
         }	
@@ -716,11 +716,11 @@
             "protocol": "udp",
             "mode": "fix_rate",
             "rx_iface": 0,
-            "rx_host": "np02-srv-004",
+            "rx_host": "np02-srv-003",
             "rx_mac": "00:00:00:00:00:00",
             "rx_pcie_dev": "0000:01:00.0", 
             "rx_ip": "0.0.0.0", 
-            "tx_host": "np02-srv-004",
+            "tx_host": "np02-srv-003",
             "tx_mac": "00:00:00:00:00:00",
             "tx_ip": "0.0.0.0"
         }	
@@ -738,11 +738,11 @@
             "protocol": "udp",
             "mode": "fix_rate",
             "rx_iface": 0,
-            "rx_host": "np02-srv-004",
+            "rx_host": "np02-srv-003",
             "rx_mac": "00:00:00:00:00:00",
             "rx_pcie_dev": "0000:01:00.0", 
             "rx_ip": "0.0.0.0", 
-            "tx_host": "np02-srv-004",
+            "tx_host": "np02-srv-003",
             "tx_mac": "00:00:00:00:00:00",
             "tx_ip": "0.0.0.0"
         }	
@@ -760,11 +760,11 @@
             "protocol": "udp",
             "mode": "fix_rate",
             "rx_iface": 0,
-            "rx_host": "np02-srv-004",
+            "rx_host": "np02-srv-003",
             "rx_mac": "00:00:00:00:00:00",
             "rx_pcie_dev": "0000:01:00.0", 
             "rx_ip": "0.0.0.0", 
-            "tx_host": "np02-srv-004",
+            "tx_host": "np02-srv-003",
             "tx_mac": "00:00:00:00:00:00",
             "tx_ip": "0.0.0.0"
         }	
@@ -782,11 +782,11 @@
             "protocol": "udp",
             "mode": "fix_rate",
             "rx_iface": 0,
-            "rx_host": "np02-srv-004",
+            "rx_host": "np02-srv-003",
             "rx_mac": "00:00:00:00:00:00",
             "rx_pcie_dev": "0000:01:00.0", 
             "rx_ip": "0.0.0.0", 
-            "tx_host": "np02-srv-004",
+            "tx_host": "np02-srv-003",
             "tx_mac": "00:00:00:00:00:00",
             "tx_ip": "0.0.0.0"
         }	
@@ -804,11 +804,11 @@
             "protocol": "udp",
             "mode": "fix_rate",
             "rx_iface": 0,
-            "rx_host": "np02-srv-004",
+            "rx_host": "np02-srv-003",
             "rx_mac": "00:00:00:00:00:00",
             "rx_pcie_dev": "0000:01:00.0", 
             "rx_ip": "0.0.0.0", 
-            "tx_host": "np02-srv-004",
+            "tx_host": "np02-srv-003",
             "tx_mac": "00:00:00:00:00:00",
             "tx_ip": "0.0.0.0"
         }	
@@ -826,11 +826,11 @@
             "protocol": "udp",
             "mode": "fix_rate",
             "rx_iface": 0,
-            "rx_host": "np02-srv-004",
+            "rx_host": "np02-srv-003",
             "rx_mac": "00:00:00:00:00:00",
             "rx_pcie_dev": "0000:01:00.0", 
             "rx_ip": "0.0.0.0", 
-            "tx_host": "np02-srv-004",
+            "tx_host": "np02-srv-003",
             "tx_mac": "00:00:00:00:00:00",
             "tx_ip": "0.0.0.0"
         }	
@@ -848,11 +848,11 @@
             "protocol": "udp",
             "mode": "fix_rate",
             "rx_iface": 0,
-            "rx_host": "np02-srv-004",
+            "rx_host": "np02-srv-003",
             "rx_mac": "00:00:00:00:00:00",
             "rx_pcie_dev": "0000:01:00.0", 
             "rx_ip": "0.0.0.0", 
-            "tx_host": "np02-srv-004",
+            "tx_host": "np02-srv-003",
             "tx_mac": "00:00:00:00:00:00",
             "tx_ip": "0.0.0.0"
         }	
@@ -870,18 +870,17 @@
             "protocol": "udp",
             "mode": "fix_rate",
             "rx_iface": 0,
-            "rx_host": "np02-srv-004",
+            "rx_host": "np02-srv-003",
             "rx_mac": "00:00:00:00:00:00",
             "rx_pcie_dev": "0000:01:00.0", 
             "rx_ip": "0.0.0.0", 
-            "tx_host": "np02-srv-004",
+            "tx_host": "np02-srv-003",
             "tx_mac": "00:00:00:00:00:00",
             "tx_ip": "0.0.0.0"
         }	
     },
-    
     {
-        "src_id": 200,
+        "src_id": 140,
         "geo_id": {
             "det_id": 3,
             "crate_id": 2,
@@ -893,11 +892,187 @@
             "protocol": "udp",
             "mode": "fix_rate",
             "rx_iface": 0,
-            "rx_host": "np02-srv-004",
+            "rx_host": "np02-srv-003",
             "rx_mac": "00:00:00:00:00:00",
             "rx_pcie_dev": "0000:01:00.0", 
             "rx_ip": "0.0.0.0", 
-            "tx_host": "np02-srv-004",
+            "tx_host": "np02-srv-003",
+            "tx_mac": "00:00:00:00:00:00",
+            "tx_ip": "0.0.0.0"
+        }	
+    },
+    {
+        "src_id": 141,
+        "geo_id": {
+            "det_id": 3,
+            "crate_id": 2,
+            "slot_id": 0,
+            "stream_id": 1
+        },
+        "kind": "eth",
+        "parameters": {
+            "protocol": "udp",
+            "mode": "fix_rate",
+            "rx_iface": 0,
+            "rx_host": "np02-srv-003",
+            "rx_mac": "00:00:00:00:00:00",
+            "rx_pcie_dev": "0000:01:00.0", 
+            "rx_ip": "0.0.0.0", 
+            "tx_host": "np02-srv-003",
+            "tx_mac": "00:00:00:00:00:00",
+            "tx_ip": "0.0.0.0"
+        }	
+    },
+    {
+        "src_id": 142,
+        "geo_id": {
+            "det_id": 3,
+            "crate_id": 2,
+            "slot_id": 0,
+            "stream_id": 2
+        },
+        "kind": "eth",
+        "parameters": {
+            "protocol": "udp",
+            "mode": "fix_rate",
+            "rx_iface": 0,
+            "rx_host": "np02-srv-003",
+            "rx_mac": "00:00:00:00:00:00",
+            "rx_pcie_dev": "0000:01:00.0", 
+            "rx_ip": "0.0.0.0", 
+            "tx_host": "np02-srv-003",
+            "tx_mac": "00:00:00:00:00:00",
+            "tx_ip": "0.0.0.0"
+        }	
+    },
+    {
+        "src_id": 143,
+        "geo_id": {
+            "det_id": 3,
+            "crate_id": 2,
+            "slot_id": 0,
+            "stream_id": 3
+        },
+        "kind": "eth",
+        "parameters": {
+            "protocol": "udp",
+            "mode": "fix_rate",
+            "rx_iface": 0,
+            "rx_host": "np02-srv-003",
+            "rx_mac": "00:00:00:00:00:00",
+            "rx_pcie_dev": "0000:01:00.0", 
+            "rx_ip": "0.0.0.0", 
+            "tx_host": "np02-srv-003",
+            "tx_mac": "00:00:00:00:00:00",
+            "tx_ip": "0.0.0.0"
+        }	
+    },
+    {
+        "src_id": 144,
+        "geo_id": {
+            "det_id": 3,
+            "crate_id": 2,
+            "slot_id": 0,
+            "stream_id": 64
+        },
+        "kind": "eth",
+        "parameters": {
+            "protocol": "udp",
+            "mode": "fix_rate",
+            "rx_iface": 0,
+            "rx_host": "np02-srv-003",
+            "rx_mac": "00:00:00:00:00:00",
+            "rx_pcie_dev": "0000:01:00.0", 
+            "rx_ip": "0.0.0.0", 
+            "tx_host": "np02-srv-003",
+            "tx_mac": "00:00:00:00:00:00",
+            "tx_ip": "0.0.0.0"
+        }	
+    },
+    {
+        "src_id": 145,
+        "geo_id": {
+            "det_id": 3,
+            "crate_id": 2,
+            "slot_id": 0,
+            "stream_id": 65
+        },
+        "kind": "eth",
+        "parameters": {
+            "protocol": "udp",
+            "mode": "fix_rate",
+            "rx_iface": 0,
+            "rx_host": "np02-srv-003",
+            "rx_mac": "00:00:00:00:00:00",
+            "rx_pcie_dev": "0000:01:00.0", 
+            "rx_ip": "0.0.0.0", 
+            "tx_host": "np02-srv-003",
+            "tx_mac": "00:00:00:00:00:00",
+            "tx_ip": "0.0.0.0"
+        }	
+    },
+    {
+        "src_id": 146,
+        "geo_id": {
+            "det_id": 3,
+            "crate_id": 2,
+            "slot_id": 0,
+            "stream_id": 66
+        },
+        "kind": "eth",
+        "parameters": {
+            "protocol": "udp",
+            "mode": "fix_rate",
+            "rx_iface": 0,
+            "rx_host": "np02-srv-003",
+            "rx_mac": "00:00:00:00:00:00",
+            "rx_pcie_dev": "0000:01:00.0", 
+            "rx_ip": "0.0.0.0", 
+            "tx_host": "np02-srv-003",
+            "tx_mac": "00:00:00:00:00:00",
+            "tx_ip": "0.0.0.0"
+        }	
+    },
+    {
+        "src_id": 147,
+        "geo_id": {
+            "det_id": 3,
+            "crate_id": 2,
+            "slot_id": 0,
+            "stream_id": 67
+        },
+        "kind": "eth",
+        "parameters": {
+            "protocol": "udp",
+            "mode": "fix_rate",
+            "rx_iface": 0,
+            "rx_host": "np02-srv-003",
+            "rx_mac": "00:00:00:00:00:00",
+            "rx_pcie_dev": "0000:01:00.0",
+            "rx_ip": "0.0.0.0", 
+            "tx_host": "np02-srv-003",
+            "tx_mac": "00:00:00:00:00:00",
+            "tx_ip": "0.0.0.0"
+        }	
+    },
+    {
+        "src_id": 200,
+        "geo_id": {
+            "det_id": 3,
+            "crate_id": 2,
+            "slot_id": 1,
+            "stream_id": 0
+        },
+        "kind": "eth",
+        "parameters": {
+            "protocol": "udp",
+            "mode": "fix_rate",
+            "rx_iface": 0,
+            "rx_host": "np02-srv-003",
+            "rx_mac": "00:00:00:00:00:00",
+            "rx_pcie_dev": "0000:01:00.0", 
+            "rx_ip": "0.0.0.0", 
+            "tx_host": "np02-srv-003",
             "tx_mac": "00:00:00:00:00:00",
             "tx_ip": "0.0.0.0"
         }	
@@ -907,7 +1082,7 @@
         "geo_id": {
             "det_id": 3,
             "crate_id": 2,
-            "slot_id": 0,
+            "slot_id": 1,
             "stream_id": 1
         },
         "kind": "eth",
@@ -915,11 +1090,11 @@
             "protocol": "udp",
             "mode": "fix_rate",
             "rx_iface": 0,
-            "rx_host": "np02-srv-004",
+            "rx_host": "np02-srv-003",
             "rx_mac": "00:00:00:00:00:00",
             "rx_pcie_dev": "0000:01:00.0", 
             "rx_ip": "0.0.0.0", 
-            "tx_host": "np02-srv-004",
+            "tx_host": "np02-srv-003",
             "tx_mac": "00:00:00:00:00:00",
             "tx_ip": "0.0.0.0"
         }	
@@ -929,7 +1104,7 @@
         "geo_id": {
             "det_id": 3,
             "crate_id": 2,
-            "slot_id": 0,
+            "slot_id": 1,
             "stream_id": 2
         },
         "kind": "eth",
@@ -937,11 +1112,11 @@
             "protocol": "udp",
             "mode": "fix_rate",
             "rx_iface": 0,
-            "rx_host": "np02-srv-004",
+            "rx_host": "np02-srv-003",
             "rx_mac": "00:00:00:00:00:00",
             "rx_pcie_dev": "0000:01:00.0", 
             "rx_ip": "0.0.0.0", 
-            "tx_host": "np02-srv-004",
+            "tx_host": "np02-srv-003",
             "tx_mac": "00:00:00:00:00:00",
             "tx_ip": "0.0.0.0"
         }	
@@ -951,7 +1126,7 @@
         "geo_id": {
             "det_id": 3,
             "crate_id": 2,
-            "slot_id": 0,
+            "slot_id": 1,
             "stream_id": 3
         },
         "kind": "eth",
@@ -959,11 +1134,11 @@
             "protocol": "udp",
             "mode": "fix_rate",
             "rx_iface": 0,
-            "rx_host": "np02-srv-004",
+            "rx_host": "np02-srv-003",
             "rx_mac": "00:00:00:00:00:00",
             "rx_pcie_dev": "0000:01:00.0", 
             "rx_ip": "0.0.0.0", 
-            "tx_host": "np02-srv-004",
+            "tx_host": "np02-srv-003",
             "tx_mac": "00:00:00:00:00:00",
             "tx_ip": "0.0.0.0"
         }	
@@ -973,7 +1148,7 @@
         "geo_id": {
             "det_id": 3,
             "crate_id": 2,
-            "slot_id": 0,
+            "slot_id": 1,
             "stream_id": 64
         },
         "kind": "eth",
@@ -981,11 +1156,11 @@
             "protocol": "udp",
             "mode": "fix_rate",
             "rx_iface": 0,
-            "rx_host": "np02-srv-004",
+            "rx_host": "np02-srv-003",
             "rx_mac": "00:00:00:00:00:00",
             "rx_pcie_dev": "0000:01:00.0", 
             "rx_ip": "0.0.0.0", 
-            "tx_host": "np02-srv-004",
+            "tx_host": "np02-srv-003",
             "tx_mac": "00:00:00:00:00:00",
             "tx_ip": "0.0.0.0"
         }	
@@ -995,7 +1170,7 @@
         "geo_id": {
             "det_id": 3,
             "crate_id": 2,
-            "slot_id": 0,
+            "slot_id": 1,
             "stream_id": 65
         },
         "kind": "eth",
@@ -1003,11 +1178,11 @@
             "protocol": "udp",
             "mode": "fix_rate",
             "rx_iface": 0,
-            "rx_host": "np02-srv-004",
+            "rx_host": "np02-srv-003",
             "rx_mac": "00:00:00:00:00:00",
             "rx_pcie_dev": "0000:01:00.0", 
             "rx_ip": "0.0.0.0", 
-            "tx_host": "np02-srv-004",
+            "tx_host": "np02-srv-003",
             "tx_mac": "00:00:00:00:00:00",
             "tx_ip": "0.0.0.0"
         }	
@@ -1017,7 +1192,7 @@
         "geo_id": {
             "det_id": 3,
             "crate_id": 2,
-            "slot_id": 0,
+            "slot_id": 1,
             "stream_id": 66
         },
         "kind": "eth",
@@ -1025,11 +1200,11 @@
             "protocol": "udp",
             "mode": "fix_rate",
             "rx_iface": 0,
-            "rx_host": "np02-srv-004",
+            "rx_host": "np02-srv-003",
             "rx_mac": "00:00:00:00:00:00",
             "rx_pcie_dev": "0000:01:00.0", 
             "rx_ip": "0.0.0.0", 
-            "tx_host": "np02-srv-004",
+            "tx_host": "np02-srv-003",
             "tx_mac": "00:00:00:00:00:00",
             "tx_ip": "0.0.0.0"
         }	
@@ -1039,7 +1214,7 @@
         "geo_id": {
             "det_id": 3,
             "crate_id": 2,
-            "slot_id": 0,
+            "slot_id": 1,
             "stream_id": 67
         },
         "kind": "eth",
@@ -1047,11 +1222,11 @@
             "protocol": "udp",
             "mode": "fix_rate",
             "rx_iface": 0,
-            "rx_host": "np02-srv-004",
+            "rx_host": "np02-srv-003",
             "rx_mac": "00:00:00:00:00:00",
             "rx_pcie_dev": "0000:01:00.0", 
             "rx_ip": "0.0.0.0", 
-            "tx_host": "np02-srv-004",
+            "tx_host": "np02-srv-003",
             "tx_mac": "00:00:00:00:00:00",
             "tx_ip": "0.0.0.0"
         }	
@@ -1061,7 +1236,7 @@
         "geo_id": {
             "det_id": 3,
             "crate_id": 2,
-            "slot_id": 1,
+            "slot_id": 2,
             "stream_id": 0
         },
         "kind": "eth",
@@ -1069,11 +1244,11 @@
             "protocol": "udp",
             "mode": "fix_rate",
             "rx_iface": 0,
-            "rx_host": "np02-srv-004",
+            "rx_host": "np02-srv-003",
             "rx_mac": "00:00:00:00:00:00",
             "rx_pcie_dev": "0000:01:00.0", 
             "rx_ip": "0.0.0.0", 
-            "tx_host": "np02-srv-004",
+            "tx_host": "np02-srv-003",
             "tx_mac": "00:00:00:00:00:00",
             "tx_ip": "0.0.0.0"
         }	
@@ -1083,7 +1258,7 @@
         "geo_id": {
             "det_id": 3,
             "crate_id": 2,
-            "slot_id": 1,
+            "slot_id": 2,
             "stream_id": 1
         },
         "kind": "eth",
@@ -1091,11 +1266,11 @@
             "protocol": "udp",
             "mode": "fix_rate",
             "rx_iface": 0,
-            "rx_host": "np02-srv-004",
+            "rx_host": "np02-srv-003",
             "rx_mac": "00:00:00:00:00:00",
             "rx_pcie_dev": "0000:01:00.0", 
             "rx_ip": "0.0.0.0", 
-            "tx_host": "np02-srv-004",
+            "tx_host": "np02-srv-003",
             "tx_mac": "00:00:00:00:00:00",
             "tx_ip": "0.0.0.0"
         }	
@@ -1105,7 +1280,7 @@
         "geo_id": {
             "det_id": 3,
             "crate_id": 2,
-            "slot_id": 1,
+            "slot_id": 2,
             "stream_id": 2
         },
         "kind": "eth",
@@ -1113,11 +1288,11 @@
             "protocol": "udp",
             "mode": "fix_rate",
             "rx_iface": 0,
-            "rx_host": "np02-srv-004",
+            "rx_host": "np02-srv-003",
             "rx_mac": "00:00:00:00:00:00",
             "rx_pcie_dev": "0000:01:00.0", 
             "rx_ip": "0.0.0.0", 
-            "tx_host": "np02-srv-004",
+            "tx_host": "np02-srv-003",
             "tx_mac": "00:00:00:00:00:00",
             "tx_ip": "0.0.0.0"
         }	
@@ -1127,7 +1302,7 @@
         "geo_id": {
             "det_id": 3,
             "crate_id": 2,
-            "slot_id": 1,
+            "slot_id": 2,
             "stream_id": 3
         },
         "kind": "eth",
@@ -1135,11 +1310,11 @@
             "protocol": "udp",
             "mode": "fix_rate",
             "rx_iface": 0,
-            "rx_host": "np02-srv-004",
+            "rx_host": "np02-srv-003",
             "rx_mac": "00:00:00:00:00:00",
             "rx_pcie_dev": "0000:01:00.0", 
             "rx_ip": "0.0.0.0", 
-            "tx_host": "np02-srv-004",
+            "tx_host": "np02-srv-003",
             "tx_mac": "00:00:00:00:00:00",
             "tx_ip": "0.0.0.0"
         }	
@@ -1149,7 +1324,7 @@
         "geo_id": {
             "det_id": 3,
             "crate_id": 2,
-            "slot_id": 1,
+            "slot_id": 2,
             "stream_id": 64
         },
         "kind": "eth",
@@ -1157,11 +1332,11 @@
             "protocol": "udp",
             "mode": "fix_rate",
             "rx_iface": 0,
-            "rx_host": "np02-srv-004",
+            "rx_host": "np02-srv-003",
             "rx_mac": "00:00:00:00:00:00",
             "rx_pcie_dev": "0000:01:00.0", 
             "rx_ip": "0.0.0.0", 
-            "tx_host": "np02-srv-004",
+            "tx_host": "np02-srv-003",
             "tx_mac": "00:00:00:00:00:00",
             "tx_ip": "0.0.0.0"
         }	
@@ -1171,7 +1346,7 @@
         "geo_id": {
             "det_id": 3,
             "crate_id": 2,
-            "slot_id": 1,
+            "slot_id": 2,
             "stream_id": 65
         },
         "kind": "eth",
@@ -1179,11 +1354,11 @@
             "protocol": "udp",
             "mode": "fix_rate",
             "rx_iface": 0,
-            "rx_host": "np02-srv-004",
+            "rx_host": "np02-srv-003",
             "rx_mac": "00:00:00:00:00:00",
             "rx_pcie_dev": "0000:01:00.0", 
             "rx_ip": "0.0.0.0", 
-            "tx_host": "np02-srv-004",
+            "tx_host": "np02-srv-003",
             "tx_mac": "00:00:00:00:00:00",
             "tx_ip": "0.0.0.0"
         }	
@@ -1193,7 +1368,7 @@
         "geo_id": {
             "det_id": 3,
             "crate_id": 2,
-            "slot_id": 1,
+            "slot_id": 2,
             "stream_id": 66
         },
         "kind": "eth",
@@ -1201,11 +1376,11 @@
             "protocol": "udp",
             "mode": "fix_rate",
             "rx_iface": 0,
-            "rx_host": "np02-srv-004",
+            "rx_host": "np02-srv-003",
             "rx_mac": "00:00:00:00:00:00",
             "rx_pcie_dev": "0000:01:00.0", 
             "rx_ip": "0.0.0.0", 
-            "tx_host": "np02-srv-004",
+            "tx_host": "np02-srv-003",
             "tx_mac": "00:00:00:00:00:00",
             "tx_ip": "0.0.0.0"
         }	
@@ -1215,7 +1390,7 @@
         "geo_id": {
             "det_id": 3,
             "crate_id": 2,
-            "slot_id": 1,
+            "slot_id": 2,
             "stream_id": 67
         },
         "kind": "eth",
@@ -1223,11 +1398,11 @@
             "protocol": "udp",
             "mode": "fix_rate",
             "rx_iface": 0,
-            "rx_host": "np02-srv-004",
+            "rx_host": "np02-srv-003",
             "rx_mac": "00:00:00:00:00:00",
             "rx_pcie_dev": "0000:01:00.0", 
             "rx_ip": "0.0.0.0", 
-            "tx_host": "np02-srv-004",
+            "tx_host": "np02-srv-003",
             "tx_mac": "00:00:00:00:00:00",
             "tx_ip": "0.0.0.0"
         }	
@@ -1237,7 +1412,7 @@
         "geo_id": {
             "det_id": 3,
             "crate_id": 2,
-            "slot_id": 2,
+            "slot_id": 3,
             "stream_id": 0
         },
         "kind": "eth",
@@ -1245,11 +1420,11 @@
             "protocol": "udp",
             "mode": "fix_rate",
             "rx_iface": 0,
-            "rx_host": "np02-srv-004",
+            "rx_host": "np02-srv-003",
             "rx_mac": "00:00:00:00:00:00",
             "rx_pcie_dev": "0000:01:00.0", 
             "rx_ip": "0.0.0.0", 
-            "tx_host": "np02-srv-004",
+            "tx_host": "np02-srv-003",
             "tx_mac": "00:00:00:00:00:00",
             "tx_ip": "0.0.0.0"
         }	
@@ -1259,7 +1434,7 @@
         "geo_id": {
             "det_id": 3,
             "crate_id": 2,
-            "slot_id": 2,
+            "slot_id": 3,
             "stream_id": 1
         },
         "kind": "eth",
@@ -1267,11 +1442,11 @@
             "protocol": "udp",
             "mode": "fix_rate",
             "rx_iface": 0,
-            "rx_host": "np02-srv-004",
+            "rx_host": "np02-srv-003",
             "rx_mac": "00:00:00:00:00:00",
             "rx_pcie_dev": "0000:01:00.0", 
             "rx_ip": "0.0.0.0", 
-            "tx_host": "np02-srv-004",
+            "tx_host": "np02-srv-003",
             "tx_mac": "00:00:00:00:00:00",
             "tx_ip": "0.0.0.0"
         }	
@@ -1281,7 +1456,7 @@
         "geo_id": {
             "det_id": 3,
             "crate_id": 2,
-            "slot_id": 2,
+            "slot_id": 3,
             "stream_id": 2
         },
         "kind": "eth",
@@ -1289,11 +1464,11 @@
             "protocol": "udp",
             "mode": "fix_rate",
             "rx_iface": 0,
-            "rx_host": "np02-srv-004",
+            "rx_host": "np02-srv-003",
             "rx_mac": "00:00:00:00:00:00",
             "rx_pcie_dev": "0000:01:00.0", 
             "rx_ip": "0.0.0.0", 
-            "tx_host": "np02-srv-004",
+            "tx_host": "np02-srv-003",
             "tx_mac": "00:00:00:00:00:00",
             "tx_ip": "0.0.0.0"
         }	
@@ -1303,7 +1478,7 @@
         "geo_id": {
             "det_id": 3,
             "crate_id": 2,
-            "slot_id": 2,
+            "slot_id": 3,
             "stream_id": 3
         },
         "kind": "eth",
@@ -1311,11 +1486,11 @@
             "protocol": "udp",
             "mode": "fix_rate",
             "rx_iface": 0,
-            "rx_host": "np02-srv-004",
+            "rx_host": "np02-srv-003",
             "rx_mac": "00:00:00:00:00:00",
             "rx_pcie_dev": "0000:01:00.0", 
             "rx_ip": "0.0.0.0", 
-            "tx_host": "np02-srv-004",
+            "tx_host": "np02-srv-003",
             "tx_mac": "00:00:00:00:00:00",
             "tx_ip": "0.0.0.0"
         }	
@@ -1325,7 +1500,7 @@
         "geo_id": {
             "det_id": 3,
             "crate_id": 2,
-            "slot_id": 2,
+            "slot_id": 3,
             "stream_id": 64
         },
         "kind": "eth",
@@ -1333,11 +1508,11 @@
             "protocol": "udp",
             "mode": "fix_rate",
             "rx_iface": 0,
-            "rx_host": "np02-srv-004",
+            "rx_host": "np02-srv-003",
             "rx_mac": "00:00:00:00:00:00",
             "rx_pcie_dev": "0000:01:00.0", 
             "rx_ip": "0.0.0.0", 
-            "tx_host": "np02-srv-004",
+            "tx_host": "np02-srv-003",
             "tx_mac": "00:00:00:00:00:00",
             "tx_ip": "0.0.0.0"
         }	
@@ -1347,7 +1522,7 @@
         "geo_id": {
             "det_id": 3,
             "crate_id": 2,
-            "slot_id": 2,
+            "slot_id": 3,
             "stream_id": 65
         },
         "kind": "eth",
@@ -1355,11 +1530,11 @@
             "protocol": "udp",
             "mode": "fix_rate",
             "rx_iface": 0,
-            "rx_host": "np02-srv-004",
+            "rx_host": "np02-srv-003",
             "rx_mac": "00:00:00:00:00:00",
             "rx_pcie_dev": "0000:01:00.0", 
             "rx_ip": "0.0.0.0", 
-            "tx_host": "np02-srv-004",
+            "tx_host": "np02-srv-003",
             "tx_mac": "00:00:00:00:00:00",
             "tx_ip": "0.0.0.0"
         }	
@@ -1369,7 +1544,7 @@
         "geo_id": {
             "det_id": 3,
             "crate_id": 2,
-            "slot_id": 2,
+            "slot_id": 3,
             "stream_id": 66
         },
         "kind": "eth",
@@ -1377,11 +1552,11 @@
             "protocol": "udp",
             "mode": "fix_rate",
             "rx_iface": 0,
-            "rx_host": "np02-srv-004",
+            "rx_host": "np02-srv-003",
             "rx_mac": "00:00:00:00:00:00",
             "rx_pcie_dev": "0000:01:00.0", 
             "rx_ip": "0.0.0.0", 
-            "tx_host": "np02-srv-004",
+            "tx_host": "np02-srv-003",
             "tx_mac": "00:00:00:00:00:00",
             "tx_ip": "0.0.0.0"
         }	
@@ -1391,7 +1566,7 @@
         "geo_id": {
             "det_id": 3,
             "crate_id": 2,
-            "slot_id": 2,
+            "slot_id": 3,
             "stream_id": 67
         },
         "kind": "eth",
@@ -1399,11 +1574,11 @@
             "protocol": "udp",
             "mode": "fix_rate",
             "rx_iface": 0,
-            "rx_host": "np02-srv-004",
+            "rx_host": "np02-srv-003",
             "rx_mac": "00:00:00:00:00:00",
             "rx_pcie_dev": "0000:01:00.0", 
             "rx_ip": "0.0.0.0", 
-            "tx_host": "np02-srv-004",
+            "tx_host": "np02-srv-003",
             "tx_mac": "00:00:00:00:00:00",
             "tx_ip": "0.0.0.0"
         }	
@@ -1413,7 +1588,7 @@
         "geo_id": {
             "det_id": 3,
             "crate_id": 2,
-            "slot_id": 3,
+            "slot_id": 4,
             "stream_id": 0
         },
         "kind": "eth",
@@ -1421,11 +1596,11 @@
             "protocol": "udp",
             "mode": "fix_rate",
             "rx_iface": 0,
-            "rx_host": "np02-srv-004",
+            "rx_host": "np02-srv-003",
             "rx_mac": "00:00:00:00:00:00",
             "rx_pcie_dev": "0000:01:00.0", 
             "rx_ip": "0.0.0.0", 
-            "tx_host": "np02-srv-004",
+            "tx_host": "np02-srv-003",
             "tx_mac": "00:00:00:00:00:00",
             "tx_ip": "0.0.0.0"
         }	
@@ -1435,7 +1610,7 @@
         "geo_id": {
             "det_id": 3,
             "crate_id": 2,
-            "slot_id": 3,
+            "slot_id": 4,
             "stream_id": 1
         },
         "kind": "eth",
@@ -1443,11 +1618,11 @@
             "protocol": "udp",
             "mode": "fix_rate",
             "rx_iface": 0,
-            "rx_host": "np02-srv-004",
+            "rx_host": "np02-srv-003",
             "rx_mac": "00:00:00:00:00:00",
             "rx_pcie_dev": "0000:01:00.0", 
             "rx_ip": "0.0.0.0", 
-            "tx_host": "np02-srv-004",
+            "tx_host": "np02-srv-003",
             "tx_mac": "00:00:00:00:00:00",
             "tx_ip": "0.0.0.0"
         }	
@@ -1457,7 +1632,7 @@
         "geo_id": {
             "det_id": 3,
             "crate_id": 2,
-            "slot_id": 3,
+            "slot_id": 4,
             "stream_id": 2
         },
         "kind": "eth",
@@ -1465,11 +1640,11 @@
             "protocol": "udp",
             "mode": "fix_rate",
             "rx_iface": 0,
-            "rx_host": "np02-srv-004",
+            "rx_host": "np02-srv-003",
             "rx_mac": "00:00:00:00:00:00",
             "rx_pcie_dev": "0000:01:00.0", 
             "rx_ip": "0.0.0.0", 
-            "tx_host": "np02-srv-004",
+            "tx_host": "np02-srv-003",
             "tx_mac": "00:00:00:00:00:00",
             "tx_ip": "0.0.0.0"
         }	
@@ -1479,7 +1654,7 @@
         "geo_id": {
             "det_id": 3,
             "crate_id": 2,
-            "slot_id": 3,
+            "slot_id": 4,
             "stream_id": 3
         },
         "kind": "eth",
@@ -1487,11 +1662,11 @@
             "protocol": "udp",
             "mode": "fix_rate",
             "rx_iface": 0,
-            "rx_host": "np02-srv-004",
+            "rx_host": "np02-srv-003",
             "rx_mac": "00:00:00:00:00:00",
             "rx_pcie_dev": "0000:01:00.0", 
             "rx_ip": "0.0.0.0", 
-            "tx_host": "np02-srv-004",
+            "tx_host": "np02-srv-003",
             "tx_mac": "00:00:00:00:00:00",
             "tx_ip": "0.0.0.0"
         }	
@@ -1501,7 +1676,7 @@
         "geo_id": {
             "det_id": 3,
             "crate_id": 2,
-            "slot_id": 3,
+            "slot_id": 4,
             "stream_id": 64
         },
         "kind": "eth",
@@ -1509,11 +1684,11 @@
             "protocol": "udp",
             "mode": "fix_rate",
             "rx_iface": 0,
-            "rx_host": "np02-srv-004",
+            "rx_host": "np02-srv-003",
             "rx_mac": "00:00:00:00:00:00",
             "rx_pcie_dev": "0000:01:00.0", 
             "rx_ip": "0.0.0.0", 
-            "tx_host": "np02-srv-004",
+            "tx_host": "np02-srv-003",
             "tx_mac": "00:00:00:00:00:00",
             "tx_ip": "0.0.0.0"
         }	
@@ -1523,7 +1698,7 @@
         "geo_id": {
             "det_id": 3,
             "crate_id": 2,
-            "slot_id": 3,
+            "slot_id": 4,
             "stream_id": 65
         },
         "kind": "eth",
@@ -1531,11 +1706,11 @@
             "protocol": "udp",
             "mode": "fix_rate",
             "rx_iface": 0,
-            "rx_host": "np02-srv-004",
+            "rx_host": "np02-srv-003",
             "rx_mac": "00:00:00:00:00:00",
             "rx_pcie_dev": "0000:01:00.0", 
             "rx_ip": "0.0.0.0", 
-            "tx_host": "np02-srv-004",
+            "tx_host": "np02-srv-003",
             "tx_mac": "00:00:00:00:00:00",
             "tx_ip": "0.0.0.0"
         }	
@@ -1545,7 +1720,7 @@
         "geo_id": {
             "det_id": 3,
             "crate_id": 2,
-            "slot_id": 3,
+            "slot_id": 4,
             "stream_id": 66
         },
         "kind": "eth",
@@ -1553,11 +1728,11 @@
             "protocol": "udp",
             "mode": "fix_rate",
             "rx_iface": 0,
-            "rx_host": "np02-srv-004",
+            "rx_host": "np02-srv-003",
             "rx_mac": "00:00:00:00:00:00",
             "rx_pcie_dev": "0000:01:00.0", 
             "rx_ip": "0.0.0.0", 
-            "tx_host": "np02-srv-004",
+            "tx_host": "np02-srv-003",
             "tx_mac": "00:00:00:00:00:00",
             "tx_ip": "0.0.0.0"
         }	
@@ -1567,7 +1742,7 @@
         "geo_id": {
             "det_id": 3,
             "crate_id": 2,
-            "slot_id": 3,
+            "slot_id": 4,
             "stream_id": 67
         },
         "kind": "eth",
@@ -1575,11 +1750,11 @@
             "protocol": "udp",
             "mode": "fix_rate",
             "rx_iface": 0,
-            "rx_host": "np02-srv-004",
+            "rx_host": "np02-srv-003",
             "rx_mac": "00:00:00:00:00:00",
             "rx_pcie_dev": "0000:01:00.0", 
             "rx_ip": "0.0.0.0", 
-            "tx_host": "np02-srv-004",
+            "tx_host": "np02-srv-003",
             "tx_mac": "00:00:00:00:00:00",
             "tx_ip": "0.0.0.0"
         }	
@@ -1588,8 +1763,8 @@
         "src_id": 232,
         "geo_id": {
             "det_id": 3,
-            "crate_id": 2,
-            "slot_id": 4,
+            "crate_id": 3,
+            "slot_id": 0,
             "stream_id": 0
         },
         "kind": "eth",
@@ -1597,11 +1772,11 @@
             "protocol": "udp",
             "mode": "fix_rate",
             "rx_iface": 0,
-            "rx_host": "np02-srv-004",
+            "rx_host": "np02-srv-003",
             "rx_mac": "00:00:00:00:00:00",
             "rx_pcie_dev": "0000:01:00.0", 
             "rx_ip": "0.0.0.0", 
-            "tx_host": "np02-srv-004",
+            "tx_host": "np02-srv-003",
             "tx_mac": "00:00:00:00:00:00",
             "tx_ip": "0.0.0.0"
         }	
@@ -1610,8 +1785,8 @@
         "src_id": 233,
         "geo_id": {
             "det_id": 3,
-            "crate_id": 2,
-            "slot_id": 4,
+            "crate_id": 3,
+            "slot_id": 0,
             "stream_id": 1
         },
         "kind": "eth",
@@ -1619,11 +1794,11 @@
             "protocol": "udp",
             "mode": "fix_rate",
             "rx_iface": 0,
-            "rx_host": "np02-srv-004",
+            "rx_host": "np02-srv-003",
             "rx_mac": "00:00:00:00:00:00",
             "rx_pcie_dev": "0000:01:00.0", 
             "rx_ip": "0.0.0.0", 
-            "tx_host": "np02-srv-004",
+            "tx_host": "np02-srv-003",
             "tx_mac": "00:00:00:00:00:00",
             "tx_ip": "0.0.0.0"
         }	
@@ -1632,8 +1807,8 @@
         "src_id": 234,
         "geo_id": {
             "det_id": 3,
-            "crate_id": 2,
-            "slot_id": 4,
+            "crate_id": 3,
+            "slot_id": 0,
             "stream_id": 2
         },
         "kind": "eth",
@@ -1641,11 +1816,11 @@
             "protocol": "udp",
             "mode": "fix_rate",
             "rx_iface": 0,
-            "rx_host": "np02-srv-004",
+            "rx_host": "np02-srv-003",
             "rx_mac": "00:00:00:00:00:00",
             "rx_pcie_dev": "0000:01:00.0", 
             "rx_ip": "0.0.0.0", 
-            "tx_host": "np02-srv-004",
+            "tx_host": "np02-srv-003",
             "tx_mac": "00:00:00:00:00:00",
             "tx_ip": "0.0.0.0"
         }	
@@ -1654,8 +1829,8 @@
         "src_id": 235,
         "geo_id": {
             "det_id": 3,
-            "crate_id": 2,
-            "slot_id": 4,
+            "crate_id": 3,
+            "slot_id": 0,
             "stream_id": 3
         },
         "kind": "eth",
@@ -1663,11 +1838,11 @@
             "protocol": "udp",
             "mode": "fix_rate",
             "rx_iface": 0,
-            "rx_host": "np02-srv-004",
+            "rx_host": "np02-srv-003",
             "rx_mac": "00:00:00:00:00:00",
             "rx_pcie_dev": "0000:01:00.0", 
             "rx_ip": "0.0.0.0", 
-            "tx_host": "np02-srv-004",
+            "tx_host": "np02-srv-003",
             "tx_mac": "00:00:00:00:00:00",
             "tx_ip": "0.0.0.0"
         }	
@@ -1676,8 +1851,8 @@
         "src_id": 236,
         "geo_id": {
             "det_id": 3,
-            "crate_id": 2,
-            "slot_id": 4,
+            "crate_id": 3,
+            "slot_id": 0,
             "stream_id": 64
         },
         "kind": "eth",
@@ -1685,11 +1860,11 @@
             "protocol": "udp",
             "mode": "fix_rate",
             "rx_iface": 0,
-            "rx_host": "np02-srv-004",
+            "rx_host": "np02-srv-003",
             "rx_mac": "00:00:00:00:00:00",
             "rx_pcie_dev": "0000:01:00.0", 
             "rx_ip": "0.0.0.0", 
-            "tx_host": "np02-srv-004",
+            "tx_host": "np02-srv-003",
             "tx_mac": "00:00:00:00:00:00",
             "tx_ip": "0.0.0.0"
         }	
@@ -1698,8 +1873,8 @@
         "src_id": 237,
         "geo_id": {
             "det_id": 3,
-            "crate_id": 2,
-            "slot_id": 4,
+            "crate_id": 3,
+            "slot_id": 0,
             "stream_id": 65
         },
         "kind": "eth",
@@ -1707,11 +1882,11 @@
             "protocol": "udp",
             "mode": "fix_rate",
             "rx_iface": 0,
-            "rx_host": "np02-srv-004",
+            "rx_host": "np02-srv-003",
             "rx_mac": "00:00:00:00:00:00",
             "rx_pcie_dev": "0000:01:00.0", 
             "rx_ip": "0.0.0.0", 
-            "tx_host": "np02-srv-004",
+            "tx_host": "np02-srv-003",
             "tx_mac": "00:00:00:00:00:00",
             "tx_ip": "0.0.0.0"
         }	
@@ -1720,8 +1895,8 @@
         "src_id": 238,
         "geo_id": {
             "det_id": 3,
-            "crate_id": 2,
-            "slot_id": 4,
+            "crate_id": 3,
+            "slot_id": 0,
             "stream_id": 66
         },
         "kind": "eth",
@@ -1729,11 +1904,11 @@
             "protocol": "udp",
             "mode": "fix_rate",
             "rx_iface": 0,
-            "rx_host": "np02-srv-004",
+            "rx_host": "np02-srv-003",
             "rx_mac": "00:00:00:00:00:00",
             "rx_pcie_dev": "0000:01:00.0", 
             "rx_ip": "0.0.0.0", 
-            "tx_host": "np02-srv-004",
+            "tx_host": "np02-srv-003",
             "tx_mac": "00:00:00:00:00:00",
             "tx_ip": "0.0.0.0"
         }	
@@ -1742,8 +1917,8 @@
         "src_id": 239,
         "geo_id": {
             "det_id": 3,
-            "crate_id": 2,
-            "slot_id": 4,
+            "crate_id": 3,
+            "slot_id": 0,
             "stream_id": 67
         },
         "kind": "eth",
@@ -1751,11 +1926,187 @@
             "protocol": "udp",
             "mode": "fix_rate",
             "rx_iface": 0,
-            "rx_host": "np02-srv-004",
+            "rx_host": "np02-srv-003",
             "rx_mac": "00:00:00:00:00:00",
             "rx_pcie_dev": "0000:01:00.0", 
             "rx_ip": "0.0.0.0", 
-            "tx_host": "np02-srv-004",
+            "tx_host": "np02-srv-003",
+            "tx_mac": "00:00:00:00:00:00",
+            "tx_ip": "0.0.0.0"
+        }	
+    },
+    {
+        "src_id": 240,
+        "geo_id": {
+            "det_id": 3,
+            "crate_id": 3,
+            "slot_id": 1,
+            "stream_id": 0
+        },
+        "kind": "eth",
+        "parameters": {
+            "protocol": "udp",
+            "mode": "fix_rate",
+            "rx_iface": 0,
+            "rx_host": "np02-srv-003",
+            "rx_mac": "00:00:00:00:00:00",
+            "rx_pcie_dev": "0000:01:00.0", 
+            "rx_ip": "0.0.0.0", 
+            "tx_host": "np02-srv-003",
+            "tx_mac": "00:00:00:00:00:00",
+            "tx_ip": "0.0.0.0"
+        }	
+    },
+    {
+        "src_id": 241,
+        "geo_id": {
+            "det_id": 3,
+            "crate_id": 3,
+            "slot_id": 1,
+            "stream_id": 1
+        },
+        "kind": "eth",
+        "parameters": {
+            "protocol": "udp",
+            "mode": "fix_rate",
+            "rx_iface": 0,
+            "rx_host": "np02-srv-003",
+            "rx_mac": "00:00:00:00:00:00",
+            "rx_pcie_dev": "0000:01:00.0", 
+            "rx_ip": "0.0.0.0", 
+            "tx_host": "np02-srv-003",
+            "tx_mac": "00:00:00:00:00:00",
+            "tx_ip": "0.0.0.0"
+        }	
+    },
+    {
+        "src_id": 242,
+        "geo_id": {
+            "det_id": 3,
+            "crate_id": 3,
+            "slot_id": 1,
+            "stream_id": 2
+        },
+        "kind": "eth",
+        "parameters": {
+            "protocol": "udp",
+            "mode": "fix_rate",
+            "rx_iface": 0,
+            "rx_host": "np02-srv-003",
+            "rx_mac": "00:00:00:00:00:00",
+            "rx_pcie_dev": "0000:01:00.0", 
+            "rx_ip": "0.0.0.0", 
+            "tx_host": "np02-srv-003",
+            "tx_mac": "00:00:00:00:00:00",
+            "tx_ip": "0.0.0.0"
+        }	
+    },
+    {
+        "src_id": 243,
+        "geo_id": {
+            "det_id": 3,
+            "crate_id": 3,
+            "slot_id": 1,
+            "stream_id": 3
+        },
+        "kind": "eth",
+        "parameters": {
+            "protocol": "udp",
+            "mode": "fix_rate",
+            "rx_iface": 0,
+            "rx_host": "np02-srv-003",
+            "rx_mac": "00:00:00:00:00:00",
+            "rx_pcie_dev": "0000:01:00.0", 
+            "rx_ip": "0.0.0.0", 
+            "tx_host": "np02-srv-003",
+            "tx_mac": "00:00:00:00:00:00",
+            "tx_ip": "0.0.0.0"
+        }	
+    },
+    {
+        "src_id": 244,
+        "geo_id": {
+            "det_id": 3,
+            "crate_id": 3,
+            "slot_id": 1,
+            "stream_id": 64
+        },
+        "kind": "eth",
+        "parameters": {
+            "protocol": "udp",
+            "mode": "fix_rate",
+            "rx_iface": 0,
+            "rx_host": "np02-srv-003",
+            "rx_mac": "00:00:00:00:00:00",
+            "rx_pcie_dev": "0000:01:00.0", 
+            "rx_ip": "0.0.0.0", 
+            "tx_host": "np02-srv-003",
+            "tx_mac": "00:00:00:00:00:00",
+            "tx_ip": "0.0.0.0"
+        }	
+    },
+    {
+        "src_id": 245,
+        "geo_id": {
+            "det_id": 3,
+            "crate_id": 3,
+            "slot_id": 1,
+            "stream_id": 65
+        },
+        "kind": "eth",
+        "parameters": {
+            "protocol": "udp",
+            "mode": "fix_rate",
+            "rx_iface": 0,
+            "rx_host": "np02-srv-003",
+            "rx_mac": "00:00:00:00:00:00",
+            "rx_pcie_dev": "0000:01:00.0", 
+            "rx_ip": "0.0.0.0", 
+            "tx_host": "np02-srv-003",
+            "tx_mac": "00:00:00:00:00:00",
+            "tx_ip": "0.0.0.0"
+        }	
+    },
+    {
+        "src_id": 246,
+        "geo_id": {
+            "det_id": 3,
+            "crate_id": 3,
+            "slot_id": 1,
+            "stream_id": 66
+        },
+        "kind": "eth",
+        "parameters": {
+            "protocol": "udp",
+            "mode": "fix_rate",
+            "rx_iface": 0,
+            "rx_host": "np02-srv-003",
+            "rx_mac": "00:00:00:00:00:00",
+            "rx_pcie_dev": "0000:01:00.0", 
+            "rx_ip": "0.0.0.0", 
+            "tx_host": "np02-srv-003",
+            "tx_mac": "00:00:00:00:00:00",
+            "tx_ip": "0.0.0.0"
+        }	
+    },
+    {
+        "src_id": 247,
+        "geo_id": {
+            "det_id": 3,
+            "crate_id": 3,
+            "slot_id": 1,
+            "stream_id": 67
+        },
+        "kind": "eth",
+        "parameters": {
+            "protocol": "udp",
+            "mode": "fix_rate",
+            "rx_iface": 0,
+            "rx_host": "np02-srv-003",
+            "rx_mac": "00:00:00:00:00:00",
+            "rx_pcie_dev": "0000:01:00.0",
+            "rx_ip": "0.0.0.0", 
+            "tx_host": "np02-srv-003",
             "tx_mac": "00:00:00:00:00:00",
             "tx_ip": "0.0.0.0"
         }	
