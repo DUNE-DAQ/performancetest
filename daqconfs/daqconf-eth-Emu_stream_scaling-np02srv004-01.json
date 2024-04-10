@@ -46,11 +46,18 @@
 			"default_latency_numa_aware": true,
 			"exceptions": [
 				{
-				"host": "np02-srv-004",
-				"card": 0,
-				"numa_id": 0,
-				"latency_buffer_numa_aware": true,
-				"latency_buffer_preallocation": true
+					"host": "np02-srv-004",
+					"card": 0,
+					"numa_id": 0,
+					"latency_buffer_numa_aware": true,
+					"latency_buffer_preallocation": true
+				},
+				{
+					"host": "np02-srv-004",
+					"card": 1,
+					"numa_id": 1,
+					"latency_buffer_numa_aware": true,
+					"latency_buffer_preallocation": true
 				}
 			]
 		}
