@@ -16,9 +16,6 @@ cd $test_name
 
 for i in {8..48..8}
 do
-	# disk throughput
-    #iostat -m -t 1 120 > iostat_${i}.txt &
-
 	echo "Scaling to ${i} streams"
 	run_num_increment=${i}/8
 	run_num=$(($run_num_init + $run_num_increment -1))
