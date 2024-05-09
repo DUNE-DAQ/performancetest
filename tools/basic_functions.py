@@ -555,7 +555,12 @@ def get_column_val(df, columns, labels, file):
             Y_tmp = df[columns_j]
             Y = Y_tmp.values.tolist()
             val.append(Y)
-            label.append(f'{info[1]} {info[5]} {info[2]} {label_j}')    
+            label.append(f'{info[1]} {info[5]} {info[2]} {label_j}')  
+        elif columns_j in ['IRA Socket0', 'IRA Socket1']:
+            Y_tmp = df['Utilization (%) Socket1'].mul(0)
+            Y = Y_tmp.values.tolist()
+            val.append(Y)
+            label.append(f'{info[1]} {info[5]} {info[2]} {label_j}') 
         else:
             Y = df[columns_j].values.tolist()
             val.append(Y)
@@ -666,7 +671,7 @@ def parse_cpu_cores(cpu_cores_i):
     return cpu_cores
 
 def extract_table_data(input_dir, file_core, data_list, emu_mode):
-    pinning_table, cpu_core_table, cpu_utilization_table, cpu_utilization_maximum_table, max_tmp = [], [], [], [], []
+    pinning_table, cpu_core_table, cpu_core_table_format, cpu_utilization_table, cpu_utilization_maximum_table, max_tmp = [], [], [], [], [], []
     cpu_core, cpu_utilization = core_utilization(input_dir, file_core)
     deno, sum_utilization = 0, 0
 
@@ -696,6 +701,7 @@ def extract_table_data(input_dir, file_core, data_list, emu_mode):
     for cpu_cores_i in cpu_core_table:
         try:
             cpu_cores = parse_cpu_cores(cpu_cores_i)
+            cpu_core_table_format.append(cpu_cores)
         except ValueError:
             print(f'Check the format of the cpu pinning file. The [#,#] will not work.')
 
@@ -707,7 +713,7 @@ def extract_table_data(input_dir, file_core, data_list, emu_mode):
         utilization_average = round((sum_utilization / deno), 2)
         cpu_utilization_table.append(utilization_average)
         cpu_utilization_maximum_table.append(max(max_tmp))
-        deno, sum_utilization = 0, 0                # Reset variables for the next iteration
+        deno, sum_utilization = 0, 0   # Reset variables for the next iteration
 
     return pinning_table, cpu_core_table, cpu_utilization_maximum_table
 
@@ -725,7 +731,7 @@ def table_cpupins(columns_data, pdf, if_pdf=False):
     rows_data = rows_data + line
     
     line_height = pdf.font_size * 2.1
-    col_width = [pdf.epw/7.2, pdf.epw/1.55, pdf.epw/6.8]
+    col_width = [pdf.epw/3.25, pdf.epw/2, pdf.epw/6.8]
     
     lh_list = [] #list with proper line_height for each row
 
