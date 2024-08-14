@@ -108,7 +108,7 @@ We have 2 cases, we can run the automatic scaling or a single test at a time. Im
         - `cd sourcecode/performancetest/scripts/; ./core_utilization_INTEL.sh <test_path> <test_name>`
     - for AMD do:
         - `cd sourcecode/performancetest/scripts/; sudo ./start_uprof.sh <test_path> <test_name> <duration_seconds>`
-        - If there is an error in Power monitoring do: `cd /opt/AMDuProf_4.0-341/bin/; sudo ./AMDPowerProfilerDriver.sh install`
+        - If there is an error in Power monitoring do: `cd /opt/AMDuProf_*/bin/; sudo ./AMDPowerProfilerDriver.sh install`
     3. Run the test: `nanorc <test_name> test-perf` 
         - `boot; conf; start_run <run_num>;`
         - for recording: `expert_command --timeout 10 <test_name>/<test_name>/<readout_app> ../record-cmd.json`
