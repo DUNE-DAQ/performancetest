@@ -124,7 +124,7 @@ We have 2 cases, we can run the automatic scaling or a single test at a time. Im
             - `<dunedaq_version>`: ex. v4_1_1 or NFD23_09_28
     2. Start monitoring and CPU utilization recording (this is run on the readout server in use): 
     - for INTEL do:
-        - `cd sourcecode/performancetest/scripts/; ./core_utilization_INTEL.sh <test_path> <test_name>`
+        - `cd sourcecode/performancetest/scripts/; ./core_utilization_INTEL.sh <test_path> <test_name> <duration_minutes>`
     - for AMD do:
         - `cd sourcecode/performancetest/scripts/; sudo ./start_uprof.sh <test_path> <test_name> <duration_seconds>`
         - If there is an error in Power monitoring do: `cd /opt/AMDuProf_4.0-341/bin/; sudo ./AMDPowerProfilerDriver.sh install`
