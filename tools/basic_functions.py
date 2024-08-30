@@ -1,47 +1,37 @@
 import os
-import sys
+#import sys
 import csv
-import time
-import glob
+#import time
+#import glob
 import json
 import re
-import shutil
-import subprocess
+#import shutil
+#import subprocess
 import requests
-import getpass
+#import getpass
 import matplotlib
 import matplotlib.pyplot as plt 
-import matplotlib.cm as cm
-import matplotlib.colors as mcolors
-import matplotlib.dates as mdates
+#import matplotlib.cm as cm
+#import matplotlib.colors as mcolors
+#import matplotlib.dates as mdates
 import numpy as np
-import pickle as pkl
+#import pickle as pkl
 import pandas as pd
-from flask import Flask, request
 from pathlib import Path
 from datetime import datetime as dt
-from fpdf import FPDF 
-from fpdf.enums import XPos, YPos
 from dateutil.parser import parse
 from tabulate import tabulate
+import struct
+import warnings
+warnings.simplefilter('default', DeprecationWarning)
+from fpdf import FPDF 
+from fpdf.enums import XPos, YPos
+from PIL import Image
 
-color_list = ['red', 'blue', 'green', 'cyan', 'orange', 'navy', 'magenta', 'lime', 'purple', 'hotpink', 'olive', 'salmon', 
-              'teal', 'darkblue', 'darkgreen', 'darkcyan', 'darkorange', 'deepskyblue', 'darkmagenta', 'sienna', 'chocolate'] 
+color_list = ['red', 'blue', 'green', 'cyan', 'orange', 'navy', 'magenta', 'lime', 'purple', 'hotpink', 'olive', 'salmon', 'teal', 'darkblue', 'darkgreen', 'darkcyan', 'darkorange', 'deepskyblue', 'darkmagenta', 'sienna', 'chocolate'] 
 linestyle_list = ['solid', 'dotted', 'dashed', 'dashdot','solid', 'dotted', 'dashed', 'dashdot']
 marker_list = ['s','o','.','p','P','^','<','>','*','+','x','X','d','D','h','H'] 
-
 not_alma9_os = ['np04srv008', 'np04srv010', 'np04srv014', 'np04srv023', 'np04onl003', 'np04srv007', 'np04srv009', 'np04crt001']
-list_py_package = ['os', 'sys', 'csv', 'time', 'glob', 'json', 'requests', 're', 'shutil', 'subprocess', 'matplotlib', 
-                   'numpy', 'pickle', 'pandas', 'pathlib', 'datetime', 'fpdf', 'dateutil', 'tabulate', 'getpass', 'flask']
-
-def debug_missing_module(module_name):
-    try:
-        __import__(module_name) 
-    except ImportError:
-        print(f'Error: {module_name} is not installed.')
-        print(f'To install it, run: pip install {module_name}')
-        return False
-    return True
 
 def directory(input_dir):
     for dir_path in input_dir:
@@ -66,10 +56,9 @@ def get_unix_timestamp(time_str):
 def make_column_list(file, input_dir):
     data_frame = pd.read_csv(f'{input_dir}/{file}.csv')
     columns_list = list(data_frame.columns) 
-    ncoln=len(columns_list) 
     return columns_list
 
-def datenum(d, d_base): 
+def date_num(d, d_base): 
     t_0 = d_base.toordinal() 
     t_1 = dt.fromordinal(t_0)
     T = (d - t_1).total_seconds()
@@ -131,10 +120,10 @@ def create_var_list(file_list, var_list):
         
     return files_srv_list
 
-def cpupins_utilazation_reformatter(input_dir, core_utilization_file):
+def cpupins_utilazation_reformatted(input_dir, core_utilization_file):
     for file in core_utilization_file:
         f = open(f'{input_dir}/{file}.csv','r')
-        f_new = open(f'{input_dir}/reformatter_{file}.csv','w')
+        f_new = open(f'{input_dir}/reformatted_{file}.csv','w')
         header = 'Timestamp,CPU,user (%),nice (%),system (%),iowait (%),steal (%),idle (%)'
         f_new.write(header)   
         
@@ -146,7 +135,7 @@ def cpupins_utilazation_reformatter(input_dir, core_utilization_file):
                 formatted_line = ','.join(list_new)
                 f_new.write(formatted_line)   
 
-        print(f'New CSV file saved as: reformatter_{file}.csv')   
+        print(f'New CSV file saved as: reformatted_{file}.csv')   
 
 def fetch_grafana_panels(grafana_url, dashboard_uid):
     panels = []
@@ -213,7 +202,7 @@ def get_query_urls(panel, host, partition, grafana_url):
         else:
             print(f'Missing [expr , query, rawSql] in targets. Check the json file related to the dashboard.')
             pass
-    
+
     return queries, queries_label if queries else None
 
 def extract_grafana_data(datasource_url, grafana_url, dashboard_uid, delta_time, host, partition, input_dir, output_csv_file):
@@ -247,7 +236,7 @@ def extract_grafana_data(datasource_url, grafana_url, dashboard_uid, delta_time,
                     print(f'Skipping panel {panel_title}, with no targets.')
                     continue
 
-                query_urls, queries_label = get_query_urls(panel, host, partition, grafana_url)
+                query_urls, queries_labels = get_query_urls(panel, host, partition, grafana_url)
 
                 if not query_urls:
                     print(f'Skipping panel {panel_title}, with no valid query URL')
@@ -255,7 +244,8 @@ def extract_grafana_data(datasource_url, grafana_url, dashboard_uid, delta_time,
 
                 for i, query_url in enumerate(query_urls):
                     try:
-                        column_name = f'{queries_label[i]} {panel_title}'
+                        column_label = queries_labels[i] # type: ignore
+                        column_name = f'{column_label} {panel_title}'
                     except KeyError:
                         continue
                         
@@ -272,14 +262,19 @@ def extract_grafana_data(datasource_url, grafana_url, dashboard_uid, delta_time,
                     if response.status_code != 200:
                         print('Error in extract_data_and_stats_from_panel: Failed to fetch dashboard data.')
                         print(f'Status code:content {response.status_code}:{response.content}')
-                        print(f'Response panel:data:content for panel {panel_title}:{response_data}:{response_data.content}')
+                        print(f'Response panel:data:content for panel {panel_title}:{response_data}')
                         return None
 
                     if 'data' not in response_data or 'resultType' not in response_data['data'] or response_data['data']['resultType'] != 'matrix':
                         print(f'Skipping query with no valid response in panel: {panel_title}')
                         continue
 
-                    result = response_data['data']['result'][0]
+                    result = response_data['data']['result']
+                    if not result:
+                        print(f'Skipping query with no result in panel: {panel_title}')
+                        continue
+
+                    result = result[0]
                     metric = result['metric']
                     values = result.get('values', [])
                     values_without_first_column = [row[1:] for row in values]
@@ -306,10 +301,10 @@ def extract_grafana_data(datasource_url, grafana_url, dashboard_uid, delta_time,
             print(f'Data saved to CSV successfully: {output}')
         except Exception as e:
             print(f'Exception Error: Failed to save data to CSV: {str(e)}')
-    
+
 def uprof_pcm_formatter(input_dir, file):
     f = open(f'{input_dir}/{file}.csv','r')
-    f_new = open(f'{input_dir}/reformatter_{file}.csv','w')
+    f_new = open(f'{input_dir}/reformatted_{file}.csv','w')
     
     for line in f:
         # extract initial time
@@ -372,7 +367,7 @@ def uprof_pcm_formatter(input_dir, file):
 
 def uprof_timechart_formatter(input_dir, file):
     f = open(f'{input_dir}/{file}.csv','r')
-    f_new = open(f'{input_dir}/reformatter_{file}.csv','w')
+    f_new = open(f'{input_dir}/reformatted_{file}.csv','w')
 
     header = True
     for line in f:
@@ -433,17 +428,20 @@ def process_files(input_dir, process_pcm_files=False, process_uprof_files=False,
     if process_uprof_files:
         for i, file_uprof_i in enumerate(uprof_file):
             uprof_pcm_formatter(input_dir, file_uprof_i)
-            add_new_time_format(input_dir, f'reformatter_{file_uprof_i}')
+            add_new_time_format(input_dir, f'reformatted_{file_uprof_i}')
     
     if process_core_files:
-        cpupins_utilazation_reformatter(input_dir, core_utilization_file)
+        cpupins_utilazation_reformatted(input_dir, core_utilization_file)
         for i, file_core_i in enumerate(core_utilization_file):
-             add_new_time_format_utilization(input_dir, f'reformatter_{file_core_i}')
+            add_new_time_format_utilization(input_dir, f'reformatted_{file_core_i}')
         
     print('Finish the processing of the data.')
 
 def break_file_name(file):
     return file.split('-')
+
+def sanitize_label(label):
+    return re.sub('_', ' ', label)
 
 def check_OS(server):
     return 'CS8/C7' if server in not_alma9_os else 'Alma9'
@@ -451,31 +449,31 @@ def check_OS(server):
 def add_new_time_format(input_dir, file):
     data_frame = pd.read_csv(f'{input_dir}/{file}.csv')  
 
-    newtime=[]
+    new_time=[]
     x_0 = data_frame['Timestamp'][0]
     d_0 = dt.strptime(x_0,'%Y-%m-%d %H:%M:%S')
     for index, value in enumerate(data_frame['Timestamp']):   
         d = dt.strptime(value,'%Y-%m-%d %H:%M:%S')
-        d_new = (datenum(d, d_0)-datenum(d_0, d_0))/60.
-        newtime.append(d_new) 
+        d_new = (date_num(d, d_0)-date_num(d_0, d_0))/60.
+        new_time.append(d_new) 
 
-    data_frame.insert(0, 'NewTime', newtime, True)
+    data_frame.insert(0, 'NewTime', new_time, True)
     data_frame.to_csv(f'{input_dir}/{file}.csv', index=False)
 
 def add_new_time_format_utilization(input_dir, file): 
     data_frame = pd.read_csv(f'{input_dir}/{file}.csv')  
 
-    newtime=[]
+    new_time=[]
     x_0_tmp = data_frame['Timestamp'][0]
     x_0 = convert_to_24_hour_format(x_0_tmp)
     d_0 = dt.strptime(x_0,'%H:%M:%S')
     for index, value_tmp in enumerate(data_frame['Timestamp']):  
         value = convert_to_24_hour_format(value_tmp)
         d = dt.strptime(value,'%H:%M:%S')
-        d_new = (datenum(d, d_0)-datenum(d_0, d_0))/60.
-        newtime.append(d_new) 
+        d_new = (date_num(d, d_0)-date_num(d_0, d_0))/60.
+        new_time.append(d_new) 
 
-    data_frame.insert(0, 'NewTime', newtime, True)
+    data_frame.insert(0, 'NewTime', new_time, True)
     data_frame.to_csv(f'{input_dir}/{file}.csv', index=False)   
 
 def convert_to_24_hour_format(time_str):
@@ -568,7 +566,7 @@ def get_column_val(df, columns, labels, file):
     
     return val, label
 
-def json_info(file_daqconf, file_core, parent_folder_dir, input_dir, var, pdf, if_pdf=False, repin_threads_file=None):   
+def json_info(file_daqconf, file_core, parent_folder_dir, input_dir, var, pdf, if_pdf=False, repin_threads_file=False):   
     emu_mode = None
     with open(f'{parent_folder_dir}/daqconfs/{file_daqconf}.json', 'r') as f:
         data_daqconf = json.load(f)
@@ -670,10 +668,10 @@ def parse_cpu_cores(cpu_cores_i):
             cpu_cores.append(int(item))
     return cpu_cores
 
-def extract_table_data(input_dir, file_core, data_list, emu_mode):
+def extract_table_data(input_dir, file_core, data_list, emu_mode=False): 
     pinning_table, cpu_core_table, cpu_core_table_format, cpu_utilization_table, cpu_utilization_maximum_table, max_tmp = [], [], [], [], [], []
     cpu_core, cpu_utilization = core_utilization(input_dir, file_core)
-    deno, sum_utilization = 0, 0
+    denominator, sum_utilization = 0, 0
 
     # Process data_list, and extract 'threads' sub-dictionary, and other data entries
     for data_i, value_i in data_list.items():
@@ -706,14 +704,14 @@ def extract_table_data(input_dir, file_core, data_list, emu_mode):
             print(f'Check the format of the cpu pinning file. The [#,#] will not work.')
 
         for core_i in cpu_cores:
-            deno += 1
+            denominator += 1
             sum_utilization += cpu_utilization[core_i] 
             max_tmp.append(cpu_utilization[core_i])
         
-        utilization_average = round((sum_utilization / deno), 2)
+        utilization_average = round((sum_utilization / denominator), 2)
         cpu_utilization_table.append(utilization_average)
         cpu_utilization_maximum_table.append(max(max_tmp))
-        deno, sum_utilization = 0, 0   # Reset variables for the next iteration
+        denominator, sum_utilization = 0, 0   # Reset variables for the next iteration
 
     return pinning_table, cpu_core_table, cpu_utilization_maximum_table
 
@@ -765,16 +763,28 @@ def table_cpupins(columns_data, pdf, if_pdf=False):
     else:
         print(rows_data)
 
-def append_lists(list_of_lists):
-    for i, list_i in enumerate(list_of_lists):
-        if not i == 0:
-            for j in list_i:
-                list_of_lists[0].append(j) 
-        
-    return list_of_lists[0]
+def output_file_check(input_dir, file, output_dir, chunk_size):
+    try:
+        with open('{}/{}.out'.format(input_dir, file), 'rb') as f:
+            while True:
+                chunk = f.read(chunk_size)
+                if not chunk:
+                    break
+                print(chunk)
+                yield chunk  # Use a generator to yield data chunks
 
+    except FileNotFoundError:
+        print('The file {}/{}.out was not found'.format(output_dir, file))
+    except Exception as e:
+        print('An error occurred: {}'.format(str(e)))
 
+def parse_data(data_chunk):
+    if len(data_chunk) != 10:  # Adjust this length to match your actual data structure
+        return None  # Handle incomplete data
 
-
-
+    # Define a format string according to your data structure
+    format_string = "Ih4s"  # Example format for a 4-byte unsigned int, 2-byte short, and 4-byte string
+    # Unpack the binary data
+    unpacked_data = struct.unpack(format_string, data_chunk)
+    return unpacked_data
 
