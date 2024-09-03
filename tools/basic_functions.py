@@ -628,7 +628,9 @@ def json_info(file_daqconf, file_core, parent_folder_dir, input_dir, var, pdf, i
         pinning_table, cpu_core_table, cpu_utilization_maximum_table = extract_table_data(input_dir, file_core, data_list, emu_mode=emu_mode)
         pdf.ln(5)
         table_cpupins(columns_data=[pinning_table, cpu_core_table, cpu_utilization_maximum_table], pdf=pdf, if_pdf=if_pdf)
-        pdf.cell(0, 10, f'Table of CPU core pins information of {var_i}.')
+        test_info = break_file_name(file_core)
+        test = re.sub('_', ' ', test_info[5])
+        pdf.cell(0, 10, f'Table of CPU core pins information of {var_i} from {test}.')
         pdf.ln(10) 
 
 def cpupining_info(input_dir, file, var):
@@ -787,4 +789,3 @@ def parse_data(data_chunk):
     # Unpack the binary data
     unpacked_data = struct.unpack(format_string, data_chunk)
     return unpacked_data
-
