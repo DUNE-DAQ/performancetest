@@ -1,32 +1,18 @@
 import os
 import sys
 import csv
-#import time
-#import glob
 import json
 import re
-#import shutil
-#import subprocess
 import requests
-#import getpass
 import matplotlib
 import matplotlib.pyplot as plt 
-#import matplotlib.cm as cm
-#import matplotlib.colors as mcolors
-#import matplotlib.dates as mdates
 import numpy as np
-#import pickle as pkl
 import pandas as pd
 from pathlib import Path
 from datetime import datetime as dt
 from dateutil.parser import parse
 from tabulate import tabulate
 import struct
-import warnings
-warnings.simplefilter('default', DeprecationWarning)
-from fpdf import FPDF 
-from fpdf.enums import XPos, YPos
-from PIL import Image
 
 color_list = ['red', 'blue', 'green', 'cyan', 'orange', 'navy', 'magenta', 'lime', 'purple', 'hotpink', 'olive', 'salmon', 'teal', 'darkblue', 'darkgreen', 'darkcyan', 'darkorange', 'deepskyblue', 'darkmagenta', 'sienna', 'chocolate'] 
 linestyle_list = ['solid', 'dotted', 'dashed', 'dashdot','solid', 'dotted', 'dashed', 'dashdot']
@@ -566,73 +552,6 @@ def get_column_val(df, columns, labels, file):
     
     return val, label
 
-def json_info(file_daqconf, file_core, parent_folder_dir, input_dir, var, pdf, if_pdf=False, repin_threads_file=False):   
-    emu_mode = None
-    with open(f'{parent_folder_dir}/daqconfs/{file_daqconf}.json', 'r') as f:
-        data_daqconf = json.load(f)
-        
-        info_boot = json.dumps(data_daqconf['boot'], skipkeys = True, allow_nan = True)
-        data_boot_list = json.loads(info_boot)
-        data_boot = convert(data_boot_list)
-        info_hsi = json.dumps(data_daqconf['hsi'], skipkeys = True, allow_nan = True)
-        data_hsi_list = json.loads(info_hsi)
-        data_hsi = convert(data_hsi_list)
-        info_trigger = json.dumps(data_daqconf['trigger'], skipkeys = True, allow_nan = True)
-        data_trigger_list = json.loads(info_trigger)
-        data_trigger = convert(data_trigger_list)
-        info_readout = json.dumps(data_daqconf['readout'], skipkeys = True, allow_nan = True)
-        data_readout_list = json.loads(info_readout)
-        data_readout = convert(data_readout_list)
-
-        for m, value_m in enumerate(data_readout):
-            if value_m in ['thread_pinning_files']: 
-                file_cpupins = data_readout_list[value_m][2]['file']
-                
-        if repin_threads_file:
-            file_cpupins = repin_threads_file
-    
-    if if_pdf:
-        pdf.set_font('Times', '', 10)
-        pdf.write(5, f'daqconf file: {file_daqconf} \n')
-        for i, value_i in enumerate(data_boot):
-            if value_i in ['use_connectivity_service']:
-                pdf.write(5, f'    * {value_i}: {data_boot_list[value_i]} \n')
-            else:
-                pass
-
-        for j, value_j in enumerate(data_hsi):
-            if value_j in ['random_trigger_rate_hz']: 
-                pdf.write(5, f'    * {value_j}: {data_hsi_list[value_j]} \n')
-            else:
-                pass
-
-        for l, value_l in enumerate(data_readout):
-            if value_l in ['latency_buffer_size','generate_periodic_adc_pattern','use_fake_cards','enable_raw_recording', 'raw_recording_output_dir','enable_tpg','tpg_threshold','tpg_algorithm']: 
-                pdf.write(5, f'    * {value_l}: {data_readout_list[value_l]} \n')
-            else:
-                pass
-        for m, value_m in enumerate(data_readout):
-            if value_m in ['thread_pinning_file']: 
-                if repin_threads_file:
-                    pdf.write(5, f'    * {value_m}: {repin_threads_file} \n')
-                else:
-                    pdf.write(5, f'    * {value_m}: {data_readout_list[value_m]} \n')
-
-            else:
-                pass
-
-    emu_mode = True if data_readout_list['generate_periodic_adc_pattern'] else False
-    
-    for var_i in var:
-        data_list = cpupining_info(parent_folder_dir, file_cpupins, var_i)
-        pinning_table, cpu_core_table, cpu_utilization_maximum_table = extract_table_data(input_dir, file_core, data_list, emu_mode=emu_mode)
-        pdf.ln(5)
-        table_cpupins(columns_data=[pinning_table, cpu_core_table, cpu_utilization_maximum_table], pdf=pdf, if_pdf=if_pdf)
-        test_info = break_file_name(file_core)
-        test = re.sub('_', ' ', test_info[5])
-        pdf.cell(0, 10, f'Table of CPU core pins information of {var_i} from {test}.')
-        pdf.ln(10) 
-
 def cpupining_info(input_dir, file, var):
     file_name=file.split('/')
     with open(f'{input_dir}/cpupins/{file_name[-1]}', 'r') as ff:
@@ -716,54 +635,6 @@ def extract_table_data(input_dir, file_core, data_list, emu_mode=False):
         denominator, sum_utilization = 0, 0   # Reset variables for the next iteration
 
     return pinning_table, cpu_core_table, cpu_utilization_maximum_table
-
-def table_cpupins(columns_data, pdf, if_pdf=False):
-    if not columns_data:
-        print('you are missing the table data')
-        return
-
-    rows_data = []
-    headers = ['Pinning', 'CPU cores', 'CPU max use (%)']
-    rows_data.append(headers)
-    
-    # Transpose the data to convert columns to rows
-    line = list(map(list, zip(*columns_data)))
-    rows_data = rows_data + line
-    
-    line_height = pdf.font_size * 2.1
-    col_width = [pdf.epw/3.25, pdf.epw/2, pdf.epw/6.8]
-    
-    lh_list = [] #list with proper line_height for each row
-
-    if if_pdf:
-        pdf.set_font('Times', '', 10)
-
-        # Determine line heights based on the number of words in each cell
-        for row in rows_data:
-            max_lines = 1  # Initialize with a minimum of 1 line
-            for datum in row:
-                if isinstance(datum, int):
-                    datum = str(datum)
-                elif not isinstance(datum, str):
-                    datum = str(datum)
-                
-                lines_needed = len(str(datum).split('\n'))  # Count the number of lines
-                max_lines = max(max_lines, lines_needed)
-
-            lh_list.append(line_height * max_lines)
-        
-        # Add table rows with word wrapping and dynamic line heights
-        for j, row in enumerate(rows_data):
-            line_height_table = lh_list[j] 
-            for k, datum in enumerate(row):
-                pdf.multi_cell(col_width[k], line_height_table, str(datum), border=1, align='L', new_x=XPos.RIGHT, new_y=YPos.TOP, max_line_height=pdf.font_size)
-
-            pdf.ln(line_height_table)
-        
-        pdf.set_font('Times', '', 10)
-        
-    else:
-        print(rows_data)
 
 def output_file_check(input_dir, file, output_dir, chunk_size):
     try:
