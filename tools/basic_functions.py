@@ -8,16 +8,23 @@ import matplotlib
 import matplotlib.pyplot as plt 
 import numpy as np
 import pandas as pd
-from pathlib import Path
+import pathlib
+import struct
+
 from datetime import datetime as dt
 from dateutil.parser import parse
 from tabulate import tabulate
-import struct
+
+from rich import print
 
 color_list = ['red', 'blue', 'green', 'cyan', 'orange', 'navy', 'magenta', 'lime', 'purple', 'hotpink', 'olive', 'salmon', 'teal', 'darkblue', 'darkgreen', 'darkcyan', 'darkorange', 'deepskyblue', 'darkmagenta', 'sienna', 'chocolate'] 
 linestyle_list = ['solid', 'dotted', 'dashed', 'dashdot','solid', 'dotted', 'dashed', 'dashdot']
 marker_list = ['s','o','.','p','P','^','<','>','*','+','x','X','d','D','h','H'] 
 not_alma9_os = ['np04srv008', 'np04srv010', 'np04srv014', 'np04srv023', 'np04onl003', 'np04srv007', 'np04srv009', 'np04crt001']
+
+def load_json(file : pathlib.Path) -> dict:
+    with file.open() as f:
+        return json.load(f)
 
 def directory(input_dir):
     for dir_path in input_dir:
@@ -105,6 +112,26 @@ def create_var_list(file_list, var_list):
         files_srv_list.append(tmp)
         
     return files_srv_list
+
+def reformat_cpu_util(file : str | pathlib.Path) -> pd.DataFrame:
+    with open(file, 'r') as f:
+        df = []
+
+        for i, line in enumerate(f):
+            if 'Average:'in line or 'all' in line or 'CPU' in line or '                      ' in line or i < 3:
+                pass
+            else:
+                line = line.replace("\n", "")
+                list_new = list(re.sub(' +', ' ', line).split(" "))
+                df.append(list_new)
+
+    df = pd.DataFrame(df, columns = ["Timestamp","CPU","user (%)","nice (%)","system (%)","iowait (%)","steal (%)","idle (%)"])
+    ts = pd.to_datetime(df["Timestamp"])
+    rel_time = (ts - ts[0]).dt.total_seconds() / 60
+    rel_time.name = "NewTime"
+    df = pd.concat([rel_time, df], axis = 1)
+
+    return df
 
 def cpupins_utilazation_reformatted(input_dir, core_utilization_file):
     for file in core_utilization_file:
@@ -278,9 +305,13 @@ def extract_grafana_data(datasource_url, grafana_url, dashboard_uid, delta_time,
 
         # Combine all dataframes into a single dataframe
         combined_df = pd.concat(all_dataframes, axis=1)
+        combined_df = add_new_time_format(combined_df)
+
+        print(combined_df)
 
         # Save the combined dataframe as a CSV file
-        output = f'{input_dir}/grafana-{output_csv_file}.csv'
+        filename = output_csv_file.replace(".csv", "")
+        output = f'grafana-{filename}.csv'
         try:
             combined_df.to_csv(output, index=False)
             print(f'Data saved to CSV successfully: {output}')
@@ -408,12 +439,12 @@ def process_files(input_dir, process_pcm_files=False, process_uprof_files=False,
     
     if process_pcm_files:
         for i, file_pcm_i in enumerate(pcm_file):
-            add_new_time_format(input_dir, file_pcm_i)
+            add_new_time_format_old(input_dir, file_pcm_i)
 
     if process_uprof_files:
         for i, file_uprof_i in enumerate(uprof_file):
             uprof_pcm_formatter(input_dir, file_uprof_i)
-            add_new_time_format(input_dir, f'reformatted_{file_uprof_i}')
+            add_new_time_format_old(input_dir, f'reformatted_{file_uprof_i}')
     
     if process_core_files:
         cpupins_utilazation_reformatted(input_dir, core_utilization_file)
@@ -431,7 +462,15 @@ def sanitize_label(label):
 def check_OS(server):
     return 'CS8/C7' if server in not_alma9_os else 'Alma9'
 
-def add_new_time_format(input_dir, file):
+
+def add_new_time_format(df : pd.DataFrame):
+    rel_time = (df["Timestamp"] - df["Timestamp"][0]).dt.total_seconds() / 60
+    rel_time.name = "NewTime"
+    df = pd.concat([rel_time, df], axis = 1)
+    return df
+
+
+def add_new_time_format_old(input_dir, file):
     data_frame = pd.read_csv(f'{input_dir}/{file}.csv')  
 
     new_time=[]
