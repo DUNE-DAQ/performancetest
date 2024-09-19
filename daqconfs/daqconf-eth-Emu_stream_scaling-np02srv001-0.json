@@ -37,7 +37,6 @@
 		"generate_periodic_adc_pattern": true,
 		"use_fake_cards": true,
 		"enable_tpg": false,
-		"tpg_threshold": 1000,
 		"tpg_algorithm": "SimpleThreshold",
 		"numa_config": {
 			"default_id": 1,

@@ -305,8 +305,9 @@ def json_info(file_daqconf, file_core, parent_folder_dir, input_dir, var, pdf, i
         pdf.ln(5)
         table_cpupins(columns_data=[pinning_table, cpu_core_table, cpu_utilization_maximum_table], pdf=pdf, if_pdf=if_pdf)
         test_info = break_file_name(file_core)
-        test = re.sub('_', ' ', test_info[5])
-        pdf.cell(0, 10, f'Table of CPU core pins information of {var_i} from {test}.')
+        # test = re.sub('_', ' ', test_info[5])
+        # pdf.cell(0, 10, f'Table of CPU core pins information of {var_i} from {test}.')
+        pdf.cell(0, 10, f'Table of CPU core pins information of {var_i}.')
         pdf.ln(10) 
 
 def table_cpupins(columns_data, pdf, if_pdf=False):

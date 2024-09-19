@@ -110,14 +110,14 @@ def cpupins_utilazation_reformatted(input_dir, core_utilization_file):
     for file in core_utilization_file:
         f = open(f'{input_dir}/{file}.csv','r')
         f_new = open(f'{input_dir}/reformatted_{file}.csv','w')
-        header = 'Timestamp,CPU,user (%),nice (%),system (%),iowait (%),steal (%),idle (%)'
+        header = 'Timestamp,CPU,user (%),nice (%),system (%),iowait (%),steal (%),idle (%)\n'
         f_new.write(header)   
         
         for i, line in enumerate(f):
             if 'Average:'in line or 'all' in line or 'CPU' in line or '                      ' in line or i < 3:
                 pass
             else:
-                list_new = list(line.split("    "))
+                list_new = list(re.sub(' +', ' ', line).split(" "))
                 formatted_line = ','.join(list_new)
                 f_new.write(formatted_line)   
 
@@ -159,7 +159,6 @@ def get_query_urls(panel, host, partition, grafana_url):
             elif grafana_url == 'http://np04-srv-017.cern.ch:31023':
                 query = target['expr'].replace('$node', host)
                 datasource_uid = target['datasource']['uid'].replace('${DS_PROMETHEUS}', partition)
-            
             elif grafana_url == 'http://http://np04-srv-017:31003':
                 query = target['expr'].replace('$node', host)
                 datasource_uid = target['datasource']['uid'].replace('${datasource}', partition)
@@ -451,10 +450,12 @@ def add_new_time_format_utilization(input_dir, file):
 
     new_time=[]
     x_0_tmp = data_frame['Timestamp'][0]
-    x_0 = convert_to_24_hour_format(x_0_tmp)
+    # x_0 = convert_to_24_hour_format(x_0_tmp)
+    x_0 = x_0_tmp
     d_0 = dt.strptime(x_0,'%H:%M:%S')
     for index, value_tmp in enumerate(data_frame['Timestamp']):  
-        value = convert_to_24_hour_format(value_tmp)
+        # value = convert_to_24_hour_format(value_tmp)
+        value = value_tmp
         d = dt.strptime(value,'%H:%M:%S')
         d_new = (date_num(d, d_0)-date_num(d_0, d_0))/60.
         new_time.append(d_new) 
@@ -566,6 +567,8 @@ def core_utilization(input_dir, file):
     
     info = break_file_name(file)
     data_frame = pd.read_csv(f'{input_dir}/{file}.csv')
+
+    print(data_frame)
 
     maxV = data_frame['CPU'].max()
     minV = data_frame['CPU'].min()
