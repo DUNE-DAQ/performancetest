@@ -1,8 +1,6 @@
-MY_DIR=`realpath $BASH_SOURCE | xargs dirname`
-export MY_DIR
-export PATH=$MY_DIR/tools:$PATH
-export PATH=$MY_DIR/scripts:$PATH
-export PATH=$MY_DIR/tests:$PATH
+PERFORMANCE_TEST_PATH=`realpath $BASH_SOURCE | xargs dirname`
+export PERFORMANCE_TEST_PATH
+export PATH=$PERFORMANCE_TEST_PATH/tools:$PATH
+export PATH=$PERFORMANCE_TEST_PATH/scripts:$PATH
+export PATH=$PERFORMANCE_TEST_PATH/tests:$PATH
 echo "performance test executables added to PATH"
-
-unset MY_DIR

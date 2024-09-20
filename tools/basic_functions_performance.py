@@ -30,9 +30,9 @@ def plot_vars_comparison(input_dir, output_dir, all_files, pdf_name):
     
     for i, file_i in enumerate(all_files):    
         info = break_file_name(file_i)
-        data_frame = pd.read_csv(f'{input_dir}/{file_i}.csv')
+        data_frame = pd.read_csv(f'{input_dir}{file_i}')
         X_plot.append(data_frame['NewTime'].values.tolist())
-                
+
         Y_tmp_0, Y_tmp_1, label_tmp_0, label_tmp_1 = [], [], [], []
         
         if info[0]=='grafana':
@@ -175,7 +175,7 @@ def create_report_performance(input_dir, output_dir, all_files, readout_name, da
     line_height = pdf.font_size * 2
     col_width = [pdf.epw/3.8, pdf.epw/8, pdf.epw/7, pdf.epw/12, pdf.epw/4]  
     lh_list = [] #list with proper line_height for each row
-    
+
     for i, file_i in enumerate(all_files):
         info = break_file_name(file_i)
         test_info = re.sub('_', ' ', info[5])

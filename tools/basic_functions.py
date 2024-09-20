@@ -22,9 +22,49 @@ linestyle_list = ['solid', 'dotted', 'dashed', 'dashdot','solid', 'dotted', 'das
 marker_list = ['s','o','.','p','P','^','<','>','*','+','x','X','d','D','h','H'] 
 not_alma9_os = ['np04srv008', 'np04srv010', 'np04srv014', 'np04srv023', 'np04onl003', 'np04srv007', 'np04srv009', 'np04crt001']
 
-def load_json(file : pathlib.Path) -> dict:
-    with file.open() as f:
+
+def load_json(file : str | pathlib.Path) -> dict:
+    """Open json file as dictionary.
+
+    Args:
+        file (str | pathlib.Path): json file to open.
+
+    Returns:
+        dict: loaded file.
+    """
+    with pathlib.Path(file).open() as f:
         return json.load(f)
+
+
+def save_json(file : str | pathlib.Path, data : dict):
+    """Save dictionary to json file.
+
+    Args:
+        file (str | pathlib.Path): path to save dictonary to.
+        data (dict): dictionary to save.
+    """
+    with pathlib.Path(file).open() as f:
+        json.dump(data, f, indent = 4)
+
+
+def create_filename(test_args : dict, test_num : int) -> str:
+    """Create filename based on the test report information.
+
+    Args:
+        test_args (dict): test report information.
+        test_num (int): test number/index.
+
+    Returns:
+        str: filename.
+    """
+    return "-".join([
+        test_args["dunedaq_version"].replace(".", "_"),
+        test_args["host"].replace("-", ""),
+        str(test_args["socket_num"][test_num]),
+        test_args["data_type"],
+        test_args["test_name"][test_num]
+        ])
+
 
 def directory(input_dir):
     for dir_path in input_dir:
@@ -113,25 +153,38 @@ def create_var_list(file_list, var_list):
         
     return files_srv_list
 
-def reformat_cpu_util(file : str | pathlib.Path) -> pd.DataFrame:
-    with open(file, 'r') as f:
-        df = []
 
+def reformat_cpu_util(file : str | pathlib.Path) -> pd.DataFrame:
+    """Converts the output from the core utilisation into a pandas friendly format (and drops the average report).
+
+    Args:
+        file (str | pathlib.Path): core utilisation output file.
+
+    Returns:
+        pd.DataFrame: data frame of the formatted file
+    """
+    with pathlib.Path(file).open() as f:
+        df = []
         for i, line in enumerate(f):
             if 'Average:'in line or 'all' in line or 'CPU' in line or '                      ' in line or i < 3:
-                pass
+                pass # skip extra headers and average metrics
             else:
                 line = line.replace("\n", "")
-                list_new = list(re.sub(' +', ' ', line).split(" "))
+                list_new = list(re.sub(' +', ' ', line).split(" ")) # get elements in each row in list format
                 df.append(list_new)
 
     df = pd.DataFrame(df, columns = ["Timestamp","CPU","user (%)","nice (%)","system (%)","iowait (%)","steal (%)","idle (%)"])
+    df = df.dropna() # drop emtpy lines from the dataframe
+
     ts = pd.to_datetime(df["Timestamp"])
-    rel_time = (ts - ts[0]).dt.total_seconds() / 60
+    rel_time = (ts - ts[0]).dt.total_seconds() / 60 # calculate a relative time in units of fractional minutes
     rel_time.name = "NewTime"
     df = pd.concat([rel_time, df], axis = 1)
 
+    df.CPU = df.CPU.astype(int) # ensure CPU number is integer type
+
     return df
+
 
 def cpupins_utilazation_reformatted(input_dir, core_utilization_file):
     for file in core_utilization_file:
@@ -149,6 +202,7 @@ def cpupins_utilazation_reformatted(input_dir, core_utilization_file):
                 f_new.write(formatted_line)   
 
         print(f'New CSV file saved as: reformatted_{file}.csv')   
+
 
 def fetch_grafana_panels(grafana_url, dashboard_uid):
     panels = []
@@ -217,7 +271,8 @@ def get_query_urls(panel, host, partition, grafana_url):
 
     return queries, queries_label if queries else None
 
-def extract_grafana_data(datasource_url, grafana_url, dashboard_uid, delta_time, host, partition, input_dir, output_csv_file):
+
+def extract_grafana_data(datasource_url, grafana_url, dashboard_uid, delta_time, host, partition, output_csv_file):
     for dashboard_uid_to_use in dashboard_uid:
         panels_data = fetch_grafana_panels(grafana_url, dashboard_uid_to_use)
         if not panels_data:
@@ -318,6 +373,7 @@ def extract_grafana_data(datasource_url, grafana_url, dashboard_uid, delta_time,
         except Exception as e:
             print(f'Exception Error: Failed to save data to CSV: {str(e)}')
 
+
 def uprof_pcm_formatter(input_dir, file):
     f = open(f'{input_dir}/{file}.csv','r')
     f_new = open(f'{input_dir}/reformatted_{file}.csv','w')
@@ -381,6 +437,7 @@ def uprof_pcm_formatter(input_dir, file):
     f.close()
     f_new.close()
 
+
 def uprof_timechart_formatter(input_dir, file):
     f = open(f'{input_dir}/{file}.csv','r')
     f_new = open(f'{input_dir}/reformatted_{file}.csv','w')
@@ -415,9 +472,11 @@ def uprof_timechart_formatter(input_dir, file):
     f.close()
     f_new.close()
 
+
 def month2num(month_str):
     months = {'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4, 'May': 5, 'Jun': 6, 'Jul': 7, 'Aug': 8, 'Sep': 9, 'Oct': 10, 'Nov': 11, 'Dec': 12}
     return months[month_str] if month_str in months else print('Warning: invalid month')
+
 
 def combine_time_and_uprof_files(input_dir, time_file, uprof_file):
     input_file0 = f'{input_dir}/{time_file}.csv'
@@ -433,6 +492,7 @@ def combine_time_and_uprof_files(input_dir, time_file, uprof_file):
         print(f'Data saved to CSV successfully: {output}')
     except Exception as e:
         print(f'Error in combine_time_and_uprof_files: Failed to save data to CSV: {str(e)}')
+
 
 def process_files(input_dir, process_pcm_files=False, process_uprof_files=False, process_core_files=False):
     pcm_file, uprof_file, core_utilization_file, all_files = make_name_list(input_dir)
@@ -453,11 +513,14 @@ def process_files(input_dir, process_pcm_files=False, process_uprof_files=False,
         
     print('Finish the processing of the data.')
 
+
 def break_file_name(file):
-    return file.split('-')
+    return file.split("/")[-1].split('-')
+
 
 def sanitize_label(label):
     return re.sub('_', ' ', label)
+
 
 def check_OS(server):
     return 'CS8/C7' if server in not_alma9_os else 'Alma9'
@@ -484,6 +547,7 @@ def add_new_time_format_old(input_dir, file):
     data_frame.insert(0, 'NewTime', new_time, True)
     data_frame.to_csv(f'{input_dir}/{file}.csv', index=False)
 
+
 def add_new_time_format_utilization(input_dir, file): 
     data_frame = pd.read_csv(f'{input_dir}/{file}.csv')  
 
@@ -502,14 +566,17 @@ def add_new_time_format_utilization(input_dir, file):
     data_frame.insert(0, 'NewTime', new_time, True)
     data_frame.to_csv(f'{input_dir}/{file}.csv', index=False)   
 
+
 def convert_to_24_hour_format(time_str):
     dt_object = dt.strptime(time_str, "%I:%M:%S %p")
     time_24_hour = dt_object.strftime("%H:%M:%S")
     
     return time_24_hour
 
+
 def convert(s):
     return list(map(lambda x: x, s))
+
 
 def get_column_val(df, columns, labels, file):
     val = []
@@ -592,6 +659,7 @@ def get_column_val(df, columns, labels, file):
     
     return val, label
 
+
 def cpupining_info(input_dir, file, var):
     file_name=file.split('/')
     with open(f'{input_dir}/cpupins/{file_name[-1]}', 'r') as ff:
@@ -601,11 +669,12 @@ def cpupining_info(input_dir, file, var):
         
     return data_list
 
+
 def core_utilization(input_dir, file):
     CPU_plot, User_plot = [], []
     
     info = break_file_name(file)
-    data_frame = pd.read_csv(f'{input_dir}/{file}.csv')
+    data_frame = pd.read_csv(f'{input_dir}{file}')
 
     print(data_frame)
 
@@ -620,6 +689,7 @@ def core_utilization(input_dir, file):
 
     return CPU_plot, User_plot
 
+
 def parse_cpu_cores(cpu_cores_i):
     ranges = re.split(r',|-', cpu_cores_i)
     cpu_cores = []
@@ -630,6 +700,7 @@ def parse_cpu_cores(cpu_cores_i):
         else:
             cpu_cores.append(int(item))
     return cpu_cores
+
 
 def extract_table_data(input_dir, file_core, data_list, emu_mode=False): 
     pinning_table, cpu_core_table, cpu_core_table_format, cpu_utilization_table, cpu_utilization_maximum_table, max_tmp = [], [], [], [], [], []
@@ -678,6 +749,7 @@ def extract_table_data(input_dir, file_core, data_list, emu_mode=False):
 
     return pinning_table, cpu_core_table, cpu_utilization_maximum_table
 
+
 def output_file_check(input_dir, file, output_dir, chunk_size):
     try:
         with open('{}/{}.out'.format(input_dir, file), 'rb') as f:
@@ -692,6 +764,7 @@ def output_file_check(input_dir, file, output_dir, chunk_size):
         print('The file {}/{}.out was not found'.format(output_dir, file))
     except Exception as e:
         print('An error occurred: {}'.format(str(e)))
+
 
 def parse_data(data_chunk):
     if len(data_chunk) != 10:  # Adjust this length to match your actual data structure

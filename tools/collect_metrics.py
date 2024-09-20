@@ -1,6 +1,5 @@
 #!/usr/bin/env python
-import dateutil.parser
-from basic_functions import extract_grafana_data, process_files, load_json, reformat_cpu_util
+from basic_functions import extract_grafana_data, process_files, load_json, save_json, reformat_cpu_util, create_filename
 from basic_functions_performance import create_report_performance
 from rich import print
 import argparse
@@ -9,19 +8,48 @@ import json
 
 
 def generate_config_template():
+    """Generate a template json file for the test reports.
+    """
     cfg = {
+        "dunedaq_version" : "version of DUNEDAQ used to perform tests e.g. v4.4.8",
+        "host" : "server being tested e.g. np02-srv-003",
+        "data_type" : "type of readout data, e.g. eth",
+        "socket_num" : "socket number tested on the host machine, 0, 1 or 01 for both",
+        "test_name" : "name of test performed",
+
         "datasource_url" : "url of the prometheus datasource",
         "grafana_url" : "grafana url to access monitoring",
         "dashboard_uid" : "dashboard uid",
         "delta_time" : " time range of tests",
-        "host" : "server being tested e.g. np02-srv-003",
         "partition" : "grafana partition name",
+
         "input_dir" : "test directory",
         "output_csv_file": "name of output file",
-        "core_utilisation_file" : "core utilisation file generated during the run"
+        "core_utilisation_file" : "core utilisation file generated during the run",
+
+        "data_path" : "path the data is located (should be removed)",
+
+        "grafana_data_files" : [
+            "grafana data files, generated using collect_metrics.py"
+        ],
+        "core_utilisation_files" : [
+            "formatted core utilisation files, generated using collect_metrics.py"
+        ],
+        "readout_name" : [
+            [
+                "readouthost names in daqconf file, for each test"
+            ]
+        ],
+        "daqconf_files" : [
+            "daqconf configuration files used in each test"
+        ],
+
+        "repin_threads_file" : [None],
+        "report_name" : None,
+        "report_comment" : ["comment for each test"]
+
     }
-    with open("./template_report.json", 'w') as f:
-        json.dump(cfg, f, indent = 4)
+    save_json("./template_report.json", cfg)
     print("template config file ./template_report.json created")
 
 
@@ -29,34 +57,33 @@ def main(args : argparse.Namespace):
 
     test_args = load_json(args.file)
 
-    print(pathlib.Path(test_args["core_utilisation_file"]).name)
+    new_args = load_json(args.file) # reopen config file to add the data file paths
+    core_utilisation_files = []
+    grafana_files = []
+    for i in range(len(test_args["test_name"])):
+        name = create_filename(test_args, i)
 
-    cpu_df = reformat_cpu_util(test_args["core_utilisation_file"])
-    print(cpu_df)
-    cpu_df.to_csv(f"reformatted-{pathlib.Path(test_args['core_utilisation_file']).name}")
+        cu_file = pathlib.Path(f"core_utilisation-{name}.csv")
+        gr_file = pathlib.Path(f"grafana-{name}.csv")
 
-    test_args.pop("core_utilisation_file")
+        # format core util files
+        cpu_df = reformat_cpu_util(test_args["core_utilisation_file"][i])
+        print(cpu_df)
+        cpu_df.to_csv(cu_file.name)
 
-    extract_grafana_data(**test_args)
+        core_utilisation_files.append(cu_file.resolve().as_posix())
 
-    # process_files(input_dir=test_args["input_dir"], process_pcm_files=True, process_uprof_files=False, process_core_files=True)
-    # process_files(input_dir=args["input_dir"] + "/Emu_stream_scaling/", process_pcm_files=False, process_uprof_files=False, process_core_files=True)
+        # extract grafana data
+        extract_grafana_data(test_args["datasource_url"], test_args["grafana_url"], test_args["dashboard_uid"], test_args["delta_time"][i], test_args["host"], test_args["partition"][i], name)
+        grafana_files.append(gr_file.resolve().as_posix())
 
-    args = {
-            "input_dir" : "/nfs/home/sbhuller/fddaq_v4_4_8/work/v4_4_8-np02srv003-1-eth-Emu_stream_scaling/",
-            "output_dir" : "/nfs/home/sbhuller/fddaq_v4_4_8/work/v4_4_8-np02srv003-1-eth-Emu_stream_scaling/",
-            "all_files" : ["grafana-v4_4_8-np02srv003-1-eth-emu_stream_scale"],
-            "readout_name" : [["runp02srv003eth0"]],
-            "daqconf_files" : ["daqconf-eth-Emu_stream_scaling-np02srv003-1"],
-            "core_utilization_files" : ["Emu_stream_scaling/reformatted_core_utilization-Emu_stream_scaling"],
-            "parent_folder_dir" : '/nfs/home/sbhuller/fddaq_v4_4_8/sourcecode/performancetest/',
-            "print_info" : True,
-            "pdf_name" : "stream_scale_test_np02srv003_1_emu",
-            "repin_threads_file" : [None],
-            "comment" : ["Test report for the stream scale test, performed using np02-srv-003 and fddaq-v4.4.8."]
+    new_args["grafana_data_files"] = grafana_files
+    new_args["core_utilisation_files"] = core_utilisation_files
 
-        }
-    # create_report_performance(**args)
+    print(new_args)
+    save_json(args.file, new_args)
+    print(f"{args.file} updated to include processed data files.")
+    
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser("Collect results from performance tests.")
@@ -79,5 +106,4 @@ if __name__ == "__main__":
         raise Exception("not a json file")
 
     print(args)
-
     main(args)
