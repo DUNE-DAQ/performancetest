@@ -225,14 +225,9 @@ def create_report_performance(input_dir, output_dir, all_files, readout_name, da
     #---------------------------------------- CONFIGURATIONS START ---------------------------------------------
     if print_info:
         pdf.write(5, 'Configurations: \n', 'B')
-        for i in range(len(all_files)):
-            info = break_file_name(all_files[i])
-            var_i = readout_name[i]
-            file_daqconf_i = daqconf_files[i]
-            file_core_i = core_utilization_files[i]
-            repin_threads_file_i = repin_threads_file[i]
-            
-            json_info(file_daqconf=file_daqconf_i, file_core=file_core_i, parent_folder_dir=parent_folder_dir, input_dir=input_dir, var=var_i, pdf=pdf, if_pdf=print_info, repin_threads_file=repin_threads_file_i)           
+
+        for r, d, c, t in zip(readout_name, daqconf_files, core_utilization_files, repin_threads_file):
+            daqconf_info(file_daqconf=d, file_core=c, parent_folder_dir=parent_folder_dir, input_dir=input_dir, var=r, pdf=pdf, if_pdf=print_info, repin_threads_file=t)           
 
     pdf.ln(20)
     pdf.set_font('Times', '', 10)
@@ -242,73 +237,46 @@ def create_report_performance(input_dir, output_dir, all_files, readout_name, da
     
     print(f'The report was create and saved to {output_dir}/{pdf_name}.pdf')
 
-def json_info(file_daqconf, file_core, parent_folder_dir, input_dir, var, pdf, if_pdf=False, repin_threads_file=False):   
-    emu_mode = None
-    with open(f'{parent_folder_dir}/daqconfs/{file_daqconf}.json', 'r') as f:
-        data_daqconf = json.load(f)
-        
-        info_boot = json.dumps(data_daqconf['boot'], skipkeys = True, allow_nan = True)
-        data_boot_list = json.loads(info_boot)
-        data_boot = convert(data_boot_list)
-        info_hsi = json.dumps(data_daqconf['hsi'], skipkeys = True, allow_nan = True)
-        data_hsi_list = json.loads(info_hsi)
-        data_hsi = convert(data_hsi_list)
-        info_trigger = json.dumps(data_daqconf['trigger'], skipkeys = True, allow_nan = True)
-        data_trigger_list = json.loads(info_trigger)
-        data_trigger = convert(data_trigger_list)
-        info_readout = json.dumps(data_daqconf['readout'], skipkeys = True, allow_nan = True)
-        data_readout_list = json.loads(info_readout)
-        data_readout = convert(data_readout_list)
 
-        for m, value_m in enumerate(data_readout):
-            if value_m in ['thread_pinning_files']: 
-                file_cpupins = data_readout_list[value_m][2]['file']
-                
-        if repin_threads_file:
-            file_cpupins = repin_threads_file
-    
+def oks_info():
+    return
+
+
+def daqconf_info(file_daqconf, file_core, parent_folder_dir, input_dir, var, pdf, if_pdf=False, repin_threads_file=False):   
+    applist = load_json(f'{parent_folder_dir}/daqconfs/{file_daqconf}.json')
+
+    emu_mode = True if applist["readout"]['generate_periodic_adc_pattern'] else False
+
+    if repin_threads_file:
+        file_cpupins = repin_threads_file
+    else:
+        if "thread_pinning_files" in applist["readout"]:
+            file_cpupins = applist["readout"]["thread_pinning_files"][2]["file"]
+
+    info_to_print = {
+        "boot" : ['use_connectivity_service'],
+        "hsi" : ['random_trigger_rate_hz'],
+        "readout" : ['latency_buffer_size','generate_periodic_adc_pattern','use_fake_cards','enable_raw_recording', 'raw_recording_output_dir','enable_tpg','tpg_threshold','tpg_algorithm']
+    }
+
     if if_pdf:
         pdf.set_font('Times', '', 10)
         pdf.write(5, f'daqconf file: {file_daqconf} \n')
-        for i, value_i in enumerate(data_boot):
-            if value_i in ['use_connectivity_service']:
-                pdf.write(5, f'    * {value_i}: {data_boot_list[value_i]} \n')
-            else:
-                pass
 
-        for j, value_j in enumerate(data_hsi):
-            if value_j in ['random_trigger_rate_hz']: 
-                pdf.write(5, f'    * {value_j}: {data_hsi_list[value_j]} \n')
-            else:
-                pass
-
-        for l, value_l in enumerate(data_readout):
-            if value_l in ['latency_buffer_size','generate_periodic_adc_pattern','use_fake_cards','enable_raw_recording', 'raw_recording_output_dir','enable_tpg','tpg_threshold','tpg_algorithm']: 
-                pdf.write(5, f'    * {value_l}: {data_readout_list[value_l]} \n')
-            else:
-                pass
-        for m, value_m in enumerate(data_readout):
-            if value_m in ['thread_pinning_file']: 
-                if repin_threads_file:
-                    pdf.write(5, f'    * {value_m}: {repin_threads_file} \n')
-                else:
-                    pdf.write(5, f'    * {value_m}: {data_readout_list[value_m]} \n')
-
-            else:
-                pass
-
-    emu_mode = True if data_readout_list['generate_periodic_adc_pattern'] else False
+        for name, info in applist.items():
+            if name in info_to_print:
+                for k, v in info.items():
+                    if k in info_to_print[name]:
+                        pdf.write(5, f'    * {k}: {v} \n')
     
     for var_i in var:
         data_list = cpupining_info(parent_folder_dir, file_cpupins, var_i)
         pinning_table, cpu_core_table, cpu_utilization_maximum_table = extract_table_data(input_dir, file_core, data_list, emu_mode=emu_mode)
         pdf.ln(5)
         table_cpupins(columns_data=[pinning_table, cpu_core_table, cpu_utilization_maximum_table], pdf=pdf, if_pdf=if_pdf)
-        test_info = break_file_name(file_core)
-        # test = re.sub('_', ' ', test_info[5])
-        # pdf.cell(0, 10, f'Table of CPU core pins information of {var_i} from {test}.')
         pdf.cell(0, 10, f'Table of CPU core pins information of {var_i}.')
         pdf.ln(10) 
+
 
 def table_cpupins(columns_data, pdf, if_pdf=False):
     if not columns_data:

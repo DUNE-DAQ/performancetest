@@ -673,7 +673,6 @@ def cpupining_info(input_dir, file, var):
 def core_utilization(input_dir, file):
     CPU_plot, User_plot = [], []
     
-    info = break_file_name(file)
     data_frame = pd.read_csv(f'{input_dir}{file}')
 
     print(data_frame)
