@@ -272,7 +272,32 @@ def get_query_urls(panel, host, partition, grafana_url):
     return queries, queries_label if queries else None
 
 
-def extract_grafana_data(datasource_url, grafana_url, dashboard_uid, delta_time, host, partition, output_csv_file):
+def get_datasource_url(grafana_url : str) -> str:
+    """ Get the prometheus url through Grafana's api.
+
+    Args:
+        grafana_url (str): Dashboard url
+
+    Raises:
+        Exception: http request fails
+        Exception: Datasource url was not found
+
+    Returns:
+        str: Prometheus url
+    """
+    response = requests.get(f"{grafana_url}/api/datasources/")
+    if response.status_code == 200:
+        datasources = response.json()
+    else:
+        raise Exception(f"http request resulted in code: {response.status_code}")
+
+    for d in datasources:
+        if d["name"] == "np04-daq":
+            return d["url"]
+    raise Exception("datasource url for np04-daq not found.")
+
+
+def extract_grafana_data(grafana_url, dashboard_uid, delta_time, host, partition, output_csv_file):
     for dashboard_uid_to_use in dashboard_uid:
         panels_data = fetch_grafana_panels(grafana_url, dashboard_uid_to_use)
         if not panels_data:
@@ -283,7 +308,7 @@ def extract_grafana_data(datasource_url, grafana_url, dashboard_uid, delta_time,
             url = f'{grafana_url}/api/datasources/proxy/1/api/v1/query_range'
         
         else:
-            url = f'{datasource_url}/api/v1/query_range'
+            url = f'{get_datasource_url(grafana_url)}/api/v1/query_range'
             
         start_timestamp = get_unix_timestamp(delta_time[0])
         end_timestamp = get_unix_timestamp(delta_time[1])

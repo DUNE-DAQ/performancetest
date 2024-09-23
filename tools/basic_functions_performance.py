@@ -221,13 +221,13 @@ def create_report_performance(input_dir, output_dir, all_files, readout_name, da
         pdf.write(5, 'Figure. Socket1 results of the tests ran using the metrics L2 Cache Misses (Million), L2 Cache [Misses/Hits] (%), L3 Cache Misses (Million), and L3 Cache [Misses/Hits] (%).')
         pdf.ln(10)
     #-------------------------------------------- FIGURES END ------------------------------------------------
-    
+
     #---------------------------------------- CONFIGURATIONS START ---------------------------------------------
     if print_info:
         pdf.write(5, 'Configurations: \n', 'B')
 
         for r, d, c, t in zip(readout_name, daqconf_files, core_utilization_files, repin_threads_file):
-            daqconf_info(file_daqconf=d, file_core=c, parent_folder_dir=parent_folder_dir, input_dir=input_dir, var=r, pdf=pdf, if_pdf=print_info, repin_threads_file=t)           
+            daqconf_info(file_daqconf=d, file_core=c, parent_folder_dir=parent_folder_dir, input_dir=input_dir, var=r, pdf=pdf, if_pdf=print_info, repin_threads_file=t)
 
     pdf.ln(20)
     pdf.set_font('Times', '', 10)
@@ -242,7 +242,7 @@ def oks_info():
     return
 
 
-def daqconf_info(file_daqconf, file_core, parent_folder_dir, input_dir, var, pdf, if_pdf=False, repin_threads_file=False):   
+def daqconf_info(file_daqconf, file_core, parent_folder_dir, input_dir, var, pdf, if_pdf=False, repin_threads_file=False):
     applist = load_json(f'{parent_folder_dir}/daqconfs/{file_daqconf}.json')
 
     emu_mode = True if applist["readout"]['generate_periodic_adc_pattern'] else False

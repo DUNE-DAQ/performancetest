@@ -14,17 +14,15 @@ def generate_config_template():
         "dunedaq_version" : "version of DUNEDAQ used to perform tests e.g. v4.4.8",
         "host" : "server being tested e.g. np02-srv-003",
         "data_type" : "type of readout data, e.g. eth",
-        "socket_num" : "socket number tested on the host machine, 0, 1 or 01 for both",
-        "test_name" : "name of test performed",
+        "socket_num" : ["socket number tested on the host machine, 0, 1 or 01 for both"],
+        "test_name" : ["name of test performed"],
 
         "datasource_url" : "url of the prometheus datasource",
         "grafana_url" : "grafana url to access monitoring",
-        "dashboard_uid" : "dashboard uid",
-        "delta_time" : " time range of tests",
+        "dashboard_uid" : ["dashboard uid"],
+        "delta_time" : [["start time of test", "end time of test"]],
         "partition" : "grafana partition name",
 
-        "input_dir" : "test directory",
-        "output_csv_file": "name of output file",
         "core_utilisation_file" : "core utilisation file generated during the run",
 
         "data_path" : "path the data is located (should be removed)",
@@ -49,9 +47,8 @@ def generate_config_template():
         "report_comment" : ["comment for each test"]
 
     }
-    save_json("./template_report.json", cfg)
-    print("template config file ./template_report.json created")
-
+    save_json("template_report.json", cfg)
+    print("template config file template_report.json created")
 
 def main(args : argparse.Namespace):
 
@@ -74,7 +71,7 @@ def main(args : argparse.Namespace):
         core_utilisation_files.append(cu_file.resolve().as_posix())
 
         # extract grafana data
-        extract_grafana_data(test_args["datasource_url"], test_args["grafana_url"], test_args["dashboard_uid"], test_args["delta_time"][i], test_args["host"], test_args["partition"][i], name)
+        extract_grafana_data(test_args["grafana_url"], test_args["dashboard_uid"], test_args["delta_time"][i], test_args["host"], test_args["partition"][i], name)
         grafana_files.append(gr_file.resolve().as_posix())
 
     new_args["grafana_data_files"] = grafana_files
@@ -83,7 +80,7 @@ def main(args : argparse.Namespace):
     print(new_args)
     save_json(args.file, new_args)
     print(f"{args.file} updated to include processed data files.")
-    
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser("Collect results from performance tests.")
@@ -99,6 +96,7 @@ if __name__ == "__main__":
         gen_args = parser.parse_args()
     else:
         generate_config_template()
+        exit()
 
     args = parser.parse_args()
 
