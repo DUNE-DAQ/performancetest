@@ -32,7 +32,7 @@ def load_json(file : str | pathlib.Path) -> dict:
     Returns:
         dict: loaded file.
     """
-    with pathlib.Path(file).open() as f:
+    with pathlib.Path(file).open("r") as f:
         return json.load(f)
 
 
@@ -43,7 +43,7 @@ def save_json(file : str | pathlib.Path, data : dict):
         file (str | pathlib.Path): path to save dictonary to.
         data (dict): dictionary to save.
     """
-    with pathlib.Path(file).open() as f:
+    with pathlib.Path(file).open("w") as f:
         json.dump(data, f, indent = 4)
 
 
