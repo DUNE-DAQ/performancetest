@@ -1,15 +1,17 @@
 import os
-import sys
-import csv
 import json
 import re
-import requests
 import matplotlib
 import matplotlib.pyplot as plt 
 import numpy as np
 import pandas as pd
 import pathlib
 import struct
+
+from urllib.parse import urljoin, urlencode
+from urllib.request import urlopen
+from urllib.error import URLError, HTTPError
+from http.client import HTTPResponse
 
 from datetime import datetime as dt
 from dateutil.parser import parse
@@ -21,6 +23,22 @@ color_list = ['red', 'blue', 'green', 'cyan', 'orange', 'navy', 'magenta', 'lime
 linestyle_list = ['solid', 'dotted', 'dashed', 'dashdot','solid', 'dotted', 'dashed', 'dashdot']
 marker_list = ['s','o','.','p','P','^','<','>','*','+','x','X','d','D','h','H'] 
 not_alma9_os = ['np04srv008', 'np04srv010', 'np04srv014', 'np04srv023', 'np04onl003', 'np04srv007', 'np04srv009', 'np04crt001']
+
+
+def urljson(response : HTTPResponse) -> dict | None:
+    """Attempt to decode http content in json format.
+
+    Args:
+        response (HTTPResponse): http response.
+
+    Returns:
+        dict | None: dictionary of json, or None if content type does not match.
+    """
+    content_type = response.headers.get('Content-Type')
+    if content_type == 'application/json':
+        return json.loads(response.read())
+    else:
+        print(f'Warning: Response is not in JSON format. Content-Type: {content_type}')
 
 
 def load_json(file : str | pathlib.Path) -> dict:
@@ -71,10 +89,12 @@ def directory(input_dir):
         if not os.path.exists(dir_path):
             os.makedirs(dir_path)
 
+
 def current_time():
     now = dt.now()
     current_dnt = now.strftime('%Y-%m-%d %H:%M:%S')
     return current_dnt
+
 
 def get_unix_timestamp(time_str):
     formats = ['%Y-%m-%d %H:%M:%S.%f', '%Y-%m-%d %H:%M:%S']
@@ -86,10 +106,12 @@ def get_unix_timestamp(time_str):
             pass
     raise ValueError(f'Invalid time format: {time_str}')
 
+
 def make_column_list(file, input_dir):
     data_frame = pd.read_csv(f'{input_dir}/{file}.csv')
     columns_list = list(data_frame.columns) 
     return columns_list
+
 
 def date_num(d, d_base): 
     t_0 = d_base.toordinal() 
@@ -97,9 +119,11 @@ def date_num(d, d_base):
     T = (d - t_1).total_seconds()
     return T
 
+
 def is_hidden(input_dir): 
     name = os.path.basename(os.path.abspath(input_dir))
     return True if name.startswith('.') else False
+
 
 def make_file_list(input_dir):
     file_list =  []
@@ -113,11 +137,13 @@ def make_file_list(input_dir):
                 
     return file_list
 
+
 def make_name_list_benchmark(input_dir):
     l=os.listdir(input_dir)
     benchmark_list=[x.split('.')[0] for x in l]
 
     return benchmark_list
+
 
 def make_name_list(input_dir):
     l=os.listdir(input_dir)
@@ -141,6 +167,7 @@ def make_name_list(input_dir):
             pass
 
     return pcm_list, uprof_list, core_utilization_list, all_list
+
 
 def create_var_list(file_list, var_list):
     files_srv_list = [] 
@@ -204,63 +231,67 @@ def cpupins_utilazation_reformatted(input_dir, core_utilization_file):
         print(f'New CSV file saved as: reformatted_{file}.csv')   
 
 
-def fetch_grafana_panels(grafana_url, dashboard_uid):
+def fetch_grafana_panels(grafana_url : str, dashboard_uid : str) -> list[dict]:
+    """Get grafana dashboard information.
+
+    Args:
+        grafana_url (str): grafana url.
+        dashboard_uid (str): dashboard uid.
+
+    Returns:
+        list[dict]: list of each panel on the dashboard containing information required to make queries.
+    """
     panels = []
     # Get dashboard configuration
-    dashboard_url = f'{grafana_url}/api/dashboards/uid/{dashboard_uid}' 
-    
-    try:
-        response = requests.get(dashboard_url)
-        if response.status_code == 200:
-            content_type = response.headers.get('Content-Type')
+    dashboard_url = urljoin(grafana_url, f"api/dashboards/uid/{dashboard_uid}")
 
-            if content_type and 'application/json' in content_type:
-                dashboard_data = response.json()  
-                panels = dashboard_data['dashboard']['panels']        # Extract panels data
+    with urlopen(dashboard_url) as response:
+        try:
+            if response.status == 200:
+                panels = urljson(response)['dashboard']['panels'] # Extract panels data
                 return panels
-            else:
-                print(f'Warning: Response is not in JSON format. Content-Type: {content_type}')
-                html_content = response.text
-                
-        else:
-            print(f'Error in fetch_grafana_panels: Failed to fetch dashboard data. Status code: {response.status_code}')
-        
-    except requests.exceptions.RequestException as e:
-        print(f'Error: Request failed with the following exception: {e}')
+        except HTTPError as e:
+            print('Error code: ', e.code)
+        except URLError as e:
+            print('Reason: ', e.reason)
 
-def get_query_urls(panel, host, partition, grafana_url):
+
+def get_query_urls(panel : dict, host : str, partition : str) -> tuple[list, list | None]:
+    """Get urls required to make queries to the datasource.
+
+    Args:
+        panel (dict): panel information.
+        host (str): host machine name.
+        partition (str): run control partition name.
+
+    Returns:
+        tuple[list, list | None]: list of urls and their labels if urls were found.
+    """
     targets = panel.get('targets', [])
     queries = []
     queries_label = []
     for target in targets:
         if 'expr' in target:
-            if grafana_url == 'http://np04-srv-009.cern.ch:3000':
-                query = target['expr'].replace('${host}', host)
-            
-            elif grafana_url == 'http://np04-srv-017.cern.ch:31023':
-                query = target['expr'].replace('$node', host)
-                datasource_uid = target['datasource']['uid'].replace('${DS_PROMETHEUS}', partition)
-            elif grafana_url == 'http://http://np04-srv-017:31003':
-                query = target['expr'].replace('$node', host)
-                datasource_uid = target['datasource']['uid'].replace('${datasource}', partition)
-            
-            else:
-                print(f'Error in url, not a valid grafana_url {grafana_url}')
-                pass
-        
+            for var in ['${host}', '$node']:
+                if var in target['expr']:
+                    query = target['expr'].replace(var, host)
+
+            for uid in ['${DS_PROMETHEUS}', '${datasource}']:
+                target['datasource']['uid'].replace(uid, partition)
+
             queries.append(query)
             queries_label.append(target['legendFormat'])
-        
+
         elif 'query' in target:
             query = target['query'].replace('${partition}', partition)
-            datasource_uid = target['datasource']['uid'].replace('${influxdb}', partition)
+            target['datasource']['uid'].replace('${influxdb}', partition)
             
             queries.append(query)
             queries_label.append(target['refId'])
         
         elif 'rawSql' in target:
             query = target['rawSql'].replace('${partition}', partition)
-            datasource_uid = target['datasource']['uid'].replace('${influxdb}', partition)
+            target['datasource']['uid'].replace('${influxdb}', partition)
             
             queries.append(query)
             queries_label.append(target['refId'])
@@ -276,23 +307,24 @@ def get_datasource_url(grafana_url : str) -> str:
     """ Get the prometheus url through Grafana's api.
 
     Args:
-        grafana_url (str): Dashboard url
+        grafana_url (str): Dashboard url.
 
     Raises:
-        Exception: http request fails
-        Exception: Datasource url was not found
+        Exception: http request fails.
+        Exception: Datasource url was not found.
 
     Returns:
-        str: Prometheus url
+        str: Prometheus url.
     """
-    response = requests.get(f"{grafana_url}/api/datasources/")
-    if response.status_code == 200:
-        datasources = response.json()
-    else:
-        raise Exception(f"http request resulted in code: {response.status_code}")
+
+    with urlopen(urljoin(grafana_url, "api/datasources")) as response:
+        if response.status == 200:
+            datasources = urljson(response)
+        else:
+            raise Exception(f"http request resulted in code: {response.status_code}")
 
     for d in datasources:
-        if d["name"] == "np04-daq":
+        if d["name"] == "np04-daq": #? should the datasource name for operational monitoring always be np04-daq?
             return d["url"]
     raise Exception("datasource url for np04-daq not found.")
 
@@ -301,19 +333,19 @@ def extract_grafana_data(grafana_url, dashboard_uid, delta_time, host, partition
     for dashboard_uid_to_use in dashboard_uid:
         panels_data = fetch_grafana_panels(grafana_url, dashboard_uid_to_use)
         if not panels_data:
-            print('Error in extract_data_and_stats_from_panel: Failed to fetch dashboard panels data.')
+            print('Error in extract_grafana_data: Failed to fetch dashboard panels data.')
             return
         
         if grafana_url == 'http://np04-srv-009.cern.ch:3000':
-            url = f'{grafana_url}/api/datasources/proxy/1/api/v1/query_range'
+            url = urljoin(grafana_url, "api/datasources/proxy/1/api/v1/query_range")
         
         else:
-            url = f'{get_datasource_url(grafana_url)}/api/v1/query_range'
-            
+            url = urljoin(get_datasource_url(grafana_url), "api/v1/query_range")
+
         start_timestamp = get_unix_timestamp(delta_time[0])
         end_timestamp = get_unix_timestamp(delta_time[1])
         all_dataframes = []
-        
+
         for panel_i, panel in enumerate(panels_data):
             if panel=='Runs':
                 continue
@@ -328,7 +360,7 @@ def extract_grafana_data(grafana_url, dashboard_uid, delta_time, host, partition
                     print(f'Skipping panel {panel_title}, with no targets.')
                     continue
 
-                query_urls, queries_labels = get_query_urls(panel, host, partition, grafana_url)
+                query_urls, queries_labels = get_query_urls(panel, host, partition)
 
                 if not query_urls:
                     print(f'Skipping panel {panel_title}, with no valid query URL')
@@ -340,48 +372,45 @@ def extract_grafana_data(grafana_url, dashboard_uid, delta_time, host, partition
                         column_name = f'{column_label} {panel_title}'
                     except KeyError:
                         continue
-                        
+
                     data = {
                         'query': query_url,
                         'start': start_timestamp,
                         'end': end_timestamp,
                         'step': 2
                     }
+                    with urlopen(url, urlencode(data).encode()) as response:
+                        response_data = urljson(response)
 
-                    response = requests.post(url, data=data)
-                    response_data = response.json()
+                        if response.status != 200:
+                            print('Error in extract_grafana_data: Failed to fetch dashboard data.')
+                            print(f'Status code:content {response.status_code}:{response.content}')
+                            print(f'Response panel:data:content for panel {panel_title}:{response_data}')
+                            return None
 
-                    if response.status_code != 200:
-                        print('Error in extract_data_and_stats_from_panel: Failed to fetch dashboard data.')
-                        print(f'Status code:content {response.status_code}:{response.content}')
-                        print(f'Response panel:data:content for panel {panel_title}:{response_data}')
-                        return None
+                        if 'data' not in response_data or 'resultType' not in response_data['data'] or response_data['data']['resultType'] != 'matrix':
+                            print(f'Skipping query with no valid response in panel: {panel_title}')
+                            continue
 
-                    if 'data' not in response_data or 'resultType' not in response_data['data'] or response_data['data']['resultType'] != 'matrix':
-                        print(f'Skipping query with no valid response in panel: {panel_title}')
-                        continue
+                        result = response_data['data']['result']
+                        if not result:
+                            print(f'Skipping query with no result in panel: {panel_title}')
+                            continue
 
-                    result = response_data['data']['result']
-                    if not result:
-                        print(f'Skipping query with no result in panel: {panel_title}')
-                        continue
+                        result = result[0]
+                        values = result.get('values', [])
+                        values_without_first_column = [row[1:] for row in values]
 
-                    result = result[0]
-                    metric = result['metric']
-                    values = result.get('values', [])
-                    values_without_first_column = [row[1:] for row in values]
+                        if not values:
+                            print(f'Skipping query with no valid response in panel: {panel_title}')
+                            continue
 
-                    if not values:
-                        print(f'Skipping query with no valid response in panel: {panel_title}')
-                        continue
+                        df_first = pd.DataFrame(values, columns=['Timestamp', column_name])
+                        df_first['Timestamp'] = pd.to_datetime(df_first['Timestamp'], unit='s')
+                        df = pd.DataFrame(values_without_first_column, columns=[column_name])
 
-                    timestamps = [val[0] for val in values]
-                    df_first = pd.DataFrame(values, columns=['Timestamp', column_name])
-                    df_first['Timestamp'] = pd.to_datetime(df_first['Timestamp'], unit='s')
-                    df = pd.DataFrame(values_without_first_column, columns=[column_name])
-
-                    df_tmp = df_first if panel_i == 0 and i == 0 else df
-                    all_dataframes.append(df_tmp)
+                        df_tmp = df_first if panel_i == 0 and i == 0 else df
+                        all_dataframes.append(df_tmp)
 
         # Combine all dataframes into a single dataframe
         combined_df = pd.concat(all_dataframes, axis=1)
