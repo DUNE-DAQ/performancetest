@@ -17,11 +17,10 @@ def generate_config_template():
         "socket_num" : ["socket number tested on the host machine, 0, 1 or 01 for both"],
         "test_name" : ["name of test performed"],
 
-        "datasource_url" : "url of the prometheus datasource",
         "grafana_url" : "grafana url to access monitoring",
         "dashboard_uid" : ["dashboard uid"],
         "delta_time" : [["start time of test", "end time of test"]],
-        "partition" : "grafana partition name",
+        "partition" : ["grafana partition name for the given test"],
 
         "core_utilisation_file" : "core utilisation file generated during the run",
 
@@ -38,8 +37,8 @@ def generate_config_template():
                 "readouthost names in daqconf file, for each test"
             ]
         ],
-        "daqconf_files" : [
-            "daqconf configuration files used in each test"
+        "configuration_file" : [
+            "daqconf or oks configuration file used in each test"
         ],
 
         "repin_threads_file" : [None],
@@ -77,7 +76,6 @@ def main(args : argparse.Namespace):
     new_args["grafana_data_files"] = grafana_files
     new_args["core_utilisation_files"] = core_utilisation_files
 
-    print(new_args)
     save_json(args.file, new_args)
     print(f"{args.file} updated to include processed data files.")
 
