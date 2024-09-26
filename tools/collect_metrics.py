@@ -1,10 +1,8 @@
 #!/usr/bin/env python
-from basic_functions import extract_grafana_data, process_files, load_json, save_json, reformat_cpu_util, create_filename
-from basic_functions_performance import create_report_performance
+from basic_functions import extract_grafana_data, load_json, save_json, reformat_cpu_util, create_filename
 from rich import print
 import argparse
 import pathlib
-import json
 
 
 def generate_config_template():

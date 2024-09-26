@@ -212,7 +212,7 @@ def plot_vars_comparison(input_dir, output_dir, all_files, pdf_name):
     print(f'{output_dir}/Fig3_{pdf_name}_results_cache_socket1.png')
     plt.close() 
 
-def create_report_performance(input_dir, output_dir, all_files, readout_name, daqconf_files, core_utilization_files, parent_folder_dir, print_info=True, pdf_name='performance_report', repin_threads_file=[None], comment=['TBA']):    
+def create_report_performance(input_dir, output_dir, all_files, times : list[list], readout_name, daqconf_files, core_utilization_files, parent_folder_dir, print_info=True, pdf_name='performance_report', repin_threads_file=[None], comment=['TBA']):    
     directory([input_dir, output_dir])
 
     # Open pdf file
@@ -235,17 +235,17 @@ def create_report_performance(input_dir, output_dir, all_files, readout_name, da
     #-------------------------------------------TABLE-----------------------------------------------
     # Data to tabular
     rows_data = []
-    headers = ['Test', 'Readout SRV', 'dunedaq', 'Socket', 'General comments']
+    headers = ['Test', 'Time start', 'Time end', 'Readout SRV', 'dunedaq', 'Socket', 'General comments']
     rows_data.append(headers)
     
-    line_height = pdf.font_size * 2
-    col_width = [pdf.epw/3.8, pdf.epw/8, pdf.epw/7, pdf.epw/12, pdf.epw/4]  
+    line_height = pdf.font_size * 3
+    col_width = [pdf.epw/6, pdf.epw/8, pdf.epw/8, pdf.epw/8, pdf.epw/10, pdf.epw/15, pdf.epw/4]  
     lh_list = [] #list with proper line_height for each row
 
     for i, file_i in enumerate(all_files):
         info = break_file_name(file_i)
-        test_info = re.sub('_', ' ', info[5])
-        line = [test_info, info[2], info[1], info[3], comment[i]]
+        test_info = re.sub('_', ' ', info[5]).split(".")[0]
+        line = [test_info, times[i][0], times[i][1], info[2], info[1], info[3], comment[i]]
         rows_data.append(line)
     
     # Determine line heights based on the number of words in each cell
@@ -267,6 +267,7 @@ def create_report_performance(input_dir, output_dir, all_files, readout_name, da
         
     pdf.write(5, 'Table. Summary of the tests ran. \n')    
     pdf.ln(10)
+
     
     #-------------------------------------------- FIGURES START ------------------------------------------------
     plot_vars_comparison(input_dir, output_dir, all_files, pdf_name)
