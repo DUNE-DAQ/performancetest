@@ -17,19 +17,19 @@ def generate_config_template():
 
         "grafana_url" : "grafana url to access monitoring",
         "dashboard_uid" : ["dashboard uid"],
-        "delta_time" : [["start time of test", "end time of test"]],
+        "delta_time" : [["start time of test, format is Y-M-D H:M:S", "end time of test"]],
         "partition" : ["grafana partition name for the given test"],
 
         "core_utilisation_file" : "core utilisation file generated during the run",
 
         "data_path" : "path the data is located (should be removed)",
 
-        "grafana_data_files" : [
-            "grafana data files, generated using collect_metrics.py"
-        ],
-        "core_utilisation_files" : [
-            "formatted core utilisation files, generated using collect_metrics.py"
-        ],
+        # "grafana_data_files" : [
+        #     "grafana data files, generated using collect_metrics.py"
+        # ],
+        # "core_utilisation_files" : [
+        #     "formatted core utilisation files, generated using collect_metrics.py"
+        # ],
         "readout_name" : [
             [
                 "readouthost names in daqconf file, for each test"
@@ -46,6 +46,7 @@ def generate_config_template():
     }
     save_json("template_report.json", cfg)
     print("template config file template_report.json created")
+
 
 def main(args : argparse.Namespace):
 
