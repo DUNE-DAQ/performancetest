@@ -2,6 +2,10 @@ from basic_functions import *
 from fpdf import FPDF 
 from fpdf.enums import XPos, YPos
 from PIL import Image
+import xml.etree.ElementTree as ET
+
+import conffwk
+import confmodel
 
 pcm_columns_list_0 = ['C0 Core C-state residency', 'Socket0 Memory Bandwidth',
                     'Socket0 Instructions Per Cycle', 'Socket0 Instructions Retired Any (Million)',
@@ -24,6 +28,68 @@ label_names = ['CPU Utilization (%)', 'Memory Bandwidth (GB/sec)',
             'L2 Cache Misses (Million)', 'L2 Cache [Misses/Accesses] (%)',
             'L3 Cache Misses (Million)', 'L3 Cache [Misses/Accesses] (%)']
 label_columns = ['Socket0','Socket1']
+
+
+def find_attribute(dal_obj : any, targets : list) -> dict:
+    """Iterates through all attributes in a dal object, returning those which were targeted.
+
+    Args:
+        dal_obj (any): dal representation of an ocject in the configuration.
+        targets (list): List of attributes to be found.
+
+    Returns:
+        dict: information about targeted attributes.
+    """
+    found_attrs = {}
+    for k in dal_obj.__schema__["attribute"]: # get a list of all attributes this object has
+        if k in targets:
+            found_attrs[k] = getattr(dal_obj, k)
+    return found_attrs
+
+
+def find_relation(dal_obj : any, targets : list, found : dict = {}) -> dict:
+    """Search a dal object, retrieving information about any relations or attributes which were targeted. Search is recursive.
+
+    Args:
+        dal_obj (any): dal representation of an ocject in the configuration.
+        targets (list): List of attributes or relations to be found.
+        found_attrs (dict, optional): dictionary of found targets. Defaults to {}.
+
+    Returns:
+        dict: Found targets.
+    """
+    found[dal_obj.id] = find_attribute(dal_obj, targets) # search for attributes this object may have
+
+
+    if len(dal_obj.__schema__["relation"]) > 0:
+        for k in dal_obj.__schema__["relation"]: # search for relations this object has
+            obj = getattr(dal_obj, k) # get inforation about the relations
+            if hasattr(obj, "__schema__"): # check this is an object, and not something else e.g. and attribute
+                if k in targets:
+                    found[k] = list(obj) # store information about targeted relations (who they are relationships with)
+                find_relation(obj, targets, found[dal_obj.id]) # search relations in obj
+    else:
+        pass # no relations
+    return found
+
+
+def prune_attrs(found_targets : dict):
+    """Remove any empty dictionaries in the found targets produced from find_relations.
+
+    Args:
+        attrs (dict): found targets.
+    """
+    for i in list(found_targets.keys()):
+        if type(found_targets[i]) == dict:
+            if len(found_targets[i]) > 0: # if dictionary is not empty, search it contents for more dictionaries
+                prune_attrs(found_targets[i])
+                prune_attrs(found_targets[i]) # search again to remove i if it is empty
+            else:
+                found_targets.pop(i) # if empty, remove this dict
+        else:
+            pass # not a dictionary, so keep
+    return found_targets
+
 
 def plot_vars_comparison(input_dir, output_dir, all_files, pdf_name):
     X_plot, Y_plot_0, Y_plot_1, label_plot_0, label_plot_1 = [], [], [], [], []
@@ -227,7 +293,12 @@ def create_report_performance(input_dir, output_dir, all_files, readout_name, da
         pdf.write(5, 'Configurations: \n', 'B')
 
         for r, d, c, t in zip(readout_name, daqconf_files, core_utilization_files, repin_threads_file):
-            daqconf_info(file_daqconf=d, file_core=c, parent_folder_dir=parent_folder_dir, input_dir=input_dir, var=r, pdf=pdf, if_pdf=print_info, repin_threads_file=t)
+            if ".json" in d:
+                daqconf_info(file_daqconf=d, file_core=c, parent_folder_dir=parent_folder_dir, input_dir=input_dir, var=r, pdf=pdf, if_pdf=print_info, repin_threads_file=t)
+            elif ".data.xml" in d:
+                oks_info(d, pdf)
+            else:
+                raise Exception("Not a valid file format for DAQ configurations.")
 
     pdf.ln(20)
     pdf.set_font('Times', '', 10)
@@ -238,7 +309,55 @@ def create_report_performance(input_dir, output_dir, all_files, readout_name, da
     print(f'The report was create and saved to {output_dir}/{pdf_name}.pdf')
 
 
-def oks_info():
+def oks_info(xml_file : str, pdf : FPDF):
+    """Get important information from the OKS configuration and write it to the pdf.
+
+    Args:
+        xml_file (str): OKS data file for configuration.
+        pdf (FPDF): pdf to write to.
+    """
+    conf = conffwk.Configuration(f"oksconflibs:{xml_file}") # load OKS data file
+
+    session = conf.get_dals("Session")[0] # grab session id
+
+    apps = {i.id : i.class_name for i in confmodel.session_get_all_applications(conf._obj, session.id)} # list all applications run in the session
+    apps[session.id] = "Session"
+
+    target_info = {
+        "Session" : ["use_connectivity_server"],
+        "ReadoutApplication" : ["tp_generation_enabled", "ta_generation_enabled", "emulation_mode", "size", "processing_steps"],
+        "FakeHSIApplication" : ["trigger_rate"]
+    }
+
+    found = {}
+    # search the values of the attributes or relations specified iin target info for each app
+    for uid, cls in apps.items():
+        if cls in target_info:
+            found = found | prune_attrs(find_relation(conf.get_dal(cls, uid), target_info[cls]))
+
+    pdf.set_font("Times", "", 10)
+    pdf.write(6, f"configuration file: {xml_file} \n")
+    pdf.write(6, f"specific information:\n")
+    write_oks_info(found, pdf)
+    return
+
+
+def write_oks_info(info : dict, pdf : FPDF, indent : str = ""):
+    """Write contents of the found oks info into the pdf.
+
+    Args:
+        info (dict): Information from the configuration.
+        pdf (FPDF): pdf file to write to.
+        indent (str, optional): Indentation amount, allows bullet point style text. Defaults to "".
+    """
+    for k, v in info.items():
+        if type(v) == dict:
+            pdf.write(6, indent + "- " + k + "\n")
+            indent += "    "
+            write_oks_info(v, pdf, indent)
+
+        else:
+            pdf.write(6, indent + "- " + f"{k} : {v}" + "\n")
     return
 
 
