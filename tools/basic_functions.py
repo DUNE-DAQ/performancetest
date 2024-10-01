@@ -714,10 +714,9 @@ def get_column_val(df, columns, labels, file):
     return val, label
 
 
-def cpupining_info(input_dir, file, var):
-    file_name=file.split('/')
-    with open(f'{input_dir}/cpupins/{file_name[-1]}', 'r') as ff:
-        data_cpupins = json.load(ff)
+def cpupining_info(file, var):
+    with open(file, 'r') as f:
+        data_cpupins = json.load(f)
         info_daq_application = json.dumps(data_cpupins['daq_application'][f'--name {var}'], skipkeys = True, allow_nan = True)
         data_list = json.loads(info_daq_application)
         

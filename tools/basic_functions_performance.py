@@ -2,6 +2,7 @@ from basic_functions import *
 from fpdf import FPDF 
 from fpdf.enums import XPos, YPos
 from PIL import Image
+from warnings import warn
 
 pcm_columns_list_0 = ['C0 Core C-state residency', 'Socket0 Memory Bandwidth',
                     'Socket0 Instructions Per Cycle', 'Socket0 Instructions Retired Any (Million)',
@@ -227,7 +228,7 @@ def create_report_performance(input_dir, output_dir, all_files, times : list[lis
         pdf.write(5, 'Configurations: \n', 'B')
 
         for r, d, c, t in zip(readout_name, daqconf_files, core_utilization_files, repin_threads_file):
-            daqconf_info(file_daqconf=d, file_core=c, parent_folder_dir=parent_folder_dir, input_dir=input_dir, var=r, pdf=pdf, if_pdf=print_info, repin_threads_file=t)
+            daqconf_info(file_daqconf=d, file_core=c, input_dir=input_dir, var=r, pdf=pdf, if_pdf=print_info, repin_threads_file=t)
 
     pdf.ln(20)
     pdf.set_font('Times', '', 10)
@@ -238,8 +239,8 @@ def create_report_performance(input_dir, output_dir, all_files, times : list[lis
     print(f'The report was create and saved to {output_dir}/{pdf_name}.pdf')
 
 
-def daqconf_info(file_daqconf, file_core, parent_folder_dir, input_dir, var, pdf, if_pdf=False, repin_threads_file=False):
-    applist = load_json(f'{parent_folder_dir}/daqconfs/{file_daqconf}.json')
+def daqconf_info(file_daqconf, file_core, input_dir, var, pdf, if_pdf=False, repin_threads_file=False):
+    applist = load_json(file_daqconf)
 
     emu_mode = True if applist["readout"]['generate_periodic_adc_pattern'] else False
 
@@ -247,7 +248,7 @@ def daqconf_info(file_daqconf, file_core, parent_folder_dir, input_dir, var, pdf
         file_cpupins = repin_threads_file
     else:
         if "thread_pinning_files" in applist["readout"]:
-            file_cpupins = applist["readout"]["thread_pinning_files"][2]["file"]
+            file_cpupins = applist["readout"]["thread_pinning_files"][2]["file"]            
 
     info_to_print = {
         "boot" : ['use_connectivity_service'],
@@ -266,12 +267,15 @@ def daqconf_info(file_daqconf, file_core, parent_folder_dir, input_dir, var, pdf
                         pdf.write(5, f'    * {k}: {v} \n')
     
     for var_i in var:
-        data_list = cpupining_info(parent_folder_dir, file_cpupins, var_i)
-        pinning_table, cpu_core_table, cpu_utilization_maximum_table = extract_table_data(input_dir, file_core, data_list, emu_mode=emu_mode)
-        pdf.ln(5)
-        table_cpupins(columns_data=[pinning_table, cpu_core_table, cpu_utilization_maximum_table], pdf=pdf, if_pdf=if_pdf)
-        pdf.cell(0, 10, f'Table of CPU core pins information of {var_i}.')
-        pdf.ln(10) 
+        if os.path.isabs(file_cpupins):
+            data_list = cpupining_info(file_cpupins, var_i)
+            pinning_table, cpu_core_table, cpu_utilization_maximum_table = extract_table_data(input_dir, file_core, data_list, emu_mode=emu_mode)
+            pdf.ln(5)
+            table_cpupins(columns_data=[pinning_table, cpu_core_table, cpu_utilization_maximum_table], pdf=pdf, if_pdf=if_pdf)
+            pdf.cell(0, 10, f'Table of CPU core pins information of {var_i}.')
+            pdf.ln(10)
+        else:
+            warn("Cannot cpu pinning parse file, path must be absolute")
 
 
 def table_cpupins(columns_data, pdf, if_pdf=False):
