@@ -1,33 +1,100 @@
 import os
-import sys
-import csv
 import json
 import re
-import requests
 import matplotlib
 import matplotlib.pyplot as plt 
 import numpy as np
 import pandas as pd
-from pathlib import Path
+import pathlib
+import struct
+
+from urllib.parse import urljoin, urlencode
+from urllib.request import urlopen
+from urllib.error import URLError, HTTPError
+from http.client import HTTPResponse
+
 from datetime import datetime as dt
 from dateutil.parser import parse
 from tabulate import tabulate
-import struct
+
+from rich import print
 
 color_list = ['red', 'blue', 'green', 'cyan', 'orange', 'navy', 'magenta', 'lime', 'purple', 'hotpink', 'olive', 'salmon', 'teal', 'darkblue', 'darkgreen', 'darkcyan', 'darkorange', 'deepskyblue', 'darkmagenta', 'sienna', 'chocolate'] 
 linestyle_list = ['solid', 'dotted', 'dashed', 'dashdot','solid', 'dotted', 'dashed', 'dashdot']
 marker_list = ['s','o','.','p','P','^','<','>','*','+','x','X','d','D','h','H'] 
 not_alma9_os = ['np04srv008', 'np04srv010', 'np04srv014', 'np04srv023', 'np04onl003', 'np04srv007', 'np04srv009', 'np04crt001']
 
+
+def urljson(response : HTTPResponse) -> dict | None:
+    """Attempt to decode http content in json format.
+
+    Args:
+        response (HTTPResponse): http response.
+
+    Returns:
+        dict | None: dictionary of json, or None if content type does not match.
+    """
+    content_type = response.headers.get('Content-Type')
+    if content_type == 'application/json':
+        return json.loads(response.read())
+    else:
+        print(f'Warning: Response is not in JSON format. Content-Type: {content_type}')
+
+
+def load_json(file : str | pathlib.Path) -> dict:
+    """Open json file as dictionary.
+
+    Args:
+        file (str | pathlib.Path): json file to open.
+
+    Returns:
+        dict: loaded file.
+    """
+    with pathlib.Path(file).open("r") as f:
+        return json.load(f)
+
+
+def save_json(file : str | pathlib.Path, data : dict):
+    """Save dictionary to json file.
+
+    Args:
+        file (str | pathlib.Path): path to save dictonary to.
+        data (dict): dictionary to save.
+    """
+    with pathlib.Path(file).open("w") as f:
+        json.dump(data, f, indent = 4)
+
+
+def create_filename(test_args : dict, test_num : int) -> str:
+    """Create filename based on the test report information.
+
+    Args:
+        test_args (dict): test report information.
+        test_num (int): test number/index.
+
+    Returns:
+        str: filename.
+    """
+    return "-".join([
+        test_args["dunedaq_version"].replace(".", "_"),
+        test_args["host"].replace("-", ""),
+        str(test_args["socket_num"][test_num]),
+        test_args["data_type"],
+        test_args["test_name"][test_num]
+        ])
+
+
 def directory(input_dir):
     for dir_path in input_dir:
         if not os.path.exists(dir_path):
             os.makedirs(dir_path)
 
+
 def current_time():
     now = dt.now()
     current_dnt = now.strftime('%Y-%m-%d %H:%M:%S')
     return current_dnt
+
 
 def get_unix_timestamp(time_str):
     formats = ['%Y-%m-%d %H:%M:%S.%f', '%Y-%m-%d %H:%M:%S']
@@ -39,10 +106,12 @@ def get_unix_timestamp(time_str):
             pass
     raise ValueError(f'Invalid time format: {time_str}')
 
+
 def make_column_list(file, input_dir):
     data_frame = pd.read_csv(f'{input_dir}/{file}.csv')
     columns_list = list(data_frame.columns) 
     return columns_list
+
 
 def date_num(d, d_base): 
     t_0 = d_base.toordinal() 
@@ -50,9 +119,11 @@ def date_num(d, d_base):
     T = (d - t_1).total_seconds()
     return T
 
+
 def is_hidden(input_dir): 
     name = os.path.basename(os.path.abspath(input_dir))
     return True if name.startswith('.') else False
+
 
 def make_file_list(input_dir):
     file_list =  []
@@ -66,11 +137,13 @@ def make_file_list(input_dir):
                 
     return file_list
 
+
 def make_name_list_benchmark(input_dir):
     l=os.listdir(input_dir)
     benchmark_list=[x.split('.')[0] for x in l]
 
     return benchmark_list
+
 
 def make_name_list(input_dir):
     l=os.listdir(input_dir)
@@ -95,6 +168,7 @@ def make_name_list(input_dir):
 
     return pcm_list, uprof_list, core_utilization_list, all_list
 
+
 def create_var_list(file_list, var_list):
     files_srv_list = [] 
     for var_j in  var_list:
@@ -106,81 +180,118 @@ def create_var_list(file_list, var_list):
         
     return files_srv_list
 
+
+def reformat_cpu_util(file : str | pathlib.Path) -> pd.DataFrame:
+    """Converts the output from the core utilisation into a pandas friendly format (and drops the average report).
+
+    Args:
+        file (str | pathlib.Path): core utilisation output file.
+
+    Returns:
+        pd.DataFrame: data frame of the formatted file
+    """
+    with pathlib.Path(file).open() as f:
+        df = []
+        for i, line in enumerate(f):
+            if 'Average:'in line or 'all' in line or 'CPU' in line or '                      ' in line or i < 3:
+                pass # skip extra headers and average metrics
+            else:
+                line = line.replace("\n", "")
+                list_new = list(re.sub(' +', ' ', line).split(" ")) # get elements in each row in list format
+                df.append(list_new)
+
+    df = pd.DataFrame(df, columns = ["Timestamp","CPU","user (%)","nice (%)","system (%)","iowait (%)","steal (%)","idle (%)"])
+    df = df.dropna() # drop emtpy lines from the dataframe
+
+    ts = pd.to_datetime(df["Timestamp"])
+    rel_time = (ts - ts[0]).dt.total_seconds() / 60 # calculate a relative time in units of fractional minutes
+    rel_time.name = "NewTime"
+    df = pd.concat([rel_time, df], axis = 1)
+
+    df.CPU = df.CPU.astype(int) # ensure CPU number is integer type
+
+    return df
+
+
 def cpupins_utilazation_reformatted(input_dir, core_utilization_file):
     for file in core_utilization_file:
         f = open(f'{input_dir}/{file}.csv','r')
         f_new = open(f'{input_dir}/reformatted_{file}.csv','w')
-        header = 'Timestamp,CPU,user (%),nice (%),system (%),iowait (%),steal (%),idle (%)'
+        header = 'Timestamp,CPU,user (%),nice (%),system (%),iowait (%),steal (%),idle (%)\n'
         f_new.write(header)   
         
         for i, line in enumerate(f):
             if 'Average:'in line or 'all' in line or 'CPU' in line or '                      ' in line or i < 3:
                 pass
             else:
-                list_new = list(line.split("    "))
+                list_new = list(re.sub(' +', ' ', line).split(" "))
                 formatted_line = ','.join(list_new)
                 f_new.write(formatted_line)   
 
         print(f'New CSV file saved as: reformatted_{file}.csv')   
 
-def fetch_grafana_panels(grafana_url, dashboard_uid):
+
+def fetch_grafana_panels(grafana_url : str, dashboard_uid : str) -> list[dict]:
+    """Get grafana dashboard information.
+
+    Args:
+        grafana_url (str): grafana url.
+        dashboard_uid (str): dashboard uid.
+
+    Returns:
+        list[dict]: list of each panel on the dashboard containing information required to make queries.
+    """
     panels = []
     # Get dashboard configuration
-    dashboard_url = f'{grafana_url}/api/dashboards/uid/{dashboard_uid}' 
-    
-    try:
-        response = requests.get(dashboard_url)
-        if response.status_code == 200:
-            content_type = response.headers.get('Content-Type')
+    dashboard_url = urljoin(grafana_url, f"api/dashboards/uid/{dashboard_uid}")
 
-            if content_type and 'application/json' in content_type:
-                dashboard_data = response.json()  
-                panels = dashboard_data['dashboard']['panels']        # Extract panels data
+    with urlopen(dashboard_url) as response:
+        try:
+            if response.status == 200:
+                panels = urljson(response)['dashboard']['panels'] # Extract panels data
                 return panels
-            else:
-                print(f'Warning: Response is not in JSON format. Content-Type: {content_type}')
-                html_content = response.text
-                
-        else:
-            print(f'Error in fetch_grafana_panels: Failed to fetch dashboard data. Status code: {response.status_code}')
-        
-    except requests.exceptions.RequestException as e:
-        print(f'Error: Request failed with the following exception: {e}')
+        except HTTPError as e:
+            print('Error code: ', e.code)
+        except URLError as e:
+            print('Reason: ', e.reason)
 
-def get_query_urls(panel, host, partition, grafana_url):
+
+def get_query_urls(panel : dict, host : str, partition : str) -> tuple[list, list | None]:
+    """Get urls required to make queries to the datasource.
+
+    Args:
+        panel (dict): panel information.
+        host (str): host machine name.
+        partition (str): run control partition name.
+
+    Returns:
+        tuple[list, list | None]: list of urls and their labels if urls were found.
+    """
     targets = panel.get('targets', [])
     queries = []
     queries_label = []
     for target in targets:
         if 'expr' in target:
-            if grafana_url == 'http://np04-srv-009.cern.ch:3000':
-                query = target['expr'].replace('${host}', host)
-            
-            elif grafana_url == 'http://np04-srv-017.cern.ch:31023':
-                query = target['expr'].replace('$node', host)
-                datasource_uid = target['datasource']['uid'].replace('${DS_PROMETHEUS}', partition)
-            
-            elif grafana_url == 'http://http://np04-srv-017:31003':
-                query = target['expr'].replace('$node', host)
-                datasource_uid = target['datasource']['uid'].replace('${datasource}', partition)
-            
-            else:
-                print(f'Error in url, not a valid grafana_url {grafana_url}')
-                pass
-        
+            for var in ['${host}', '$node']:
+                if var in target['expr']:
+                    query = target['expr'].replace(var, host)
+
+            for uid in ['${DS_PROMETHEUS}', '${datasource}']:
+                target['datasource']['uid'].replace(uid, partition)
+
             queries.append(query)
             queries_label.append(target['legendFormat'])
-        
+
         elif 'query' in target:
             query = target['query'].replace('${partition}', partition)
-            datasource_uid = target['datasource']['uid'].replace('${influxdb}', partition)
+            target['datasource']['uid'].replace('${influxdb}', partition)
             
             queries.append(query)
             queries_label.append(target['refId'])
         
         elif 'rawSql' in target:
             query = target['rawSql'].replace('${partition}', partition)
-            datasource_uid = target['datasource']['uid'].replace('${influxdb}', partition)
+            target['datasource']['uid'].replace('${influxdb}', partition)
             
             queries.append(query)
             queries_label.append(target['refId'])
@@ -191,23 +302,50 @@ def get_query_urls(panel, host, partition, grafana_url):
 
     return queries, queries_label if queries else None
 
-def extract_grafana_data(datasource_url, grafana_url, dashboard_uid, delta_time, host, partition, input_dir, output_csv_file):
+
+def get_datasource_url(grafana_url : str) -> str:
+    """ Get the prometheus url through Grafana's api.
+
+    Args:
+        grafana_url (str): Dashboard url.
+
+    Raises:
+        Exception: http request fails.
+        Exception: Datasource url was not found.
+
+    Returns:
+        str: Prometheus url.
+    """
+
+    with urlopen(urljoin(grafana_url, "api/datasources")) as response:
+        if response.status == 200:
+            datasources = urljson(response)
+        else:
+            raise Exception(f"http request resulted in code: {response.status_code}")
+
+    for d in datasources:
+        if d["name"] == "np04-daq": #? should the datasource name for operational monitoring always be np04-daq?
+            return d["url"]
+    raise Exception("datasource url for np04-daq not found.")
+
+
+def extract_grafana_data(grafana_url, dashboard_uid, delta_time, host, partition, output_csv_file):
     for dashboard_uid_to_use in dashboard_uid:
         panels_data = fetch_grafana_panels(grafana_url, dashboard_uid_to_use)
         if not panels_data:
-            print('Error in extract_data_and_stats_from_panel: Failed to fetch dashboard panels data.')
+            print('Error in extract_grafana_data: Failed to fetch dashboard panels data.')
             return
         
         if grafana_url == 'http://np04-srv-009.cern.ch:3000':
-            url = f'{grafana_url}/api/datasources/proxy/1/api/v1/query_range'
+            url = urljoin(grafana_url, "api/datasources/proxy/1/api/v1/query_range")
         
         else:
-            url = f'{datasource_url}/api/v1/query_range'
-            
+            url = urljoin(get_datasource_url(grafana_url), "api/v1/query_range")
+
         start_timestamp = get_unix_timestamp(delta_time[0])
         end_timestamp = get_unix_timestamp(delta_time[1])
         all_dataframes = []
-        
+
         for panel_i, panel in enumerate(panels_data):
             if panel=='Runs':
                 continue
@@ -222,7 +360,7 @@ def extract_grafana_data(datasource_url, grafana_url, dashboard_uid, delta_time,
                     print(f'Skipping panel {panel_title}, with no targets.')
                     continue
 
-                query_urls, queries_labels = get_query_urls(panel, host, partition, grafana_url)
+                query_urls, queries_labels = get_query_urls(panel, host, partition)
 
                 if not query_urls:
                     print(f'Skipping panel {panel_title}, with no valid query URL')
@@ -234,59 +372,61 @@ def extract_grafana_data(datasource_url, grafana_url, dashboard_uid, delta_time,
                         column_name = f'{column_label} {panel_title}'
                     except KeyError:
                         continue
-                        
+
                     data = {
                         'query': query_url,
                         'start': start_timestamp,
                         'end': end_timestamp,
                         'step': 2
                     }
+                    with urlopen(url, urlencode(data).encode()) as response:
+                        response_data = urljson(response)
 
-                    response = requests.post(url, data=data)
-                    response_data = response.json()
+                        if response.status != 200:
+                            print('Error in extract_grafana_data: Failed to fetch dashboard data.')
+                            print(f'Status code:content {response.status_code}:{response.content}')
+                            print(f'Response panel:data:content for panel {panel_title}:{response_data}')
+                            return None
 
-                    if response.status_code != 200:
-                        print('Error in extract_data_and_stats_from_panel: Failed to fetch dashboard data.')
-                        print(f'Status code:content {response.status_code}:{response.content}')
-                        print(f'Response panel:data:content for panel {panel_title}:{response_data}')
-                        return None
+                        if 'data' not in response_data or 'resultType' not in response_data['data'] or response_data['data']['resultType'] != 'matrix':
+                            print(f'Skipping query with no valid response in panel: {panel_title}')
+                            continue
 
-                    if 'data' not in response_data or 'resultType' not in response_data['data'] or response_data['data']['resultType'] != 'matrix':
-                        print(f'Skipping query with no valid response in panel: {panel_title}')
-                        continue
+                        result = response_data['data']['result']
+                        if not result:
+                            print(f'Skipping query with no result in panel: {panel_title}')
+                            continue
 
-                    result = response_data['data']['result']
-                    if not result:
-                        print(f'Skipping query with no result in panel: {panel_title}')
-                        continue
+                        result = result[0]
+                        values = result.get('values', [])
+                        values_without_first_column = [row[1:] for row in values]
 
-                    result = result[0]
-                    metric = result['metric']
-                    values = result.get('values', [])
-                    values_without_first_column = [row[1:] for row in values]
+                        if not values:
+                            print(f'Skipping query with no valid response in panel: {panel_title}')
+                            continue
 
-                    if not values:
-                        print(f'Skipping query with no valid response in panel: {panel_title}')
-                        continue
+                        df_first = pd.DataFrame(values, columns=['Timestamp', column_name])
+                        df_first['Timestamp'] = pd.to_datetime(df_first['Timestamp'], unit='s')
+                        df = pd.DataFrame(values_without_first_column, columns=[column_name])
 
-                    timestamps = [val[0] for val in values]
-                    df_first = pd.DataFrame(values, columns=['Timestamp', column_name])
-                    df_first['Timestamp'] = pd.to_datetime(df_first['Timestamp'], unit='s')
-                    df = pd.DataFrame(values_without_first_column, columns=[column_name])
-
-                    df_tmp = df_first if panel_i == 0 and i == 0 else df
-                    all_dataframes.append(df_tmp)
+                        df_tmp = df_first if panel_i == 0 and i == 0 else df
+                        all_dataframes.append(df_tmp)
 
         # Combine all dataframes into a single dataframe
         combined_df = pd.concat(all_dataframes, axis=1)
+        combined_df = add_new_time_format(combined_df)
+
+        print(combined_df)
 
         # Save the combined dataframe as a CSV file
-        output = f'{input_dir}/grafana-{output_csv_file}.csv'
+        filename = output_csv_file.replace(".csv", "")
+        output = f'grafana-{filename}.csv'
         try:
             combined_df.to_csv(output, index=False)
             print(f'Data saved to CSV successfully: {output}')
         except Exception as e:
             print(f'Exception Error: Failed to save data to CSV: {str(e)}')
+
 
 def uprof_pcm_formatter(input_dir, file):
     f = open(f'{input_dir}/{file}.csv','r')
@@ -351,6 +491,7 @@ def uprof_pcm_formatter(input_dir, file):
     f.close()
     f_new.close()
 
+
 def uprof_timechart_formatter(input_dir, file):
     f = open(f'{input_dir}/{file}.csv','r')
     f_new = open(f'{input_dir}/reformatted_{file}.csv','w')
@@ -385,9 +526,11 @@ def uprof_timechart_formatter(input_dir, file):
     f.close()
     f_new.close()
 
+
 def month2num(month_str):
     months = {'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4, 'May': 5, 'Jun': 6, 'Jul': 7, 'Aug': 8, 'Sep': 9, 'Oct': 10, 'Nov': 11, 'Dec': 12}
     return months[month_str] if month_str in months else print('Warning: invalid month')
+
 
 def combine_time_and_uprof_files(input_dir, time_file, uprof_file):
     input_file0 = f'{input_dir}/{time_file}.csv'
@@ -404,17 +547,18 @@ def combine_time_and_uprof_files(input_dir, time_file, uprof_file):
     except Exception as e:
         print(f'Error in combine_time_and_uprof_files: Failed to save data to CSV: {str(e)}')
 
+
 def process_files(input_dir, process_pcm_files=False, process_uprof_files=False, process_core_files=False):
     pcm_file, uprof_file, core_utilization_file, all_files = make_name_list(input_dir)
     
     if process_pcm_files:
         for i, file_pcm_i in enumerate(pcm_file):
-            add_new_time_format(input_dir, file_pcm_i)
+            add_new_time_format_old(input_dir, file_pcm_i)
 
     if process_uprof_files:
         for i, file_uprof_i in enumerate(uprof_file):
             uprof_pcm_formatter(input_dir, file_uprof_i)
-            add_new_time_format(input_dir, f'reformatted_{file_uprof_i}')
+            add_new_time_format_old(input_dir, f'reformatted_{file_uprof_i}')
     
     if process_core_files:
         cpupins_utilazation_reformatted(input_dir, core_utilization_file)
@@ -423,16 +567,27 @@ def process_files(input_dir, process_pcm_files=False, process_uprof_files=False,
         
     print('Finish the processing of the data.')
 
+
 def break_file_name(file):
-    return file.split('-')
+    return file.split("/")[-1].split('-')
+
 
 def sanitize_label(label):
     return re.sub('_', ' ', label)
 
+
 def check_OS(server):
     return 'CS8/C7' if server in not_alma9_os else 'Alma9'
 
-def add_new_time_format(input_dir, file):
+
+def add_new_time_format(df : pd.DataFrame):
+    rel_time = (df["Timestamp"] - df["Timestamp"][0]).dt.total_seconds() / 60
+    rel_time.name = "NewTime"
+    df = pd.concat([rel_time, df], axis = 1)
+    return df
+
+
+def add_new_time_format_old(input_dir, file):
     data_frame = pd.read_csv(f'{input_dir}/{file}.csv')  
 
     new_time=[]
@@ -446,15 +601,18 @@ def add_new_time_format(input_dir, file):
     data_frame.insert(0, 'NewTime', new_time, True)
     data_frame.to_csv(f'{input_dir}/{file}.csv', index=False)
 
+
 def add_new_time_format_utilization(input_dir, file): 
     data_frame = pd.read_csv(f'{input_dir}/{file}.csv')  
 
     new_time=[]
     x_0_tmp = data_frame['Timestamp'][0]
-    x_0 = convert_to_24_hour_format(x_0_tmp)
+    # x_0 = convert_to_24_hour_format(x_0_tmp)
+    x_0 = x_0_tmp
     d_0 = dt.strptime(x_0,'%H:%M:%S')
     for index, value_tmp in enumerate(data_frame['Timestamp']):  
-        value = convert_to_24_hour_format(value_tmp)
+        # value = convert_to_24_hour_format(value_tmp)
+        value = value_tmp
         d = dt.strptime(value,'%H:%M:%S')
         d_new = (date_num(d, d_0)-date_num(d_0, d_0))/60.
         new_time.append(d_new) 
@@ -462,14 +620,17 @@ def add_new_time_format_utilization(input_dir, file):
     data_frame.insert(0, 'NewTime', new_time, True)
     data_frame.to_csv(f'{input_dir}/{file}.csv', index=False)   
 
+
 def convert_to_24_hour_format(time_str):
     dt_object = dt.strptime(time_str, "%I:%M:%S %p")
     time_24_hour = dt_object.strftime("%H:%M:%S")
     
     return time_24_hour
 
+
 def convert(s):
     return list(map(lambda x: x, s))
+
 
 def get_column_val(df, columns, labels, file):
     val = []
@@ -552,20 +713,22 @@ def get_column_val(df, columns, labels, file):
     
     return val, label
 
-def cpupining_info(input_dir, file, var):
-    file_name=file.split('/')
-    with open(f'{input_dir}/cpupins/{file_name[-1]}', 'r') as ff:
-        data_cpupins = json.load(ff)
+
+def cpupining_info(file, var):
+    with open(file, 'r') as f:
+        data_cpupins = json.load(f)
         info_daq_application = json.dumps(data_cpupins['daq_application'][f'--name {var}'], skipkeys = True, allow_nan = True)
         data_list = json.loads(info_daq_application)
         
     return data_list
 
+
 def core_utilization(input_dir, file):
     CPU_plot, User_plot = [], []
     
-    info = break_file_name(file)
-    data_frame = pd.read_csv(f'{input_dir}/{file}.csv')
+    data_frame = pd.read_csv(f'{input_dir}{file}')
+
+    print(data_frame)
 
     maxV = data_frame['CPU'].max()
     minV = data_frame['CPU'].min()
@@ -578,6 +741,7 @@ def core_utilization(input_dir, file):
 
     return CPU_plot, User_plot
 
+
 def parse_cpu_cores(cpu_cores_i):
     ranges = re.split(r',|-', cpu_cores_i)
     cpu_cores = []
@@ -588,6 +752,7 @@ def parse_cpu_cores(cpu_cores_i):
         else:
             cpu_cores.append(int(item))
     return cpu_cores
+
 
 def extract_table_data(input_dir, file_core, data_list, emu_mode=False): 
     pinning_table, cpu_core_table, cpu_core_table_format, cpu_utilization_table, cpu_utilization_maximum_table, max_tmp = [], [], [], [], [], []
@@ -636,6 +801,7 @@ def extract_table_data(input_dir, file_core, data_list, emu_mode=False):
 
     return pinning_table, cpu_core_table, cpu_utilization_maximum_table
 
+
 def output_file_check(input_dir, file, output_dir, chunk_size):
     try:
         with open('{}/{}.out'.format(input_dir, file), 'rb') as f:
@@ -650,6 +816,7 @@ def output_file_check(input_dir, file, output_dir, chunk_size):
         print('The file {}/{}.out was not found'.format(output_dir, file))
     except Exception as e:
         print('An error occurred: {}'.format(str(e)))
+
 
 def parse_data(data_chunk):
     if len(data_chunk) != 10:  # Adjust this length to match your actual data structure
