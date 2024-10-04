@@ -1,33 +1,122 @@
-from basic_functions import *
+import os
+import json
+import re
+
+from warnings import warn
+
+import matplotlib
+import matplotlib.pyplot as plt
+import pandas as pd
+
 from fpdf import FPDF 
 from fpdf.enums import XPos, YPos
-from PIL import Image
-import xml.etree.ElementTree as ET
 
 import conffwk
 import confmodel
 
-pcm_columns_list_0 = ['C0 Core C-state residency', 'Socket0 Memory Bandwidth',
-                    'Socket0 Instructions Per Cycle', 'Socket0 Instructions Retired Any (Million)',
-                    'Socket0 L2 Cache Misses', 'Socket0 L2 Cache Hits',
-                    'Socket0 L3 Cache Misses', 'Socket0 L3 Cache Hits']
-pcm_columns_list_1 = ['C0 Core C-state residency', 'Socket1 Memory Bandwidth',
-                    'Socket1 Instructions Per Cycle', 'Socket1 Instructions Retired Any (Million)',
-                    'Socket1 L2 Cache Misses', 'Socket1 L2 Cache Hits',
-                    'Socket1 L3 Cache Misses', 'Socket1 L3 Cache Hits']
-uprof_columns_list_0 = [' Utilization (%) Socket0', 'Total Mem Bw (GB/s) Socket0',
-                        'IPC (Sys + User) Socket0', 'IRA Socket0',   #<------------- we don't have this (IRA) data 
-                        'L2 Miss (pti) Socket0', 'L2 Access (pti) Socket0',
-                        'L3 Miss Socket0', 'L3 Miss % Socket0']
-uprof_columns_list_1 = ['Utilization (%) Socket1', 'Total Mem Bw (GB/s) Socket1',
-                        'IPC (Sys + User) Socket1', 'IRA Socket1',   #<------------- we don't have this (IRA) data 
-                        'L2 Miss (pti) Socket1', 'L2 Access (pti) Socket1',
-                        'L3 Miss Socket1', 'L3 Miss % Socket1']
-label_names = ['CPU Utilization (%)', 'Memory Bandwidth (GB/sec)',
-            'Instructions Per Cycle', 'Instructions Retired Any (Million)',
-            'L2 Cache Misses (Million)', 'L2 Cache [Misses/Accesses] (%)',
-            'L3 Cache Misses (Million)', 'L3 Cache [Misses/Accesses] (%)']
+from basic_functions import break_file_name, current_time, load_json
+
+from rich import print
+
+color_list = ['red', 'blue', 'green', 'cyan', 'orange', 'navy', 'magenta', 'lime', 'purple', 'hotpink', 'olive', 'salmon', 'teal', 'darkblue', 'darkgreen', 'darkcyan', 'darkorange', 'deepskyblue', 'darkmagenta', 'sienna', 'chocolate']
+linestyle_list = ['solid', 'dotted', 'dashed', 'dashdot','solid', 'dotted', 'dashed', 'dashdot']
+marker_list = ['s','o','.','p','P','^','<','>','*','+','x','X','d','D','h','H']
+
+def pcm_columns_list(socket : int) -> dict:
+    """ Map of metric name (y axes label) to the column name in the grafana dataframe for the pcm metrics.
+
+    Args:
+        socket (int): Socket number (0 or 1)
+
+    Returns:
+        dict: map for given socket.
+    """
+    return {
+        'CPU Utilization (%)'                : 'C0 Core C-state residency',
+        'Memory Bandwidth (GB/sec)'          : f'Socket{socket} Memory Bandwidth',
+        'Instructions Per Cycle'             : f'Socket{socket} Instructions Per Cycle',
+        'Instructions Retired Any (Million)' : f'Socket{socket} Instructions Retired Any (Million)',
+        'L2 Cache Misses (Million)'          : f'Socket{socket} L2 Cache Misses',
+        'L2 Cache [Misses/Accesses] (%)'     : f'Socket{socket} L2 Cache Hits',
+        'L3 Cache Misses (Million)'          : f'Socket{socket} L3 Cache Misses',
+        'L3 Cache [Misses/Accesses] (%)'     : f'Socket{socket} L3 Cache Hits'
+    }
+
+
+def uprof_columns_list(socket : int) -> dict:
+    """ Map of metric name (y axes label) to the column name in the grafana dataframe for the uprof metrics.
+
+    Args:
+        socket (int): Socket number (0 or 1)
+
+    Returns:
+        dict: map for given socket.
+    """
+    return {
+        'CPU Utilization (%)'                : f' Utilization (%) Socket{socket}',
+        'Memory Bandwidth (GB/sec)'          : f'Total Mem Bw (GB/s) Socket{socket}',
+        'Instructions Per Cycle'             : f'IPC (Sys + User) Socket{socket}',
+        'Instructions Retired Any (Million)' : f'IRA Socket{socket}',   #<------------- we don't have this (IRA) data 
+        'L2 Cache Misses (Million)'          : f'L2 Miss (pti) Socket{socket}',
+        'L2 Cache [Misses/Accesses] (%)'     : f'L2 Access (pti) Socket{socket}',
+        'L3 Cache Misses (Million)'          : f'L3 Miss Socket{socket}',
+        'L3 Cache [Misses/Accesses] (%)'     : f'L3 Miss % Socket{socket}'
+    }
+
 label_columns = ['Socket0','Socket1']
+
+def percentage(num : float, den : float) -> float:
+    return 100 * num / den
+
+
+def dict_rev(d : dict) -> dict:
+    return {v : k for k , v in d.items()}
+
+
+def get_column_val(df, columns, labels, file):
+    val = []
+    label = []
+    info = break_file_name(file)
+    
+    for (columns_j, label_j) in zip(columns, labels):
+        if columns_j in ['NewTime', 'Timestamp']:
+            continue
+        elif columns_j in ['Socket0 L2 Cache Hits', 'Socket0 L3 Cache Hits', 'Socket1 L2 Cache Hits', 'Socket1 L3 Cache Hits']:
+            socket = columns_j.split("Socket")[1][0]
+            cache = columns_j.split(" Cache")[0][-1]
+            Y = percentage(df[f"Socket{socket} L{cache} Cache Misses"], df[f"Socket{socket} L{cache} Cache Hits"] + df[f"Socket{socket} L{cache} Cache Misses"])
+        elif columns_j in ['L2 Access (pti) Socket0', 'L2 Access (pti) Socket1', 'L2 Access (pti) Socket1.1']:
+            socket = columns_j.split("L")[1][0]
+            cache = columns_j.split("Socket")[1]
+            Y = percentage(df[f'L{cache} Miss (pti) Socket{socket}'], df[f'L{cache} Access (pti) Socket{socket}'])
+        elif columns_j in ['Socket0 L2 Cache Misses', 'Socket1 L2 Cache Misses', 'L2 Miss (pti) Socket0', 'L2 Miss (pti) Socket1', 'Socket0 L3 Cache Misses', 'Socket1 L3 Cache Misses', 'L3 Miss % Socket0', 'L3 Miss % Socket1', 'Ave L3 Miss Latency Socket0', 'Ave L3 Miss Latency Socket1']:
+            Y = df[columns_j]
+        elif columns_j in ['L3 Miss Socket0', 'L3 Miss Socket1', 'L3 Miss Socket1.1']:
+            Y = df[columns_j].div(1_000_000_000)
+        elif columns_j in ['Socket0 Memory Bandwidth', 'Socket1 Memory Bandwidth']:
+            Y = df[columns_j].div(1000)
+        elif columns_j in ['Socket0 L2 Cache Misses Per Instruction', 'Socket1 L2 Cache Misses Per Instruction']:
+            Y = df[columns_j].mul(100)
+        elif columns_j in ['Package Joules Consumed Socket0 Energy Consumption', 'Package Joules Consumed Socket1 Energy Consumption']:
+            Y = df[columns_j]
+        elif columns_j in ['IRA Socket0', 'IRA Socket1']:
+            Y = df['Utilization (%) Socket1'].mul(0)
+        else:
+            Y = df[columns_j]
+        val.append(Y.values)
+        label.append(f'{info[1]} {info[5]} {info[2]} {label_j}')
+    
+    return val, label
+
+
+def plot(ax : plt.Axes, x : list, y : list, x_label : str, y_label : str, colour : str, label : str, linestyle : str):
+    ax.plot(x, y, color=colour, label=label, linestyle=linestyle)
+    ax.set_ylabel(y_label)
+    ax.set_xlabel(x_label)
+
+    ax.grid(which='major', color='gray', linestyle='dashed')
+    ax.legend(loc='upper left')
+    return
 
 
 def find_attribute(dal_obj : any, targets : list) -> dict:
@@ -91,129 +180,81 @@ def prune_attrs(found_targets : dict):
     return found_targets
 
 
-def plot_vars_comparison(input_dir, output_dir, all_files, pdf_name):
-    X_plot, Y_plot_0, Y_plot_1, label_plot_0, label_plot_1 = [], [], [], [], []
+def plot_vars_comparison(output_dir, grafana_data : list[str], pdf_name):
+    X_plot = []
     
-    for i, file_i in enumerate(all_files):    
+    y_plot = {}
+    for file_i in grafana_data:    
         info = break_file_name(file_i)
-        data_frame = pd.read_csv(f'{input_dir}{file_i}')
-        X_plot.append(data_frame['NewTime'].values.tolist())
+        data_frame = pd.read_csv(file_i)
+        X_plot.append(data_frame['NewTime'].values)
 
-        Y_tmp_0, Y_tmp_1, label_tmp_0, label_tmp_1 = [], [], [], []
-        
-        if info[0]=='grafana':
-            for k, (columns_pcm_0, columns_pcm_1) in enumerate(zip(pcm_columns_list_0, pcm_columns_list_1)):
-                Y_0, label_0 = get_column_val(data_frame, [columns_pcm_0], [label_columns[0]], file_i)  
-                Y_1, label_1 = get_column_val(data_frame, [columns_pcm_1], [label_columns[1]], file_i)  
-                Y_tmp_0.append(Y_0)
-                label_tmp_0.append(label_0)
-                Y_tmp_1.append(Y_1)
-                label_tmp_1.append(label_1)
+        if info[0] == "grafana":
+            column_generator = pcm_columns_list
         else:
-            for k, (columns_uprof_0, columns_uprof_1) in enumerate(zip(uprof_columns_list_0, uprof_columns_list_1)):
-                Y_0, label_0 = get_column_val(data_frame, [columns_uprof_0], [label_columns[0]], file_i)
-                Y_1, label_1 = get_column_val(data_frame, [columns_uprof_1], [label_columns[1]], file_i)
-                Y_tmp_0.append(Y_0)
-                label_tmp_0.append(label_0)
-                Y_tmp_1.append(Y_1)
-                label_tmp_1.append(label_1)
-    
-        Y_plot_0.append(Y_tmp_0)
-        label_plot_0.append(label_tmp_0)
-        Y_plot_1.append(Y_tmp_1)
-        label_plot_1.append(label_tmp_1)
-    
+            column_generator = uprof_columns_list
+
+        y = {}
+        for s in range(2):
+            y_tmp = {}
+            for c in column_generator(s).values():
+                v, _ = get_column_val(data_frame, [c], [label_columns[s]], file_i)
+                y_tmp[c] = v
+            plot_label = f"{info[2]} Socket{s}"
+            y[plot_label] = y_tmp
+        y_plot[f"{info[1]} {info[5]}"] = y
+
     # Here we make the plot:
     matplotlib.rcParams['font.family'] = 'DejaVu Serif'
     rows=cols=2
     rows_cols = rows*cols
-    fig, axs = plt.subplots(rows, cols, figsize=(18, 8))
-    plt.style.use('default')
-    axs = axs.flatten()
-    #axs[3].axis('off')
-    
-    for i in range(len(Y_plot_0)):  #number of files or tests
-        for j in range(len(Y_plot_0[i])):  #number of metrix
-            if j < rows_cols:
-                label0_ij0 = re.sub('_', ' ', label_plot_0[i][j][0])
-                axs[j].plot(X_plot[i], Y_plot_0[i][j][0], color=color_list[i], label=label0_ij0, linestyle=linestyle_list[0])
-                axs[j].set_ylabel(f'{label_names[j]}')
-                axs[j].set_xlabel('Time (min)')
-                axs[j].grid(which='major', color='gray', linestyle='dashed')
-                axs[j].legend(loc='upper left')
-            else:
-                pass
-                
-    plt.tight_layout()
-    plt.savefig(f'{output_dir}/Fig0_{pdf_name}_results_socket0.png')
-    print(f'{output_dir}/Fig0_{pdf_name}_results_socket0.png')
-    plt.close() 
-    
-    fig, axs = plt.subplots(rows, cols, figsize=(18, 8))
-    plt.style.use('default')
-    axs = axs.flatten()   
-    
-    for i in range(len(Y_plot_0)):  
-        for j in range(len(Y_plot_0[i])):
-            if j < rows_cols:
-                pass
-            else:
-                label0_ij0 = re.sub('_', ' ', label_plot_0[i][j][0])
-                axs[j-rows_cols].plot(X_plot[i], Y_plot_0[i][j][0], color=color_list[i], label=label0_ij0, linestyle=linestyle_list[0])
-                axs[j-rows_cols].set_ylabel(f'{label_names[j]}')
-                axs[j-rows_cols].set_xlabel('Time (min)')
-                axs[j-rows_cols].grid(which='major', color='gray', linestyle='dashed')
-                axs[j-rows_cols].legend(loc='upper left')
-                
-    plt.tight_layout()
-    plt.savefig(f'{output_dir}/Fig1_{pdf_name}_results_cache_socket0.png')
-    print(f'{output_dir}/Fig1_{pdf_name}_results_cache_socket0.png')
-    plt.close() 
-    
-    fig, axs = plt.subplots(rows, cols, figsize=(18, 8))
-    plt.style.use('default')
-    axs = axs.flatten()
-    
-    for i in range(len(Y_plot_1)):  
-        for j in range(len(Y_plot_1[i])):
-            if j < rows_cols:
-                label1_ij0 = re.sub('_', ' ', label_plot_1[i][j][0])
-                axs[j].plot(X_plot[i], Y_plot_1[i][j][0], color=color_list[i], label=label1_ij0, linestyle=linestyle_list[0])
-                axs[j].set_ylabel(f'{label_names[j]}')
-                axs[j].set_xlabel('Time (min)')
-                axs[j].grid(which='major', color='gray', linestyle='dashed')
-                axs[j].legend(loc='upper left')
-            else:
-                pass
-    
-    plt.tight_layout()
-    plt.savefig(f'{output_dir}/Fig2_{pdf_name}_results_socket1.png')
-    print(f'{output_dir}/Fig2_{pdf_name}_results_socket1.png')
-    plt.close() 
-    
-    fig, axs = plt.subplots(rows, cols, figsize=(18, 8))
-    plt.style.use('default')
-    axs = axs.flatten()
-    
-    for i in range(len(Y_plot_1)):  
-        for j in range(len(Y_plot_1[i])):
-            if j < rows_cols:
-                pass
-            else:
-                label1_ij0 = re.sub('_', ' ', label_plot_1[i][j][0])
-                axs[j-rows_cols].plot(X_plot[i], Y_plot_1[i][j][0], color=color_list[i], label=label1_ij0, linestyle=linestyle_list[0])
-                axs[j-rows_cols].set_ylabel(f'{label_names[j]}')
-                axs[j-rows_cols].set_xlabel('Time (min)')
-                axs[j-rows_cols].grid(which='major', color='gray', linestyle='dashed')
-                axs[j-rows_cols].legend(loc='upper left')
-    
-    plt.tight_layout()
-    plt.savefig(f'{output_dir}/Fig3_{pdf_name}_results_cache_socket1.png')
-    print(f'{output_dir}/Fig3_{pdf_name}_results_cache_socket1.png')
-    plt.close() 
+    fig_num = 0
 
-def create_report_performance(input_dir, output_dir, all_files, times : list[list], readout_name, daqconf_files, core_utilization_files, parent_folder_dir, print_info=True, pdf_name='performance_report', repin_threads_file=[None], comment=['TBA']):    
-    directory([input_dir, output_dir])
+    for s in range(2):
+        y_labels = {**dict_rev(pcm_columns_list(s)), **dict_rev(uprof_columns_list(s))}
+        _, axs = plt.subplots(rows, cols, figsize=(18, 8))
+        plt.style.use('default')
+        axs = axs.flatten()
+        for i, (test, data) in enumerate(y_plot.items()):
+            for k in data:
+                if f"Socket{s}" in k: break
+            for j, (name, metric) in enumerate(data[k].items()):
+                if j < rows_cols:
+                    plot(axs[j], X_plot[i], metric[0], "Time (min)", y_labels[name], color_list[i], (test + " " + k).replace("_", " "), linestyle_list[0])
+                else:
+                    pass
+
+        plt.tight_layout()
+        out = f'{output_dir}/Fig{fig_num}_{pdf_name}_results_socket{s}.png'
+        plt.savefig(out)
+        print(out)
+        plt.close()
+        fig_num += 1
+
+    for s in range(2):
+        y_labels = {**dict_rev(pcm_columns_list(s)), **dict_rev(uprof_columns_list(s))}
+        _, axs = plt.subplots(rows, cols, figsize=(18, 8))
+        plt.style.use('default')
+        axs = axs.flatten()
+        for i, (test, data) in enumerate(y_plot.items()):
+            for k in data:
+                if f"Socket{s}" in k: break
+            for j, (name, metric) in enumerate(data[k].items()):
+                if j < rows_cols:
+                    pass
+                else:
+                    plot(axs[j - rows_cols], X_plot[i], metric[0], "Time (min)", y_labels[name], color_list[i], (test + " " + k).replace("_", " "), linestyle_list[0])
+
+        plt.tight_layout()
+        out = f'{output_dir}/Fig{fig_num}_{pdf_name}_results_cache_socket{s}.png'
+        plt.savefig(out)
+        print(out)
+        plt.close()
+        fig_num += 1
+    return
+
+
+def create_report_performance(input_dir, output_dir, all_files, times : list[list], readout_name, daqconf_files, core_utilization_files, parent_folder_dir, print_info=True, pdf_name='performance_report', repin_threads_file=[None], comment=['TBA']):
 
     # Open pdf file
     pdf = FPDF()
@@ -270,18 +311,18 @@ def create_report_performance(input_dir, output_dir, all_files, times : list[lis
 
     
     #-------------------------------------------- FIGURES START ------------------------------------------------
-    plot_vars_comparison(input_dir, output_dir, all_files, pdf_name)
+    plot_vars_comparison(output_dir, all_files, pdf_name)
     
     if info[3] == '0' or info[3] == '01':
         pdf.image(f'{output_dir}/Fig0_{pdf_name}_results_socket0.png', w=180)
         pdf.write(5, 'Figure. Socket0 results of the tests ran using the metrics CPU Utilization (%), Memory Bandwidth (GB/sec), Instructions Per Cycle, Instructions Retired Any (Million).')
         pdf.ln(10)
-        pdf.image(f'{output_dir}/Fig1_{pdf_name}_results_cache_socket0.png', w=180)
+        pdf.image(f'{output_dir}/Fig2_{pdf_name}_results_cache_socket0.png', w=180)
         pdf.write(5, 'Figure. Socket0 results of the tests ran using the metrics L2 Cache Misses (Million), L2 Cache [Misses/Hits] (%), L3 Cache Misses (Million), and L3 Cache [Misses/Hits] (%).')
         pdf.ln(10)
         
     if info[3] == '1' or info[3] == '01':
-        pdf.image(f'{output_dir}/Fig2_{pdf_name}_results_socket1.png', w=180)
+        pdf.image(f'{output_dir}/Fig1_{pdf_name}_results_socket1.png', w=180)
         pdf.write(5, 'Figure. Socket1 results of the tests ran using the metrics CPU Utilization (%), Memory Bandwidth (GB/sec), Instructions Per Cycle, Instructions Retired Any (Million).')
         pdf.ln(10)
         pdf.image(f'{output_dir}/Fig3_{pdf_name}_results_cache_socket1.png', w=180)
@@ -295,7 +336,7 @@ def create_report_performance(input_dir, output_dir, all_files, times : list[lis
 
         for r, d, c, t in zip(readout_name, daqconf_files, core_utilization_files, repin_threads_file):
             if ".json" in d:
-                daqconf_info(file_daqconf=d, file_core=c, parent_folder_dir=parent_folder_dir, input_dir=input_dir, var=r, pdf=pdf, if_pdf=print_info, repin_threads_file=t)
+                daqconf_info(file_daqconf=d, file_core=c, input_dir=input_dir, var=r, pdf=pdf, if_pdf=print_info, repin_threads_file=t)
             elif ".data.xml" in d:
                 oks_info(d, pdf)
             else:
@@ -362,8 +403,96 @@ def write_oks_info(info : dict, pdf : FPDF, indent : str = ""):
     return
 
 
-def daqconf_info(file_daqconf, file_core, parent_folder_dir, input_dir, var, pdf, if_pdf=False, repin_threads_file=False):
-    applist = load_json(f'{parent_folder_dir}/daqconfs/{file_daqconf}.json')
+def cpupining_info(file, var):
+    with open(file, 'r') as f:
+        data_cpupins = json.load(f)
+        info_daq_application = json.dumps(data_cpupins['daq_application'][f'--name {var}'], skipkeys = True, allow_nan = True)
+        data_list = json.loads(info_daq_application)
+        
+    return data_list
+
+
+def core_utilization(input_dir, file):
+    CPU_plot, User_plot = [], []
+    
+    data_frame = pd.read_csv(f'{input_dir}{file}')
+
+    print(data_frame)
+
+    maxV = data_frame['CPU'].max()
+    minV = data_frame['CPU'].min()
+
+    for j in range(minV, maxV + 1):
+        CPU_plot.append(j)
+        df = data_frame.loc[data_frame['CPU'] == j]
+        User_max = df['user (%)'].max()
+        User_plot.append(User_max)
+
+    return CPU_plot, User_plot
+
+
+def parse_cpu_cores(cpu_cores_i):
+    ranges = re.split(r',|-', cpu_cores_i)
+    cpu_cores = []
+    for item in ranges:
+        if '-' in item:
+            start, end = map(int, item.split('-'))
+            cpu_cores.extend(range(start, end + 1))
+        else:
+            cpu_cores.append(int(item))
+    return cpu_cores
+
+
+def extract_table_data(input_dir, file_core, data_list, emu_mode=False): 
+    pinning_table, cpu_core_table, cpu_core_table_format, cpu_utilization_table, cpu_utilization_maximum_table, max_tmp = [], [], [], [], [], []
+    cpu_core, cpu_utilization = core_utilization(input_dir, file_core)
+    denominator, sum_utilization = 0, 0
+
+    # Process data_list, and extract 'threads' sub-dictionary, and other data entries
+    for data_i, value_i in data_list.items():
+        if data_i == 'threads': 
+            for threads_i, cpu_cores_i in value_i.items():
+                    if emu_mode:
+                        if threads_i in ['fakeprod-1..', 'fakeprod-2..', 'consumer-1..', 'consumer-2..', 'recording-1..', 'recording-2..', 'consumer-0', 'tpset-0', 'cleanup-0', 'recording-0', 'postproc-0-1..', 'postproc-0-2..']:
+                            pinning_table.append(threads_i)
+                            cpu_core_table.append(cpu_cores_i)
+                        else:
+                            pass
+
+                    else:
+                        if threads_i in ['fakeprod-1..', 'fakeprod-2..']:
+                            pass
+                        else:
+                            pinning_table.append(threads_i)
+                            cpu_core_table.append(cpu_cores_i)                  
+        
+        else:
+            pinning_table.append(data_i)
+            cpu_core_table.append(value_i)
+
+    # Calculate averages for each CPU core configuration
+    for cpu_cores_i in cpu_core_table:
+        try:
+            cpu_cores = parse_cpu_cores(cpu_cores_i)
+            cpu_core_table_format.append(cpu_cores)
+        except ValueError:
+            print(f'Check the format of the cpu pinning file. The [#,#] will not work.')
+
+        for core_i in cpu_cores:
+            denominator += 1
+            sum_utilization += cpu_utilization[core_i] 
+            max_tmp.append(cpu_utilization[core_i])
+        
+        utilization_average = round((sum_utilization / denominator), 2)
+        cpu_utilization_table.append(utilization_average)
+        cpu_utilization_maximum_table.append(max(max_tmp))
+        denominator, sum_utilization = 0, 0   # Reset variables for the next iteration
+
+    return pinning_table, cpu_core_table, cpu_utilization_maximum_table
+
+
+def daqconf_info(file_daqconf, file_core, input_dir, var, pdf, if_pdf=False, repin_threads_file=False):
+    applist = load_json(file_daqconf)
 
     emu_mode = True if applist["readout"]['generate_periodic_adc_pattern'] else False
 
@@ -390,12 +519,15 @@ def daqconf_info(file_daqconf, file_core, parent_folder_dir, input_dir, var, pdf
                         pdf.write(5, f'    * {k}: {v} \n')
     
     for var_i in var:
-        data_list = cpupining_info(parent_folder_dir, file_cpupins, var_i)
-        pinning_table, cpu_core_table, cpu_utilization_maximum_table = extract_table_data(input_dir, file_core, data_list, emu_mode=emu_mode)
-        pdf.ln(5)
-        table_cpupins(columns_data=[pinning_table, cpu_core_table, cpu_utilization_maximum_table], pdf=pdf, if_pdf=if_pdf)
-        pdf.cell(0, 10, f'Table of CPU core pins information of {var_i}.')
-        pdf.ln(10) 
+        if os.path.isabs(file_cpupins):
+            data_list = cpupining_info(file_cpupins, var_i)
+            pinning_table, cpu_core_table, cpu_utilization_maximum_table = extract_table_data(input_dir, file_core, data_list, emu_mode=emu_mode)
+            pdf.ln(5)
+            table_cpupins(columns_data=[pinning_table, cpu_core_table, cpu_utilization_maximum_table], pdf=pdf, if_pdf=if_pdf)
+            pdf.cell(0, 10, f'Table of CPU core pins information of {var_i}.')
+            pdf.ln(10)
+        else:
+            warn("Cannot parse cpu pinning file, path must be absolute")
 
 
 def table_cpupins(columns_data, pdf, if_pdf=False):

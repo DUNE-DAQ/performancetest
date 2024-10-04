@@ -1,27 +1,19 @@
 import os
+import pathlib
 import json
 import re
-import matplotlib
-import matplotlib.pyplot as plt 
-import numpy as np
-import pandas as pd
-import pathlib
 import struct
+import pandas as pd
+
+from datetime import datetime as dt
 
 from urllib.parse import urljoin, urlencode
 from urllib.request import urlopen
 from urllib.error import URLError, HTTPError
 from http.client import HTTPResponse
 
-from datetime import datetime as dt
-from dateutil.parser import parse
-from tabulate import tabulate
-
 from rich import print
 
-color_list = ['red', 'blue', 'green', 'cyan', 'orange', 'navy', 'magenta', 'lime', 'purple', 'hotpink', 'olive', 'salmon', 'teal', 'darkblue', 'darkgreen', 'darkcyan', 'darkorange', 'deepskyblue', 'darkmagenta', 'sienna', 'chocolate'] 
-linestyle_list = ['solid', 'dotted', 'dashed', 'dashdot','solid', 'dotted', 'dashed', 'dashdot']
-marker_list = ['s','o','.','p','P','^','<','>','*','+','x','X','d','D','h','H'] 
 not_alma9_os = ['np04srv008', 'np04srv010', 'np04srv014', 'np04srv023', 'np04onl003', 'np04srv007', 'np04srv009', 'np04crt001']
 
 
@@ -82,12 +74,6 @@ def create_filename(test_args : dict, test_num : int) -> str:
         test_args["data_type"],
         test_args["test_name"][test_num]
         ])
-
-
-def directory(input_dir):
-    for dir_path in input_dir:
-        if not os.path.exists(dir_path):
-            os.makedirs(dir_path)
 
 
 def current_time():
@@ -569,7 +555,7 @@ def process_files(input_dir, process_pcm_files=False, process_uprof_files=False,
 
 
 def break_file_name(file):
-    return file.split("/")[-1].split('-')
+    return file.split(".")[0].split("/")[-1].split('-')
 
 
 def sanitize_label(label):
@@ -626,181 +612,6 @@ def convert_to_24_hour_format(time_str):
     time_24_hour = dt_object.strftime("%H:%M:%S")
     
     return time_24_hour
-
-
-def convert(s):
-    return list(map(lambda x: x, s))
-
-
-def get_column_val(df, columns, labels, file):
-    val = []
-    label = []
-    info = break_file_name(file)
-    
-    for j, (columns_j, label_j) in enumerate(zip(columns, labels)):
-        if columns_j in ['NewTime', 'Timestamp']:
-            continue
-        elif columns_j in ['Socket0 L2 Cache Hits']:
-            Y_tmp =  df['Socket0 L2 Cache Misses'].div(df[columns_j]+df['Socket0 L2 Cache Misses']).mul(100)
-            Y = Y_tmp.values.tolist()
-            val.append(Y)
-            label.append(f'{info[1]} {info[5]} {info[2]} {label_j}')
-        elif columns_j in ['Socket0 L3 Cache Hits']:
-            Y_tmp =  df['Socket0 L3 Cache Misses'].div(df[columns_j]+df['Socket0 L3 Cache Misses']).mul(100)
-            Y = Y_tmp.values.tolist()
-            val.append(Y)
-            label.append(f'{info[1]} {info[5]} {info[2]} {label_j}')  
-        elif columns_j in ['Socket1 L2 Cache Hits']:
-            Y_tmp = df['Socket1 L2 Cache Misses'].div(df[columns_j]+df['Socket1 L2 Cache Misses']).mul(100)
-            Y = Y_tmp.values.tolist()
-            val.append(Y)
-            label.append(f'{info[1]} {info[5]} {info[2]} {label_j}')  
-        elif columns_j in ['Socket1 L3 Cache Hits']:
-            Y_tmp = df['Socket1 L3 Cache Misses'].div(df[columns_j]+df['Socket1 L3 Cache Misses']).mul(100)
-            Y = Y_tmp.values.tolist()
-            val.append(Y)
-            label.append(f'{info[1]} {info[5]} {info[2]} {label_j}')  
-        elif columns_j in ['L2 Access (pti) Socket0']:
-            Y_tmp = df['L2 Miss (pti) Socket0'].div(df[columns_j]).mul(100)
-            Y = Y_tmp.values.tolist()
-            val.append(Y)
-            label.append(f'{info[1]} {info[5]} {info[2]} {label_j}')  
-        elif columns_j in ['L2 Access (pti) Socket1']:
-            Y_tmp = df['L2 Miss (pti) Socket1'].div(df[columns_j]).mul(100)
-            Y = Y_tmp.values.tolist()
-            val.append(Y)
-            label.append(f'{info[1]} {info[5]} {info[2]} {label_j}')
-        elif columns_j in ['L2 Access (pti) Socket1.1']:
-            Y_tmp = df['L2 Miss (pti) Socket1.1'].div(df[columns_j]).mul(100)
-            Y = Y_tmp.values.tolist()
-            val.append(Y)
-            label.append(f'{info[1]} {info[5]} {info[2]} {label_j}')  
-        elif columns_j in ['Socket0 L2 Cache Misses', 'Socket1 L2 Cache Misses', 'L2 Miss (pti) Socket0', 'L2 Miss (pti) Socket1', 'Socket0 L3 Cache Misses', 'Socket1 L3 Cache Misses', 'L3 Miss % Socket0', 'L3 Miss % Socket1', 'Ave L3 Miss Latency Socket0', 'Ave L3 Miss Latency Socket1']:
-            Y_tmp = df[columns_j].div(1)
-            Y = Y_tmp.values.tolist()
-            val.append(Y)
-            label.append(f'{info[1]} {info[5]} {info[2]} {label_j}')
-        elif columns_j in ['L3 Miss Socket0', 'L3 Miss Socket1', 'L3 Miss Socket1.1']:
-            Y_tmp = df[columns_j].div(1000000000)
-            Y = Y_tmp.values.tolist()
-            val.append(Y)
-            label.append(f'{info[1]} {info[5]} {info[2]} {label_j}')
-        elif columns_j in ['Socket0 Memory Bandwidth', 'Socket1 Memory Bandwidth']:
-            Y_tmp = df[columns_j].div(1000)
-            Y = Y_tmp.values.tolist()
-            val.append(Y)
-            label.append(f'{info[1]} {info[5]} {info[2]} {label_j}')
-        elif columns_j in ['Socket0 L2 Cache Misses Per Instruction', 'Socket1 L2 Cache Misses Per Instruction']:
-            Y_tmp = df[columns_j].mul(100)
-            Y = Y_tmp.values.tolist()
-            val.append(Y)
-            label.append(f'{info[1]} {info[5]} {info[2]} {label_j}')
-        elif columns_j in ['Package Joules Consumed Socket0 Energy Consumption', 'Package Joules Consumed Socket1 Energy Consumption']:
-            #Y_tmp = df[columns_j] - 40
-            Y_tmp = df[columns_j]
-            Y = Y_tmp.values.tolist()
-            val.append(Y)
-            label.append(f'{info[1]} {info[5]} {info[2]} {label_j}')  
-        elif columns_j in ['IRA Socket0', 'IRA Socket1']:
-            Y_tmp = df['Utilization (%) Socket1'].mul(0)
-            Y = Y_tmp.values.tolist()
-            val.append(Y)
-            label.append(f'{info[1]} {info[5]} {info[2]} {label_j}') 
-        else:
-            Y = df[columns_j].values.tolist()
-            val.append(Y)
-            label.append(f'{info[1]} {info[5]} {info[2]} {label_j}')
-    
-    return val, label
-
-
-def cpupining_info(input_dir, file, var):
-    file_name=file.split('/')
-    with open(f'{input_dir}/cpupins/{file_name[-1]}', 'r') as ff:
-        data_cpupins = json.load(ff)
-        info_daq_application = json.dumps(data_cpupins['daq_application'][f'--name {var}'], skipkeys = True, allow_nan = True)
-        data_list = json.loads(info_daq_application)
-        
-    return data_list
-
-
-def core_utilization(input_dir, file):
-    CPU_plot, User_plot = [], []
-    
-    data_frame = pd.read_csv(f'{input_dir}{file}')
-
-    print(data_frame)
-
-    maxV = data_frame['CPU'].max()
-    minV = data_frame['CPU'].min()
-
-    for j in range(minV, maxV + 1):
-        CPU_plot.append(j)
-        df = data_frame.loc[data_frame['CPU'] == j]
-        User_max = df['user (%)'].max()
-        User_plot.append(User_max)
-
-    return CPU_plot, User_plot
-
-
-def parse_cpu_cores(cpu_cores_i):
-    ranges = re.split(r',|-', cpu_cores_i)
-    cpu_cores = []
-    for item in ranges:
-        if '-' in item:
-            start, end = map(int, item.split('-'))
-            cpu_cores.extend(range(start, end + 1))
-        else:
-            cpu_cores.append(int(item))
-    return cpu_cores
-
-
-def extract_table_data(input_dir, file_core, data_list, emu_mode=False): 
-    pinning_table, cpu_core_table, cpu_core_table_format, cpu_utilization_table, cpu_utilization_maximum_table, max_tmp = [], [], [], [], [], []
-    cpu_core, cpu_utilization = core_utilization(input_dir, file_core)
-    denominator, sum_utilization = 0, 0
-
-    # Process data_list, and extract 'threads' sub-dictionary, and other data entries
-    for data_i, value_i in data_list.items():
-        if data_i == 'threads': 
-            for threads_i, cpu_cores_i in value_i.items():
-                    if emu_mode:
-                        if threads_i in ['fakeprod-1..', 'fakeprod-2..', 'consumer-1..', 'consumer-2..', 'recording-1..', 'recording-2..', 'consumer-0', 'tpset-0', 'cleanup-0', 'recording-0', 'postproc-0-1..', 'postproc-0-2..']:
-                            pinning_table.append(threads_i)
-                            cpu_core_table.append(cpu_cores_i)
-                        else:
-                            pass
-
-                    else:
-                        if threads_i in ['fakeprod-1..', 'fakeprod-2..']:
-                            pass
-                        else:
-                            pinning_table.append(threads_i)
-                            cpu_core_table.append(cpu_cores_i)                  
-        
-        else:
-            pinning_table.append(data_i)
-            cpu_core_table.append(value_i)
-
-    # Calculate averages for each CPU core configuration
-    for cpu_cores_i in cpu_core_table:
-        try:
-            cpu_cores = parse_cpu_cores(cpu_cores_i)
-            cpu_core_table_format.append(cpu_cores)
-        except ValueError:
-            print(f'Check the format of the cpu pinning file. The [#,#] will not work.')
-
-        for core_i in cpu_cores:
-            denominator += 1
-            sum_utilization += cpu_utilization[core_i] 
-            max_tmp.append(cpu_utilization[core_i])
-        
-        utilization_average = round((sum_utilization / denominator), 2)
-        cpu_utilization_table.append(utilization_average)
-        cpu_utilization_maximum_table.append(max(max_tmp))
-        denominator, sum_utilization = 0, 0   # Reset variables for the next iteration
-
-    return pinning_table, cpu_core_table, cpu_utilization_maximum_table
 
 
 def output_file_check(input_dir, file, output_dir, chunk_size):

@@ -17,19 +17,15 @@ def generate_config_template():
 
         "grafana_url" : "grafana url to access monitoring",
         "dashboard_uid" : ["dashboard uid"],
-        "delta_time" : [["start time of test, format is Y-M-D H:M:S", "end time of test"]],
+        "delta_time" : [["start time of test", "end time of test"]],
         "partition" : ["grafana partition name for the given test"],
 
-        "core_utilisation_file" : "core utilisation file generated during the run",
+        "core_utilisation_files" : [
+            "core utilisation file generated during the run"
+        ],
 
-        "data_path" : "path the data is located (should be removed)",
+        "data_path" : "/",
 
-        # "grafana_data_files" : [
-        #     "grafana data files, generated using collect_metrics.py"
-        # ],
-        # "core_utilisation_files" : [
-        #     "formatted core utilisation files, generated using collect_metrics.py"
-        # ],
         "readout_name" : [
             [
                 "readouthost names in daqconf file, for each test"
@@ -62,8 +58,7 @@ def main(args : argparse.Namespace):
         gr_file = pathlib.Path(f"grafana-{name}.csv")
 
         # format core util files
-        cpu_df = reformat_cpu_util(test_args["core_utilisation_file"][i])
-        print(cpu_df)
+        cpu_df = reformat_cpu_util(test_args["core_utilisation_files"][i])
         cpu_df.to_csv(cu_file.name)
 
         core_utilisation_files.append(cu_file.resolve().as_posix())
@@ -73,7 +68,7 @@ def main(args : argparse.Namespace):
         grafana_files.append(gr_file.resolve().as_posix())
 
     new_args["grafana_data_files"] = grafana_files
-    new_args["core_utilisation_files"] = core_utilisation_files
+    new_args["reformatted_utilisation_files"] = core_utilisation_files
 
     save_json(args.file, new_args)
     print(f"{args.file} updated to include processed data files.")
