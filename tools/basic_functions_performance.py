@@ -378,18 +378,19 @@ def daqconf_info(file_daqconf, file_core, input_dir, var, pdf, if_pdf=False, rep
                 for k, v in info.items():
                     if k in info_to_print[name]:
                         pdf.write(5, f'    * {k}: {v} \n')
-    
-    for var_i in var:
-        if os.path.isabs(file_cpupins):
-            data_list = cpupining_info(file_cpupins, var_i)
-            pinning_table, cpu_core_table, cpu_utilization_maximum_table = extract_table_data(input_dir, file_core, data_list, emu_mode=emu_mode)
-            pdf.ln(5)
-            table_cpupins(columns_data=[pinning_table, cpu_core_table, cpu_utilization_maximum_table], pdf=pdf, if_pdf=if_pdf)
-            pdf.cell(0, 10, f'Table of CPU core pins information of {var_i}.')
-            pdf.ln(10)
-        else:
-            warn("Cannot parse cpu pinning file, path must be absolute")
-
+    if file_core:
+        for var_i in var:
+            if os.path.isabs(file_cpupins):
+                data_list = cpupining_info(file_cpupins, var_i)
+                pinning_table, cpu_core_table, cpu_utilization_maximum_table = extract_table_data(input_dir, file_core, data_list, emu_mode=emu_mode)
+                pdf.ln(5)
+                table_cpupins(columns_data=[pinning_table, cpu_core_table, cpu_utilization_maximum_table], pdf=pdf, if_pdf=if_pdf)
+                pdf.cell(0, 10, f'Table of CPU core pins information of {var_i}.')
+                pdf.ln(10)
+            else:
+                warn("Cannot parse cpu pinning file, path must be absolute")
+    else:
+        warn("core utilisation file was not provided, cannot generate per thread CPU usage!!!")
 
 def table_cpupins(columns_data, pdf, if_pdf=False):
     if not columns_data:
