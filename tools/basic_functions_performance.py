@@ -65,6 +65,7 @@ def uprof_columns_list(socket : int) -> dict:
 
 label_columns = ['Socket0','Socket1']
 
+
 def percentage(num : float, den : float) -> float:
     return 100 * num / den
 
