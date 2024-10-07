@@ -16,6 +16,9 @@ def main(args : argparse.Namespace):
     else:
         name = test_args["report_name"]
 
+    if "reformatted_utilisation_files" not in test_args:
+        test_args["reformatted_utilisation_files"] = [None]*len(test_args["grafana_data_files"])
+
     create_report_performance(
         all_files = test_args["grafana_data_files"],
         readout_name = test_args["readout_name"],

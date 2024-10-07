@@ -345,8 +345,9 @@ def create_report_performance(all_files, times : list[list], readout_name, daqco
                 pinning = oks_cpu_pin(d, r)
             else:
                 raise Exception("Not a valid file format for DAQ configurations.")
-
-            write_core_utilisation_table(c, pinning, emu_mode, r, pdf)
+            
+            if pinning:
+                write_core_utilisation_table(c, pinning, emu_mode, r, pdf)
 
     pdf.ln(20)
     pdf.set_font('Times', '', 10)
@@ -474,11 +475,14 @@ def daqconf_info(file_daqconf : str, file_core : str, readout_apps : str, pdf : 
                 if k in info_to_print[name]:
                     pdf.write(5, f'    * {k}: {v} \n')
     
-    for app in readout_apps:
-        if os.path.isabs(file_cpupins):
-            return cpupining_info(file_cpupins, app)
-        else:
-            warn("Cannot parse cpu pinning file, path must be absolute")
+    if file_core:
+        for app in readout_apps:
+            if os.path.isabs(file_cpupins):
+                return cpupining_info(file_cpupins, app)
+            else:
+                warn("Cannot parse cpu pinning file, path must be absolute")
+    else:
+        warn("core utilisation file was not provided, cannot generate per thread CPU usage!!!")
     return
 
 

@@ -4,6 +4,7 @@ from rich import print
 import argparse
 import pathlib
 
+from warnings import warn
 
 def generate_config_template():
     """Generate a template json file for the test reports.
@@ -49,24 +50,29 @@ def main(args : argparse.Namespace):
     new_args = load_json(args.file) # reopen config file to add the data file paths
     core_utilisation_files = []
     grafana_files = []
+
+    if "core_utilisation_files" not in test_args:
+        warn("no core utilisation files were specified!!! Skipping.")
+
     for i in range(len(test_args["test_name"])):
         name = create_filename(test_args, i)
 
-        cu_file = pathlib.Path(f"core_utilisation-{name}.csv")
+        if "core_utilisation_files" in test_args:
+            cu_file = pathlib.Path(f"core_utilisation-{name}.csv")
+            # format core util files
+            cpu_df = reformat_cpu_util(test_args["core_utilisation_files"][i])
+            cpu_df.to_csv(cu_file.name)
+            core_utilisation_files.append(cu_file.resolve().as_posix())
+
         gr_file = pathlib.Path(f"grafana-{name}.csv")
-
-        # format core util files
-        cpu_df = reformat_cpu_util(test_args["core_utilisation_files"][i])
-        cpu_df.to_csv(cu_file.name)
-
-        core_utilisation_files.append(cu_file.resolve().as_posix())
-
         # extract grafana data
         extract_grafana_data(test_args["grafana_url"], test_args["dashboard_uid"], test_args["delta_time"][i], test_args["host"], test_args["partition"][i], name)
         grafana_files.append(gr_file.resolve().as_posix())
 
     new_args["grafana_data_files"] = grafana_files
-    new_args["reformatted_utilisation_files"] = core_utilisation_files
+
+    if len(core_utilisation_files) > 0:
+        new_args["reformatted_utilisation_files"] = core_utilisation_files
 
     save_json(args.file, new_args)
     print(f"{args.file} updated to include processed data files.")
