@@ -78,7 +78,7 @@ def get_column_val(df, columns, labels, file):
     val = []
     label = []
     info = break_file_name(file)
-    
+
     for (columns_j, label_j) in zip(columns, labels):
         if columns_j in ['NewTime', 'Timestamp']:
             continue
@@ -106,7 +106,7 @@ def get_column_val(df, columns, labels, file):
             Y = df[columns_j]
         val.append(Y.values)
         label.append(f'{info[1]} {info[5]} {info[2]} {label_j}')
-    
+
     return val, label
 
 
@@ -132,6 +132,7 @@ def find_attribute(dal_obj : any, targets : list) -> dict:
     """
     found_attrs = {}
     for k in dal_obj.__schema__["attribute"]: # get a list of all attributes this object has
+        # print(f"attr: {k}")
         if k in targets:
             found_attrs[k] = getattr(dal_obj, k)
     return found_attrs
@@ -153,6 +154,7 @@ def find_relation(dal_obj : any, targets : list, found : dict = {}) -> dict:
 
     if len(dal_obj.__schema__["relation"]) > 0:
         for k in dal_obj.__schema__["relation"]: # search for relations this object has
+            # print(f"rel: {k}")
             obj = getattr(dal_obj, k) # get inforation about the relations
             if hasattr(obj, "__schema__"): # check this is an object, and not something else e.g. and attribute
                 if k in targets:
@@ -181,7 +183,7 @@ def prune_attrs(found_targets : dict):
     return found_targets
 
 
-def plot_vars_comparison(output_dir, grafana_data : list[str], pdf_name):
+def plot_vars_comparison(grafana_data : list[str], pdf_name):
     X_plot = []
     
     y_plot = {}
@@ -226,7 +228,7 @@ def plot_vars_comparison(output_dir, grafana_data : list[str], pdf_name):
                     pass
 
         plt.tight_layout()
-        out = f'{output_dir}/Fig{fig_num}_{pdf_name}_results_socket{s}.png'
+        out = f'Fig{fig_num}_{pdf_name}_results_socket{s}.png'
         plt.savefig(out)
         print(out)
         plt.close()
@@ -247,7 +249,7 @@ def plot_vars_comparison(output_dir, grafana_data : list[str], pdf_name):
                     plot(axs[j - rows_cols], X_plot[i], metric[0], "Time (min)", y_labels[name], color_list[i], (test + " " + k).replace("_", " "), linestyle_list[0])
 
         plt.tight_layout()
-        out = f'{output_dir}/Fig{fig_num}_{pdf_name}_results_cache_socket{s}.png'
+        out = f'Fig{fig_num}_{pdf_name}_results_cache_socket{s}.png'
         plt.savefig(out)
         print(out)
         plt.close()
@@ -255,7 +257,7 @@ def plot_vars_comparison(output_dir, grafana_data : list[str], pdf_name):
     return
 
 
-def create_report_performance(input_dir, output_dir, all_files, times : list[list], readout_name, daqconf_files, core_utilization_files, parent_folder_dir, print_info=True, pdf_name='performance_report', repin_threads_file=[None], comment=['TBA']):
+def create_report_performance(all_files, times : list[list], readout_name, daqconf_files, core_utilization_files, parent_folder_dir, print_info=True, pdf_name='performance_report', repin_threads_file=[None], comment=['TBA']):
 
     # Open pdf file
     pdf = FPDF()
@@ -312,21 +314,21 @@ def create_report_performance(input_dir, output_dir, all_files, times : list[lis
 
     
     #-------------------------------------------- FIGURES START ------------------------------------------------
-    plot_vars_comparison(output_dir, all_files, pdf_name)
+    plot_vars_comparison(all_files, pdf_name)
     
     if info[3] == '0' or info[3] == '01':
-        pdf.image(f'{output_dir}/Fig0_{pdf_name}_results_socket0.png', w=180)
+        pdf.image(f'Fig0_{pdf_name}_results_socket0.png', w=180)
         pdf.write(5, 'Figure. Socket0 results of the tests ran using the metrics CPU Utilization (%), Memory Bandwidth (GB/sec), Instructions Per Cycle, Instructions Retired Any (Million).')
         pdf.ln(10)
-        pdf.image(f'{output_dir}/Fig2_{pdf_name}_results_cache_socket0.png', w=180)
+        pdf.image(f'Fig2_{pdf_name}_results_cache_socket0.png', w=180)
         pdf.write(5, 'Figure. Socket0 results of the tests ran using the metrics L2 Cache Misses (Million), L2 Cache [Misses/Hits] (%), L3 Cache Misses (Million), and L3 Cache [Misses/Hits] (%).')
         pdf.ln(10)
         
     if info[3] == '1' or info[3] == '01':
-        pdf.image(f'{output_dir}/Fig1_{pdf_name}_results_socket1.png', w=180)
+        pdf.image(f'Fig1_{pdf_name}_results_socket1.png', w=180)
         pdf.write(5, 'Figure. Socket1 results of the tests ran using the metrics CPU Utilization (%), Memory Bandwidth (GB/sec), Instructions Per Cycle, Instructions Retired Any (Million).')
         pdf.ln(10)
-        pdf.image(f'{output_dir}/Fig3_{pdf_name}_results_cache_socket1.png', w=180)
+        pdf.image(f'Fig3_{pdf_name}_results_cache_socket1.png', w=180)
         pdf.write(5, 'Figure. Socket1 results of the tests ran using the metrics L2 Cache Misses (Million), L2 Cache [Misses/Hits] (%), L3 Cache Misses (Million), and L3 Cache [Misses/Hits] (%).')
         pdf.ln(10)
     #-------------------------------------------- FIGURES END ------------------------------------------------
@@ -337,19 +339,45 @@ def create_report_performance(input_dir, output_dir, all_files, times : list[lis
 
         for r, d, c, t in zip(readout_name, daqconf_files, core_utilization_files, repin_threads_file):
             if ".json" in d:
-                daqconf_info(file_daqconf=d, file_core=c, input_dir=input_dir, var=r, pdf=pdf, if_pdf=print_info, repin_threads_file=t)
+                pinning, emu_mode = daqconf_info(file_daqconf=d, file_core=c, var=r, pdf=pdf, repin_threads_file=t)
             elif ".data.xml" in d:
                 oks_info(d, pdf)
+                pinning = oks_cpu_pin(d, r)
             else:
                 raise Exception("Not a valid file format for DAQ configurations.")
+
+            write_core_utilisation_table(c, pinning, emu_mode, r, pdf)
 
     pdf.ln(20)
     pdf.set_font('Times', '', 10)
     pdf.write(5, f'The End, made on {current_time()}')
-    pdf.output(f'{output_dir}/{pdf_name}_report.pdf')
+    pdf.output(f'{pdf_name}_report.pdf')
     #---------------------------------------- CONFIGURATIONS END ---------------------------------------------
     
-    print(f'The report was create and saved to {output_dir}/{pdf_name}.pdf')
+    print(f'The report was create and saved to {pdf_name}_report.pdf')
+
+
+def oks_cpu_pin(xml_file : str, readout_name : str) -> dict:
+    conf = conffwk.Configuration(f"oksconflibs:{xml_file}") # load OKS data file
+
+    variables = conf.get_dals("Variable")
+
+
+    for pinning_var in variables:
+        if pinning_var.id == "thread-pinning-file-post-start-test":
+            break
+    
+    pinning = cpupining_info(pinning_var.value, readout_name)
+    return pinning
+
+
+def write_core_utilisation_table(file_core : str, pinning : dict, emu_mode : bool, readout_name : str, pdf : FPDF):
+    pinning_table, cpu_core_table, cpu_utilization_maximum_table = extract_table_data(file_core, pinning, emu_mode=emu_mode)
+    pdf.ln(5)
+    table_cpupins(columns_data=[pinning_table, cpu_core_table, cpu_utilization_maximum_table], pdf=pdf)
+    pdf.cell(0, 10, f'Table of CPU core pins information of {readout_name}.')
+    pdf.ln(10)
+    return
 
 
 def oks_info(xml_file : str, pdf : FPDF):
@@ -368,15 +396,22 @@ def oks_info(xml_file : str, pdf : FPDF):
 
     target_info = {
         "Session" : ["use_connectivity_server"],
-        "ReadoutApplication" : ["tp_generation_enabled", "ta_generation_enabled", "emulation_mode", "size", "processing_steps"],
+        "ReadoutApplication" : ["tp_generation_enabled", "ta_generation_enabled", "emulation_mode", "size", "processing_steps", "generate_periodic_adc_pattern"],
         "FakeHSIApplication" : ["trigger_rate"]
     }
 
     found = {}
-    # search the values of the attributes or relations specified iin target info for each app
+    # search the values of the attributes or relations specified in target info for each app
     for uid, cls in apps.items():
         if cls in target_info:
             found = found | prune_attrs(find_relation(conf.get_dal(cls, uid), target_info[cls]))
+
+    #! explicitly check the generic adc_pattern as an example
+    emu_mode = {}
+    for uid, cls in apps.items():
+        if cls == "ReadoutApplication":
+            emu_mode[uid] = find_relation(conf.get_dal(cls, uid), ["generate_periodic_adc_pattern"], {})
+
 
     pdf.set_font("Times", "", 10)
     pdf.write(6, f"configuration file: {xml_file} \n")
@@ -404,19 +439,57 @@ def write_oks_info(info : dict, pdf : FPDF, indent : str = ""):
     return
 
 
-def cpupining_info(file, var):
-    with open(file, 'r') as f:
-        data_cpupins = json.load(f)
-        info_daq_application = json.dumps(data_cpupins['daq_application'][f'--name {var}'], skipkeys = True, allow_nan = True)
-        data_list = json.loads(info_daq_application)
-        
-    return data_list
+def daqconf_info(file_daqconf : str, file_core : str, readout_apps : str, pdf : FPDF, repin_threads_file : bool = False):
+    """ Write information from an old configuration file. Retained to analyse old test results.
+
+    Args:
+        file_daqconf (str): daqconf json file
+        file_core (str): core utilisation file
+        readout_apps (str): readout app names
+        pdf (FPDF): pdf to save to
+        repin_threads_file (bool, optional): whether pinning files were used. Defaults to False.
+    """
+    applist = load_json(file_daqconf)
+
+    emu_mode = True if applist["readout"]['generate_periodic_adc_pattern'] else False
+
+    if repin_threads_file:
+        file_cpupins = repin_threads_file
+    else:
+        if "thread_pinning_files" in applist["readout"]:
+            file_cpupins = applist["readout"]["thread_pinning_files"][2]["file"]
+
+    info_to_print = {
+        "boot" : ['use_connectivity_service'],
+        "hsi" : ['random_trigger_rate_hz'],
+        "readout" : ['latency_buffer_size','generate_periodic_adc_pattern','use_fake_cards','enable_raw_recording', 'raw_recording_output_dir','enable_tpg','tpg_threshold','tpg_algorithm']
+    }
+
+    pdf.set_font('Times', '', 10)
+    pdf.write(5, f'daqconf file: {file_daqconf} \n')
+
+    for name, info in applist.items():
+        if name in info_to_print:
+            for k, v in info.items():
+                if k in info_to_print[name]:
+                    pdf.write(5, f'    * {k}: {v} \n')
+    
+    for app in readout_apps:
+        if os.path.isabs(file_cpupins):
+            return cpupining_info(file_cpupins, app)
+        else:
+            warn("Cannot parse cpu pinning file, path must be absolute")
+    return
 
 
-def core_utilization(input_dir, file):
+def cpupining_info(file : str, ru : str):
+    return  load_json(file)['daq_application'][f'--name {ru}']
+ 
+
+def core_utilization(file):
     CPU_plot, User_plot = [], []
     
-    data_frame = pd.read_csv(f'{input_dir}{file}')
+    data_frame = pd.read_csv(f'{file}')
 
     print(data_frame)
 
@@ -444,9 +517,9 @@ def parse_cpu_cores(cpu_cores_i):
     return cpu_cores
 
 
-def extract_table_data(input_dir, file_core, data_list, emu_mode=False): 
+def extract_table_data(file_core, data_list, emu_mode=False): 
     pinning_table, cpu_core_table, cpu_core_table_format, cpu_utilization_table, cpu_utilization_maximum_table, max_tmp = [], [], [], [], [], []
-    cpu_core, cpu_utilization = core_utilization(input_dir, file_core)
+    cpu_core, cpu_utilization = core_utilization(file_core)
     denominator, sum_utilization = 0, 0
 
     # Process data_list, and extract 'threads' sub-dictionary, and other data entries
@@ -492,46 +565,7 @@ def extract_table_data(input_dir, file_core, data_list, emu_mode=False):
     return pinning_table, cpu_core_table, cpu_utilization_maximum_table
 
 
-def daqconf_info(file_daqconf, file_core, input_dir, var, pdf, if_pdf=False, repin_threads_file=False):
-    applist = load_json(file_daqconf)
-
-    emu_mode = True if applist["readout"]['generate_periodic_adc_pattern'] else False
-
-    if repin_threads_file:
-        file_cpupins = repin_threads_file
-    else:
-        if "thread_pinning_files" in applist["readout"]:
-            file_cpupins = applist["readout"]["thread_pinning_files"][2]["file"]
-
-    info_to_print = {
-        "boot" : ['use_connectivity_service'],
-        "hsi" : ['random_trigger_rate_hz'],
-        "readout" : ['latency_buffer_size','generate_periodic_adc_pattern','use_fake_cards','enable_raw_recording', 'raw_recording_output_dir','enable_tpg','tpg_threshold','tpg_algorithm']
-    }
-
-    if if_pdf:
-        pdf.set_font('Times', '', 10)
-        pdf.write(5, f'daqconf file: {file_daqconf} \n')
-
-        for name, info in applist.items():
-            if name in info_to_print:
-                for k, v in info.items():
-                    if k in info_to_print[name]:
-                        pdf.write(5, f'    * {k}: {v} \n')
-    
-    for var_i in var:
-        if os.path.isabs(file_cpupins):
-            data_list = cpupining_info(file_cpupins, var_i)
-            pinning_table, cpu_core_table, cpu_utilization_maximum_table = extract_table_data(input_dir, file_core, data_list, emu_mode=emu_mode)
-            pdf.ln(5)
-            table_cpupins(columns_data=[pinning_table, cpu_core_table, cpu_utilization_maximum_table], pdf=pdf, if_pdf=if_pdf)
-            pdf.cell(0, 10, f'Table of CPU core pins information of {var_i}.')
-            pdf.ln(10)
-        else:
-            warn("Cannot parse cpu pinning file, path must be absolute")
-
-
-def table_cpupins(columns_data, pdf, if_pdf=False):
+def table_cpupins(columns_data, pdf):
     if not columns_data:
         print('you are missing the table data')
         return
@@ -549,33 +583,29 @@ def table_cpupins(columns_data, pdf, if_pdf=False):
     
     lh_list = [] #list with proper line_height for each row
 
-    if if_pdf:
-        pdf.set_font('Times', '', 10)
+    pdf.set_font('Times', '', 10)
 
-        # Determine line heights based on the number of words in each cell
-        for row in rows_data:
-            max_lines = 1  # Initialize with a minimum of 1 line
-            for datum in row:
-                if isinstance(datum, int):
-                    datum = str(datum)
-                elif not isinstance(datum, str):
-                    datum = str(datum)
-                
-                lines_needed = len(str(datum).split('\n'))  # Count the number of lines
-                max_lines = max(max_lines, lines_needed)
+    # Determine line heights based on the number of words in each cell
+    for row in rows_data:
+        max_lines = 1  # Initialize with a minimum of 1 line
+        for datum in row:
+            if isinstance(datum, int):
+                datum = str(datum)
+            elif not isinstance(datum, str):
+                datum = str(datum)
+            
+            lines_needed = len(str(datum).split('\n'))  # Count the number of lines
+            max_lines = max(max_lines, lines_needed)
 
-            lh_list.append(line_height * max_lines)
-        
-        # Add table rows with word wrapping and dynamic line heights
-        for j, row in enumerate(rows_data):
-            line_height_table = lh_list[j] 
-            for k, datum in enumerate(row):
-                pdf.multi_cell(col_width[k], line_height_table, str(datum), border=1, align='L', new_x=XPos.RIGHT, new_y=YPos.TOP, max_line_height=pdf.font_size)
+        lh_list.append(line_height * max_lines)
+    
+    # Add table rows with word wrapping and dynamic line heights
+    for j, row in enumerate(rows_data):
+        line_height_table = lh_list[j] 
+        for k, datum in enumerate(row):
+            pdf.multi_cell(col_width[k], line_height_table, str(datum), border=1, align='L', new_x=XPos.RIGHT, new_y=YPos.TOP, max_line_height=pdf.font_size)
 
-            pdf.ln(line_height_table)
-        
-        pdf.set_font('Times', '', 10)
-        
-    else:
-        print(rows_data)
-
+        pdf.ln(line_height_table)
+    
+    pdf.set_font('Times', '', 10)
+    return

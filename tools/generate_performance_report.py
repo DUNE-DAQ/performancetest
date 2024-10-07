@@ -17,8 +17,6 @@ def main(args : argparse.Namespace):
         name = test_args["report_name"]
 
     create_report_performance(
-        input_dir = test_args["data_path"],
-        output_dir = "./",
         all_files = test_args["grafana_data_files"],
         readout_name = test_args["readout_name"],
         daqconf_files = test_args["configuration_file"],

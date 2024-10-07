@@ -24,8 +24,6 @@ def generate_config_template():
             "core utilisation file generated during the run"
         ],
 
-        "data_path" : "/",
-
         "readout_name" : [
             [
                 "readouthost names in daqconf file, for each test"
