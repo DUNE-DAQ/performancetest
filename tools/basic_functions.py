@@ -3,6 +3,7 @@ import pathlib
 import json
 import re
 import struct
+import warnings
 import pandas as pd
 import numpy as np
 
@@ -15,7 +16,41 @@ from http.client import HTTPResponse
 
 from rich import print
 
+warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning) # cause screw pandas
+
 not_alma9_os = ['np04srv008', 'np04srv010', 'np04srv014', 'np04srv023', 'np04onl003', 'np04srv007', 'np04srv009', 'np04crt001']
+
+def write_dict_hdf5(dictionary : dict, file : str):
+    """ Write dictionary to a HDF5 file.
+
+    Args:
+        dictionary (dict): dictionary to save
+        file (str): file
+    """
+    with pd.HDFStore(file) as hdf:
+        for k, v in dictionary.items():
+            hdf.put(k, v)
+    return
+
+
+def read_hdf5(file : str):
+    """ Reads a HDF5 file and unpacks the contents into pandas dataframes.
+
+    Args:
+        file (str): file path.
+
+    Returns:
+        pd.DataFrame : if hdf5 file only has 1 key
+        dict : if hdf5 file contains more than 1 key
+    """
+    keys = []
+    with tables.open_file(file, driver = "H5FD_CORE") as hdf5file:
+        for c in hdf5file.root: 
+            keys.append(c._v_pathname[1:])
+    if len(keys) == 1:
+        return pd.read_hdf(file)
+    else:
+        return {k : pd.read_hdf(file, k) for k in keys}
 
 
 def urljson(response : HTTPResponse) -> dict | None:
@@ -342,6 +377,7 @@ def query_data(datasource_urls : list[dict], grafana_url : str, query_url : str,
         # print(i["name"])
         # print(i["uid"])
 
+        url_extension = "query"
         if i["type"] == "influxdb":
             # example data for influxdb v1
             data = {
@@ -356,6 +392,7 @@ def query_data(datasource_urls : list[dict], grafana_url : str, query_url : str,
                 'end': end_time,
                 'step': 2
             }
+            url_extension = "api/v1/query_range"
         elif i["type"] == "postgres":
             data = {
                 "query" : query_url,
@@ -364,8 +401,13 @@ def query_data(datasource_urls : list[dict], grafana_url : str, query_url : str,
             print("unknown database type")
             continue
 
+        # print(i["type"])
+        # print(data)
+
+        # print(urljoin(grafana_url, f"api/datasources/proxy/uid/{i['uid']}/{url_extension}"))
+
         try:
-            with urlopen(urljoin(grafana_url, f"api/datasources/proxy/uid/{i['uid']}/query"), urlencode(data).encode()) as response:
+            with urlopen(urljoin(grafana_url, f"api/datasources/proxy/uid/{i['uid']}/{url_extension}"), urlencode(data).encode()) as response:
                 if response.status == 200:
                     response_data = urljson(response)
                     break
@@ -384,6 +426,7 @@ def query_data(datasource_urls : list[dict], grafana_url : str, query_url : str,
 
     if not response_data:
         print(f"query could not be made to any database: {error}")
+
 
     return response_data
 
@@ -440,6 +483,23 @@ def query_var(grafana_url, datasource_urls, query_str, start_time):
             print(e)
     return
 
+def parse_result_influx(response_data, panel) -> dict[np.array]:
+    parsed_results = {}
+    for i, result in enumerate(response_data["results"]):
+        if "series" not in result:
+            parsed_results[panel["title"] + f"_{i}"] = None
+        else:
+            for j, series in enumerate(result["series"]):
+                parsed_results[panel["title"] + f"_{i}" + f"_{j}"] = np.array(series["values"])[:, 1]
+
+    df = pd.DataFrame()
+
+    for k, v in parsed_results.items():
+        df = pd.concat([df, pd.DataFrame({k : v})], axis = 1)
+
+    print(df)
+    return df
+
 
 def extract_grafana_data(grafana_url, dashboard_uid, delta_time, host, partition, output_csv_file):
 
@@ -465,52 +525,55 @@ def extract_grafana_data(grafana_url, dashboard_uid, delta_time, host, partition
 
         dashboard_data = {}
         for panel_i, panel in enumerate(panels_data):
-            if panel=='Runs':
+
+            if 'targets' not in panel:
+                print(f'Skipping panel {panel_title}, with no targets.')
                 continue
 
+            if "panels" in panel:
+                if len(panel["panels"]) == 0:
+                        data_type = panel["datasource"]["type"]
+                else:
+                    data_type = panel["panels"][0]["datasource"]["type"]
             else:
-                panel_title = panel.get('title', '')
-                if not panel_title:
-                    print(f'Skipping panel with no title.')
+                data_type = panel["datasource"]["type"]
+
+            if panel=='Runs': continue
+
+            panel_title = panel.get('title', '')
+            if not panel_title:
+                print(f'Skipping panel with no title.')
+                continue
+            
+            if ("resultFormat" in panel["targets"][0]) and (panel["targets"][0]["resultFormat"] == "table"): continue
+
+            query_urls, queries_labels = get_query_urls(panel, host, partition, start_timestamp, end_timestamp)
+
+            if not query_urls:
+                print(f'Skipping panel {panel_title}, with no valid query URL')
+                continue
+
+            for i, query_url in enumerate(query_urls):
+                try:
+                    column_label = queries_labels[i] # type: ignore
+                    column_name = f'{column_label} {panel_title}'
+                except KeyError:
                     continue
-                    
-                if 'targets' not in panel:
-                    print(f'Skipping panel {panel_title}, with no targets.')
-                    continue
 
-                if ("resultFormat" in panel["targets"][0]) and (panel["targets"][0]["resultFormat"] == "table"): continue
+                query_url = query_url.replace("${DLH}", dlh_str["DLH"])
+                query_url = query_url.replace("${tp_handler}", dlh_str["tphandler"])
 
-                query_urls, queries_labels = get_query_urls(panel, host, partition, start_timestamp, end_timestamp)
+                response_data = query_data(datasource_urls, grafana_url, query_url, start_timestamp, start_timestamp + 10)
 
-                # if panel["title"] == 'Request rates for ${tp_handler}':
-                #     print(panel)
-                #     exit()
+                if response_data:
+                    if data_type == "prometheus":
+                        print("do this")
+                    elif data_type == "influxdb":
+                        dashboard_data[panel_title] = parse_result_influx(response_data, panel)
 
-                if not query_urls:
-                    print(f'Skipping panel {panel_title}, with no valid query URL')
-                    continue
+                    else:
+                        print(f"not sure how to parse this data type: {data_type}")
 
-                for i, query_url in enumerate(query_urls):
-                    try:
-                        column_label = queries_labels[i] # type: ignore
-                        column_name = f'{column_label} {panel_title}'
-                    except KeyError:
-                        continue
-
-                    query_url = query_url.replace("${DLH}", dlh_str["DLH"])
-                    query_url = query_url.replace("${tp_handler}", dlh_str["tphandler"])
-
-                    print(query_url)
-                    response_data = query_data(datasource_urls, grafana_url, query_url, start_timestamp, end_timestamp)
-
-                    if response_data:
-                        for i, result in enumerate(response_data["results"]):
-                            if "series" not in response_data["results"]:
-                                dashboard_data[panel["title"] + f"_{i}"] = None
-                            else:
-                                for j, series in enumerate(result["series"]):
-                                    dashboard_data[panel["title"] + f"_{i}" + f"_{j}"] = list(np.array(series["values"])[:, 1])
-                    # print(response_data)
 
 
                     # print(data)
@@ -561,7 +624,10 @@ def extract_grafana_data(grafana_url, dashboard_uid, delta_time, host, partition
                     #     all_dataframes.append(df_tmp)
 
         print(list(dashboard_data.keys()))
-        save_json("out.json", dashboard_data)
+
+        write_dict_hdf5(dashboard_data, "out.hdf5")
+
+        # save_json("out.json", dashboard_data)
         # save_json("out.json", {'Request rates for ${tp_handler}_0_0' : dashboard_data['Request rates for ${tp_handler}_0_0']})
         # print(dashboard_data)
 
