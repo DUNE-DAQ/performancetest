@@ -92,7 +92,7 @@ def save_json(file : str | pathlib.Path, data : dict):
         data (dict): dictionary to save.
     """
     with pathlib.Path(file).open("w") as f:
-        json.dump(data, f, indent = 0)
+        json.dump(data, f, indent = 4)
 
 
 def create_filename(test_args : dict, test_num : int) -> str:
@@ -448,11 +448,39 @@ def make_names_str(names : list):
     return names_str
 
 
+def get_dpdk_vars(grafana_url, datasource_urls, start_time, partition):
+    query_str = f'SELECT "bytes", application, queue FROM "dunedaq.dpdklibs.opmon.QueueEthXStats" WHERE session = \'np02-session\' AND time >= {start_time}s and time <= {start_time + 10}s'
+
+    response = query_var(grafana_url, datasource_urls, query_str, start_time)
+
+    values = np.array(response["results"][0]["series"][0]["values"])
+
+    values = {
+        "application" : values[:, 2], # application
+        "queue" : values[:, 3], # element
+    }
+    return {k : make_names_str(np.unique(v)) for k, v in values.items()}
+
+
+def get_fe_eth_vars(grafana_url, datasource_urls, start_time, partition):
+    query_str = f"SELECT \"sent_udp_count\", application, element, detector, crate, slot, queue FROM \"dunedaq.hermesmodules.opmon.LinkInfo\" WHERE session = '{partition}' AND time >= {start_time}s and time <= {start_time + 10}s"
+
+    response = query_var(grafana_url, datasource_urls, query_str, start_time)
+
+    values = np.array(response["results"][0]["series"][0]["values"])
+
+    values = {
+        "CRP" : values[:, 2], # application
+        "WIB" : values[:, 3], # element
+        "detector" : values[:, 4],
+        "crate" : values[:, 5],
+        "slot" : values[:, 6],
+    }
+    values = {k : make_names_str(np.unique(v)) for k, v in values.items()}
+    return values
+
+
 def get_dhs(grafana_url, datasource_urls, start_time):
-    # data = {
-    #     "q" : f'SELECT "sum_payloads", element FROM "dunedaq.datahandlinglibs.opmon.DataHandlerInfo" WHERE time >= {start_time}s and time <= {start_time + 10}s',#! DLH and other modules
-    #     "db" : i["jsonData"]["dbName"]
-    # }
 
     query_str = f'SELECT element FROM (SELECT "sum_payloads", element FROM "dunedaq.datahandlinglibs.opmon.DataHandlerInfo" WHERE time >= {start_time}s and time <= {start_time + 10}s)'
 
@@ -480,6 +508,8 @@ def query_var(grafana_url, datasource_urls, query_str, start_time):
             "db" : i["jsonData"]["dbName"]
         }
         try:
+            print(urljoin(grafana_url, f"api/datasources/proxy/uid/{i['uid']}/query"))
+            print(data)
             with urlopen(urljoin(grafana_url, f"api/datasources/proxy/uid/{i['uid']}/query"), urlencode(data).encode()) as response:
                 return urljson(response)
         except HTTPError as e:
@@ -500,8 +530,11 @@ def parse_result_influx(response_data, panel) -> pd.DataFrame:
 
     df = None
     for k, v in parsed_results.items():
-        entry = pd.DataFrame({"time" : dt_to_unix_array(v[:, 0]), k : v[:, 1]})
-        entry = entry.set_index("time")
+        if v is None:
+            entry = pd.DataFrame({"time" : [None], k : [None]})
+        else:
+            entry = pd.DataFrame({"time" : dt_to_unix_array(v[:, 0]), k : v[:, 1]})
+            entry = entry.set_index("time")
 
         if df is None:
             df = entry
@@ -542,6 +575,9 @@ def extract_grafana_data(grafana_url, dashboard_uid, delta_time, host, partition
 
         dlh_str = get_dhs(grafana_url, datasource_urls, start_timestamp)
 
+        fe_strs = get_fe_eth_vars(grafana_url, datasource_urls, start_timestamp, partition)
+        dpdk_strs = get_dpdk_vars(grafana_url, datasource_urls, start_timestamp, partition)
+
         dashboard_data = {}
         for panel_i, panel in enumerate(panels_data):
 
@@ -576,6 +612,15 @@ def extract_grafana_data(grafana_url, dashboard_uid, delta_time, host, partition
             for query_name, query in query_urls.items():
                 query = query.replace("${DLH}", dlh_str["DLH"])
                 query = query.replace("${tp_handler}", dlh_str["tphandler"])
+
+                for k, v in fe_strs.items():
+                    query = query.replace(f"${{{k}}}", v)
+
+                for k, v in dpdk_strs.items():
+                    query = query.replace(f"${{{k}}}", v)
+
+                print(panel_title)
+                print(query)
 
                 response_data = query_data(datasource_urls, grafana_url, query, start_timestamp, end_timestamp)
 
