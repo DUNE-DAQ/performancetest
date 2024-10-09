@@ -5,6 +5,7 @@ import re
 import struct
 import warnings
 import pandas as pd
+import tables
 import numpy as np
 
 from datetime import datetime as dt
@@ -17,6 +18,7 @@ from http.client import HTTPResponse
 from rich import print
 
 warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning) # cause screw pandas
+warnings.simplefilter(action='ignore', category=tables.NaturalNameWarning) # cause screw pandas
 
 not_alma9_os = ['np04srv008', 'np04srv010', 'np04srv014', 'np04srv023', 'np04onl003', 'np04srv007', 'np04srv009', 'np04crt001']
 
@@ -292,6 +294,9 @@ def get_query_urls(panel : dict, host : str, partition : str, start_time : str, 
     targets = panel.get('targets', [])
     queries = []
     queries_label = []
+
+    queries = {}
+
     for target in targets:
         if ('expr' in target) and (target["expr"] != ""):
             for var in ['${host}', '$node']:
@@ -301,8 +306,7 @@ def get_query_urls(panel : dict, host : str, partition : str, start_time : str, 
             for uid in ['${DS_PROMETHEUS}', '${datasource}']:
                 target['datasource']['uid'].replace(uid, partition)
 
-            queries.append(query)
-            queries_label.append(target['legendFormat'])
+            queries[target["legendFormat"]] = query
 
         elif 'query' in target:
             query = target['query'].replace('${partition}', partition)
@@ -313,8 +317,7 @@ def get_query_urls(panel : dict, host : str, partition : str, start_time : str, 
 
             query = query.replace("$__interval", "10s") # tick rata of plots, unsure why this is an environment variable
 
-            queries.append(query)
-            queries_label.append(target['refId'])
+            queries[panel["title"]] = query
         
         elif 'rawSql' in target:
             query = target['rawSql'].replace('${partition}', partition)
@@ -325,14 +328,13 @@ def get_query_urls(panel : dict, host : str, partition : str, start_time : str, 
             query = query.replace("${__from}", str(start_time))
             query = query.replace("${__to}", str(end_time))
 
-            queries.append(query)
-            queries_label.append(target['refId'])
+            queries[target["legendFormat"]] = query
         
         else:
             print(f'Missing [expr , query, rawSql] in targets. Check the json file related to the dashboard.')
             pass
 
-    return queries, queries_label if queries else None
+    return queries
 
 
 def get_datasource_urls(grafana_url : str) -> list[str]:
@@ -373,19 +375,19 @@ def query_data(datasource_urls : list[dict], grafana_url : str, query_url : str,
     response_data = None
     error = None
     for i in datasource_urls:
-        if i["name"] == "CERN IT Networking SNMP": continue
+        if i["name"] in ["CERN IT Networking SNMP", "KluPrometheus"]: continue
         # print(i["name"])
         # print(i["uid"])
 
         url_extension = "query"
         if i["type"] == "influxdb":
-            # example data for influxdb v1
+            # data for influxdb v1
             data = {
                 "q" : query_url,
                 "db" : i["jsonData"]["dbName"]
             }
         elif i["type"] == "prometheus":
-            # example data for prometheus query
+            # data for prometheus query
             data = {
                 'query': query_url,
                 'start': start_time,
@@ -405,7 +407,6 @@ def query_data(datasource_urls : list[dict], grafana_url : str, query_url : str,
         # print(data)
 
         # print(urljoin(grafana_url, f"api/datasources/proxy/uid/{i['uid']}/{url_extension}"))
-
         try:
             with urlopen(urljoin(grafana_url, f"api/datasources/proxy/uid/{i['uid']}/{url_extension}"), urlencode(data).encode()) as response:
                 if response.status == 200:
@@ -467,9 +468,6 @@ def get_dhs(grafana_url, datasource_urls, start_time):
 
 def query_var(grafana_url, datasource_urls, query_str, start_time):
 
-    # 'SELECT "element" AS "DLH", "channel", "number_of_tps" FROM "dunedaq.datahandlinglibs.opmon.TPChannelInfo" WHERE session="np02-session" AND "element" =~ /${DLH}/ AND time >= 1728395953s and time <= 1728399014s'
-    # print(f'SELECT element (FROM SELECT rate_payloads_consumed, element FROM "dunedaq.datahandlinglibs.opmon.DataHandlerInfo" WHERE time >= {start_time}s and time <= {start_time + 10}s)')
-
     for i in datasource_urls:
         if i["id"] != 11: continue
         data = {
@@ -483,7 +481,7 @@ def query_var(grafana_url, datasource_urls, query_str, start_time):
             print(e)
     return
 
-def parse_result_influx(response_data, panel) -> dict[np.array]:
+def parse_result_influx(response_data, panel) -> pd.DataFrame:
     parsed_results = {}
     for i, result in enumerate(response_data["results"]):
         if "series" not in result:
@@ -499,6 +497,18 @@ def parse_result_influx(response_data, panel) -> dict[np.array]:
 
     print(df)
     return df
+
+
+def parse_result_prometheus(response_data, panel, name) -> pd.DataFrame:
+    parsed = {}
+    for i, result in enumerate(response_data["data"]["result"]):
+        if len(response_data["data"]["result"]) == 1:
+            key = name
+        else:
+            key = name + f"x_{i}"
+        parsed[key] = np.array(result["values"])[:, 1]
+
+    return pd.DataFrame(parsed)
 
 
 def extract_grafana_data(grafana_url, dashboard_uid, delta_time, host, partition, output_csv_file):
@@ -547,27 +557,29 @@ def extract_grafana_data(grafana_url, dashboard_uid, delta_time, host, partition
             
             if ("resultFormat" in panel["targets"][0]) and (panel["targets"][0]["resultFormat"] == "table"): continue
 
-            query_urls, queries_labels = get_query_urls(panel, host, partition, start_timestamp, end_timestamp)
+            query_urls = get_query_urls(panel, host, partition, start_timestamp, end_timestamp)
 
-            if not query_urls:
+
+            if len(query_urls) == 0:
                 print(f'Skipping panel {panel_title}, with no valid query URL')
                 continue
 
-            for i, query_url in enumerate(query_urls):
-                try:
-                    column_label = queries_labels[i] # type: ignore
-                    column_name = f'{column_label} {panel_title}'
-                except KeyError:
-                    continue
+            for query_name, query in query_urls.items():
+                # try:
+                #     column_label = queries_labels[i] # type: ignore
+                #     column_name = f'{column_label} {panel_title}'
+                # except KeyError:
+                #     continue
 
-                query_url = query_url.replace("${DLH}", dlh_str["DLH"])
-                query_url = query_url.replace("${tp_handler}", dlh_str["tphandler"])
+                query = query.replace("${DLH}", dlh_str["DLH"])
+                query = query.replace("${tp_handler}", dlh_str["tphandler"])
 
-                response_data = query_data(datasource_urls, grafana_url, query_url, start_timestamp, start_timestamp + 10)
+                response_data = query_data(datasource_urls, grafana_url, query, start_timestamp, end_timestamp)
 
                 if response_data:
                     if data_type == "prometheus":
-                        print("do this")
+                        dashboard_data[panel_title] = parse_result_prometheus(response_data, panel, query_name)
+
                     elif data_type == "influxdb":
                         dashboard_data[panel_title] = parse_result_influx(response_data, panel)
 
@@ -623,8 +635,8 @@ def extract_grafana_data(grafana_url, dashboard_uid, delta_time, host, partition
                     #     df_tmp = df_first if panel_i == 0 and i == 0 else df
                     #     all_dataframes.append(df_tmp)
 
-        print(list(dashboard_data.keys()))
-
+        # print(list(dashboard_data.keys()))
+        print(dashboard_data)
         write_dict_hdf5(dashboard_data, "out.hdf5")
 
         # save_json("out.json", dashboard_data)
