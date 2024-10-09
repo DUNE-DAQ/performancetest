@@ -120,6 +120,11 @@ def current_time():
     return current_dnt
 
 
+def dt_to_unix_array(times : np.array):
+    s = pd.to_datetime(pd.Series(times).str.replace("T", " ").str.replace("Z", " "))
+    return (s - pd.Timestamp("1970-01-01")) // pd.Timedelta('1s')
+
+
 def get_unix_timestamp(time_str):
     formats = ['%Y-%m-%d %H:%M:%S.%f', '%Y-%m-%d %H:%M:%S']
     for fmt in formats:
@@ -481,6 +486,7 @@ def query_var(grafana_url, datasource_urls, query_str, start_time):
             print(e)
     return
 
+
 def parse_result_influx(response_data, panel) -> pd.DataFrame:
     parsed_results = {}
     for i, result in enumerate(response_data["results"]):
@@ -488,27 +494,36 @@ def parse_result_influx(response_data, panel) -> pd.DataFrame:
             parsed_results[panel["title"] + f"_{i}"] = None
         else:
             for j, series in enumerate(result["series"]):
-                parsed_results[panel["title"] + f"_{i}" + f"_{j}"] = np.array(series["values"])[:, 1]
 
-    df = pd.DataFrame()
+                parsed_results[panel["title"] + f"_{i}" + f"_{j}"] = np.array(series["values"])
 
+
+    df = None
     for k, v in parsed_results.items():
-        df = pd.concat([df, pd.DataFrame({k : v})], axis = 1)
+        entry = pd.DataFrame({"time" : dt_to_unix_array(v[:, 0]), k : v[:, 1]})
+        entry = entry.set_index("time")
 
-    print(df)
+        if df is None:
+            df = entry
+        else:
+            df = pd.concat([df, entry], axis = 1)
+
     return df
 
 
 def parse_result_prometheus(response_data, panel, name) -> pd.DataFrame:
     parsed = {}
+
     for i, result in enumerate(response_data["data"]["result"]):
         if len(response_data["data"]["result"]) == 1:
             key = name
         else:
             key = name + f"x_{i}"
-        parsed[key] = np.array(result["values"])[:, 1]
+        v = np.array(result["values"])
+        parsed["time"] = v[:, 0]
+        parsed[key] = v[:, 1]
 
-    return pd.DataFrame(parsed)
+    return pd.DataFrame(parsed).set_index("time")
 
 
 def extract_grafana_data(grafana_url, dashboard_uid, delta_time, host, partition, output_csv_file):
@@ -521,12 +536,6 @@ def extract_grafana_data(grafana_url, dashboard_uid, delta_time, host, partition
             print('Error in extract_grafana_data: Failed to fetch dashboard panels data.')
             return
         
-        # if grafana_url == 'http://np04-srv-009.cern.ch:3000':
-        #     url = urljoin(grafana_url, "api/datasources/proxy/1/api/v1/query_range")
-        
-        # else:
-        #     url = urljoin(get_datasource_url(grafana_url), "api/v1/query_range")
-
         start_timestamp = get_unix_timestamp(delta_time[0])
         end_timestamp = get_unix_timestamp(delta_time[1])
         all_dataframes = []
@@ -565,12 +574,6 @@ def extract_grafana_data(grafana_url, dashboard_uid, delta_time, host, partition
                 continue
 
             for query_name, query in query_urls.items():
-                # try:
-                #     column_label = queries_labels[i] # type: ignore
-                #     column_name = f'{column_label} {panel_title}'
-                # except KeyError:
-                #     continue
-
                 query = query.replace("${DLH}", dlh_str["DLH"])
                 query = query.replace("${tp_handler}", dlh_str["tphandler"])
 
@@ -586,77 +589,16 @@ def extract_grafana_data(grafana_url, dashboard_uid, delta_time, host, partition
                     else:
                         print(f"not sure how to parse this data type: {data_type}")
 
-
-
-                    # print(data)
-
-                    # for name, url in datasource_urls.items():
-                    #     print(f"{name}, {url}")
-                    #     try:
-                    #         qurl = urljoin(url, "api/v1/query_range")
-                    #         with urlopen(qurl, urlencode(data).encode()) as response:
-                    #             # response_data = urljson(response)
-                    #             print(response.status)
-                    #     except HTTPError as e:
-                    #         print('Error code: ', e.code)
-                    #     except URLError as e:
-                    #         print('Reason: ', e.reason)
-                    #     except ValueError:
-                    #         pass
-                    # exit()
-
-                    # if response.status != 200:
-                    #     print('Error in extract_grafana_data: Failed to fetch dashboard data.')
-                    #     print(f'Status code:content {response.status_code}:{response.content}')
-                    #     print(f'Response panel:data:content for panel {panel_title}:{response_data}')
-                    #     return None
-
-                    #     if 'data' not in response_data or 'resultType' not in response_data['data'] or response_data['data']['resultType'] != 'matrix':
-                    #         print(f'Skipping query with no valid response in panel: {panel_title}')
-                    #         continue
-
-                    #     result = response_data['data']['result']
-                    #     if not result:
-                    #         print(f'Skipping query with no result in panel: {panel_title}')
-                    #         continue
-
-                    #     result = result[0]
-                    #     values = result.get('values', [])
-                    #     values_without_first_column = [row[1:] for row in values]
-
-                    #     if not values:
-                    #         print(f'Skipping query with no valid response in panel: {panel_title}')
-                    #         continue
-
-                    #     df_first = pd.DataFrame(values, columns=['Timestamp', column_name])
-                    #     df_first['Timestamp'] = pd.to_datetime(df_first['Timestamp'], unit='s')
-                    #     df = pd.DataFrame(values_without_first_column, columns=[column_name])
-
-                    #     df_tmp = df_first if panel_i == 0 and i == 0 else df
-                    #     all_dataframes.append(df_tmp)
-
-        # print(list(dashboard_data.keys()))
         print(dashboard_data)
-        write_dict_hdf5(dashboard_data, "out.hdf5")
 
-        # save_json("out.json", dashboard_data)
-        # save_json("out.json", {'Request rates for ${tp_handler}_0_0' : dashboard_data['Request rates for ${tp_handler}_0_0']})
-        # print(dashboard_data)
-
-        # Combine all dataframes into a single dataframe
-        # combined_df = pd.concat(all_dataframes, axis=1)
-        # combined_df = add_new_time_format(combined_df)
-
-        # print(combined_df)
-
-        # # Save the combined dataframe as a CSV file
-        # filename = output_csv_file.replace(".csv", "")
-        # output = f'grafana-{filename}.csv'
-        # try:
-        #     combined_df.to_csv(output, index=False)
-        #     print(f'Data saved to CSV successfully: {output}')
-        # except Exception as e:
-        #     print(f'Exception Error: Failed to save data to CSV: {str(e)}')
+        # Save the dataframes
+        filename = output_csv_file.replace(".hdf5", "")
+        output = f'grafana-{dashboard_uid_to_use}-{filename}.hdf5'
+        try:
+            write_dict_hdf5(dashboard_data, output)
+            print(f'Data saved to HDF5 successfully: {output}')
+        except Exception as e:
+            print(f'Exception Error: Failed to save data to HDF5: {str(e)}')
 
 
 def uprof_pcm_formatter(input_dir, file):
