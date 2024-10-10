@@ -508,8 +508,6 @@ def query_var(grafana_url, datasource_urls, query_str, start_time):
             "db" : i["jsonData"]["dbName"]
         }
         try:
-            print(urljoin(grafana_url, f"api/datasources/proxy/uid/{i['uid']}/query"))
-            print(data)
             with urlopen(urljoin(grafana_url, f"api/datasources/proxy/uid/{i['uid']}/query"), urlencode(data).encode()) as response:
                 return urljson(response)
         except HTTPError as e:
@@ -618,9 +616,6 @@ def extract_grafana_data(grafana_url, dashboard_uid, delta_time, host, partition
 
                 for k, v in dpdk_strs.items():
                     query = query.replace(f"${{{k}}}", v)
-
-                print(panel_title)
-                print(query)
 
                 response_data = query_data(datasource_urls, grafana_url, query, start_timestamp, end_timestamp)
 
