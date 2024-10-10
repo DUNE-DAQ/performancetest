@@ -1,4 +1,5 @@
 import os
+import copy
 import pathlib
 import json
 import re
@@ -47,12 +48,24 @@ def read_hdf5(file : str):
     """
     keys = []
     with tables.open_file(file, driver = "H5FD_CORE") as hdf5file:
-        for c in hdf5file.root: 
-            keys.append(c._v_pathname[1:])
+        for i in hdf5file.root:
+            keys.append(i._v_pathname[1:])
+            if type(i) == tables.group.Group:
+                for j in hdf5file.root[i._v_pathname[1:]]:
+                    if type(j) == tables.group.Group:
+                        keys.append(j._v_pathname[1:])
+
+    data = {}
     if len(keys) == 1:
         return pd.read_hdf(file)
     else:
-        return {k : pd.read_hdf(file, k) for k in keys}
+        for k in keys:
+            try:
+                data[k] = pd.read_hdf(file, key = k)
+            except:
+                print(f"could not open {k}")
+                pass
+    return data
 
 
 def urljson(response : HTTPResponse) -> dict | None:
@@ -285,7 +298,24 @@ def fetch_grafana_panels(grafana_url : str, dashboard_uid : str) -> list[dict]:
             print('Reason: ', e.reason)
 
 
-def get_query_urls(panel : dict, host : str, partition : str, start_time : str, end_time : str) -> tuple[list, list | None]:
+def get_query_urls(panel : dict) -> dict:
+
+    targets = panel.get('targets', [])
+    queries = {}
+
+    for target in targets:
+        if ('expr' in target) and (target["expr"] != ""):
+            queries[target["legendFormat"]] = target["expr"]
+        elif 'query' in target:
+            queries[panel["title"]] = target["query"]
+        elif 'rawSql' in target:
+            print(target)
+            queries[target["table"]] = target["rawSql"]
+
+    return queries
+
+
+def get_query_urls_old(panel : dict, host : str, partition : str, start_time : str, end_time : str) -> dict:
     """Get urls required to make queries to the datasource.
 
     Args:
@@ -297,11 +327,8 @@ def get_query_urls(panel : dict, host : str, partition : str, start_time : str, 
         tuple[list, list | None]: list of urls and their labels if urls were found.
     """
     targets = panel.get('targets', [])
-    queries = []
-    queries_label = []
 
     queries = {}
-
     for target in targets:
         if ('expr' in target) and (target["expr"] != ""):
             for var in ['${host}', '$node']:
@@ -328,7 +355,6 @@ def get_query_urls(panel : dict, host : str, partition : str, start_time : str, 
             query = target['rawSql'].replace('${partition}', partition)
             query = target['rawSql'].replace('${session}', partition)
             target['datasource']['uid'].replace('${influxdb}', partition)
-
             
             query = query.replace("${__from}", str(start_time))
             query = query.replace("${__to}", str(end_time))
@@ -381,8 +407,6 @@ def query_data(datasource_urls : list[dict], grafana_url : str, query_url : str,
     error = None
     for i in datasource_urls:
         if i["name"] in ["CERN IT Networking SNMP", "KluPrometheus"]: continue
-        # print(i["name"])
-        # print(i["uid"])
 
         url_extension = "query"
         if i["type"] == "influxdb":
@@ -408,10 +432,6 @@ def query_data(datasource_urls : list[dict], grafana_url : str, query_url : str,
             print("unknown database type")
             continue
 
-        # print(i["type"])
-        # print(data)
-
-        # print(urljoin(grafana_url, f"api/datasources/proxy/uid/{i['uid']}/{url_extension}"))
         try:
             with urlopen(urljoin(grafana_url, f"api/datasources/proxy/uid/{i['uid']}/{url_extension}"), urlencode(data).encode()) as response:
                 if response.status == 200:
@@ -419,15 +439,12 @@ def query_data(datasource_urls : list[dict], grafana_url : str, query_url : str,
                     break
         except HTTPError as e:
             error = e
-            # print('Error code: ', e.code)
             pass
         except URLError as e:
             error = e
-            # print('Reason: ', e.reason)
             pass
         except ValueError as e:
             error = e
-            # print("value error: {e}")
             pass
 
     if not response_data:
@@ -448,22 +465,22 @@ def make_names_str(names : list):
     return names_str
 
 
-def get_dpdk_vars(grafana_url, datasource_urls, start_time, partition):
-    query_str = f'SELECT "bytes", application, queue FROM "dunedaq.dpdklibs.opmon.QueueEthXStats" WHERE session = \'np02-session\' AND time >= {start_time}s and time <= {start_time + 10}s'
+def get_dpdk_vars(grafana_url, datasource_urls, start_time, end_time, partition):
+    query_str = f'SELECT "bytes", application, queue FROM "dunedaq.dpdklibs.opmon.QueueEthXStats" WHERE session = \'{partition}\' AND time >= {start_time}s and time <= {end_time}s'
 
     response = query_var(grafana_url, datasource_urls, query_str, start_time)
 
     values = np.array(response["results"][0]["series"][0]["values"])
-
+    
     values = {
         "application" : values[:, 2], # application
         "queue" : values[:, 3], # element
     }
-    return {k : make_names_str(np.unique(v)) for k, v in values.items()}
+    return {k : np.unique(v) for k, v in values.items()}
 
 
-def get_fe_eth_vars(grafana_url, datasource_urls, start_time, partition):
-    query_str = f"SELECT \"sent_udp_count\", application, element, detector, crate, slot, queue FROM \"dunedaq.hermesmodules.opmon.LinkInfo\" WHERE session = '{partition}' AND time >= {start_time}s and time <= {start_time + 10}s"
+def get_fe_eth_vars(grafana_url, datasource_urls, start_time, end_time, partition):
+    query_str = f"SELECT \"sent_udp_count\", application, element, detector, crate, slot, queue FROM \"dunedaq.hermesmodules.opmon.LinkInfo\" WHERE session = '{partition}' AND time >= {start_time}s and time <= {end_time}s"
 
     response = query_var(grafana_url, datasource_urls, query_str, start_time)
 
@@ -476,13 +493,13 @@ def get_fe_eth_vars(grafana_url, datasource_urls, start_time, partition):
         "crate" : values[:, 5],
         "slot" : values[:, 6],
     }
-    values = {k : make_names_str(np.unique(v)) for k, v in values.items()}
+    values = {k : np.unique(v) for k, v in values.items()}
     return values
 
 
-def get_dhs(grafana_url, datasource_urls, start_time):
+def get_dhs(grafana_url, datasource_urls, start_time, end_time):
 
-    query_str = f'SELECT element FROM (SELECT "sum_payloads", element FROM "dunedaq.datahandlinglibs.opmon.DataHandlerInfo" WHERE time >= {start_time}s and time <= {start_time + 10}s)'
+    query_str = f'SELECT element FROM (SELECT "sum_payloads", element FROM "dunedaq.datahandlinglibs.opmon.DataHandlerInfo" WHERE time >= {start_time}s and time <= {end_time}s)'
 
     response = query_var(grafana_url, datasource_urls, query_str, start_time)
     values = response["results"][0]["series"][0]["values"]
@@ -496,7 +513,7 @@ def get_dhs(grafana_url, datasource_urls, start_time):
         if "tphandler" in v[1]:
             tphandler_names.append(v[1])
 
-    return {"DLH" : make_names_str(DLH_names), "tphandler" : make_names_str(tphandler_names)}
+    return {"DLH" : DLH_names, "tphandler" : tphandler_names}
 
 
 def query_var(grafana_url, datasource_urls, query_str, start_time):
@@ -515,16 +532,28 @@ def query_var(grafana_url, datasource_urls, query_str, start_time):
     return
 
 
-def parse_result_influx(response_data, panel) -> pd.DataFrame:
+class hashabledict(dict):
+    def __hash__(self):
+        return hash(tuple(sorted(self.items())))
+
+
+def dict_to_str(d : dict) -> str:
+    return "".join([f"{k}:{v}," for k, v in d.items()])
+
+
+def parse_result_influx(response_data : dict, panel : dict, iter_vals : dict) -> pd.DataFrame:
     parsed_results = {}
-    for i, result in enumerate(response_data["results"]):
-        if "series" not in result:
-            parsed_results[panel["title"] + f"_{i}"] = None
-        else:
-            for j, series in enumerate(result["series"]):
 
-                parsed_results[panel["title"] + f"_{i}" + f"_{j}"] = np.array(series["values"])
-
+    if "series" in response_data["results"][0]:
+        for i in response_data["results"][0]["series"]:
+            if "tags" in i:
+                if len(i["tags"]) > 1:
+                    key = dict_to_str(i["tags"])
+                else:
+                    key = list(i["tags"].values())[0]
+                parsed_results[key] = np.array(i["values"])
+            else:
+                parsed_results[panel["title"]] = np.array(i["values"])
 
     df = None
     for k, v in parsed_results.items():
@@ -542,7 +571,7 @@ def parse_result_influx(response_data, panel) -> pd.DataFrame:
     return df
 
 
-def parse_result_prometheus(response_data, panel, name) -> pd.DataFrame:
+def parse_result_prometheus(response_data, name) -> pd.DataFrame:
     parsed = {}
 
     for i, result in enumerate(response_data["data"]["result"]):
@@ -557,27 +586,114 @@ def parse_result_prometheus(response_data, panel, name) -> pd.DataFrame:
     return pd.DataFrame(parsed).set_index("time")
 
 
-def extract_grafana_data(grafana_url, dashboard_uid, delta_time, host, partition, output_csv_file):
+def is_collection(x : any) -> bool:
+    return (type(x) != str) and hasattr(x, "__iter__")
+
+
+def replace(x, target, value):
+    if type(x) != str: return x
+
+    if target in x:
+        x = x.replace(f"${{{target}}}", value)
+        x = x.replace(f"${target}", value)
+    return x
+
+
+def search_panel(d, action : callable, args : dict):
+    if (type(d) == dict) and is_collection(d):
+        for k in d:
+
+            if k == "datasource" : d[k]["uid"] = None # we need to try each uid
+
+            if is_collection(d):
+                new = search_panel(d[k], action, args)
+                d[k] = new
+    elif is_collection(d):
+        for i in range(len(d)):
+            if is_collection(d[i]):
+                new = search_panel(d[i], action, args)
+                d[i] = new
+    else:
+        return action(d, **args)
+    return d
+
+
+def collect_vars(grafana_url, datasource_urls, start_time, end_time, partition, host) -> dict:
+    
+    dlh_str = get_dhs(grafana_url, datasource_urls, start_time, end_time)
+    fe_strs = get_fe_eth_vars(grafana_url, datasource_urls, start_time, end_time, partition)
+    dpdk_strs = get_dpdk_vars(grafana_url, datasource_urls, start_time, end_time, partition)
+
+    var_map = {
+        "host" : host, # only true is expr in target?
+        "node" : host, # ""
+        "parition" : partition,
+        "session" : partition,
+        "timeFilter" : f"time >= {start_time}s and time <= {end_time}s", # apply time range within query (applicable to influxdb queries)
+        "__interval": "10s",
+        "{__from}" : str(start_time),
+        "{__to}" : str(end_time)
+    }
+
+    return var_map | dlh_str | fe_strs | dpdk_strs
+
+
+def extract_vars(x):
+    v = []
+    for i in x.split("$")[1:]: # first part doesnt matter
+        v.append(i.split(" ")[0].replace("{", "").replace("}", "").replace("'", "").replace("/", "")) # this is ugly
+    return v
+
+
+def format_panels(panels: list[dict], var_map : dict) -> tuple[list[dict], list[str]]:
+    new_panels = []
+
+    for panel in panels:
+        if "title" not in panel: continue
+        if "$" in panel["title"]: # variable has been found in panel title, this must be duplicated if any variables are a list
+            dup = extract_vars(panel["title"])
+            for k, v in var_map.items():
+                if is_collection(v): # is the variable a list
+                    if k in dup: # is it in the title
+                        for i in v:
+                            new_panels.append(search_panel(copy.deepcopy(panel), replace, {"target" : k, "value" : i})) # duplicate panel for each variable
+        else:
+            new_panels.append(copy.deepcopy(panel))
+
+    original_queries = [get_query_urls(panel) for panel in new_panels]
+
+    for panel in new_panels:
+        for k, v in var_map.items():
+            if is_collection(v): # is the variable a list
+                search_panel(panel, replace, {"target" : k, "value" : make_names_str(v)}) # replace variable with its names_str
+            else:
+                search_panel(panel, replace, {"target" : k, "value" : v}) # replace variable with value
+    return new_panels, original_queries
+
+
+def extract_grafana_data(grafana_url, dashboard_uid, delta_time, host, partition, output_csv_file) -> str:
 
     datasource_urls = get_datasource_urls(grafana_url)
+        
+    start_time = get_unix_timestamp(delta_time[0])
+    end_time = get_unix_timestamp(delta_time[1])
+
+    var_map = collect_vars(grafana_url, datasource_urls, start_time, end_time, partition, host)
+
+    out_files = []
+
 
     for dashboard_uid_to_use in dashboard_uid:
-        panels_data = fetch_grafana_panels(grafana_url, dashboard_uid_to_use)
-        if not panels_data:
+        panels = fetch_grafana_panels(grafana_url, dashboard_uid_to_use)
+
+        if not panels:
             print('Error in extract_grafana_data: Failed to fetch dashboard panels data.')
             return
-        
-        start_timestamp = get_unix_timestamp(delta_time[0])
-        end_timestamp = get_unix_timestamp(delta_time[1])
-        all_dataframes = []
 
-        dlh_str = get_dhs(grafana_url, datasource_urls, start_timestamp)
-
-        fe_strs = get_fe_eth_vars(grafana_url, datasource_urls, start_timestamp, partition)
-        dpdk_strs = get_dpdk_vars(grafana_url, datasource_urls, start_timestamp, partition)
+        panels, original_queries = format_panels(panels, var_map)
 
         dashboard_data = {}
-        for panel_i, panel in enumerate(panels_data):
+        for p, panel in enumerate(panels):
 
             if 'targets' not in panel:
                 print(f'Skipping panel {panel_title}, with no targets.')
@@ -595,50 +711,53 @@ def extract_grafana_data(grafana_url, dashboard_uid, delta_time, host, partition
 
             panel_title = panel.get('title', '')
             if not panel_title:
-                print(f'Skipping panel with no title.')
                 continue
             
             if ("resultFormat" in panel["targets"][0]) and (panel["targets"][0]["resultFormat"] == "table"): continue
 
-            query_urls = get_query_urls(panel, host, partition, start_timestamp, end_timestamp)
+            query_urls = get_query_urls(panel)
 
+            vars_in_query = [extract_vars(v) for v in original_queries[p].values()]
 
             if len(query_urls) == 0:
                 print(f'Skipping panel {panel_title}, with no valid query URL')
                 continue
 
-            for query_name, query in query_urls.items():
-                query = query.replace("${DLH}", dlh_str["DLH"])
-                query = query.replace("${tp_handler}", dlh_str["tphandler"])
+            for (query_name, query), var in zip(query_urls.items(), vars_in_query):
 
-                for k, v in fe_strs.items():
-                    query = query.replace(f"${{{k}}}", v)
-
-                for k, v in dpdk_strs.items():
-                    query = query.replace(f"${{{k}}}", v)
-
-                response_data = query_data(datasource_urls, grafana_url, query, start_timestamp, end_timestamp)
+                iter_vals = {}
+                for v in var:
+                    iter_val = var_map.get(v)
+                    if is_collection(iter_val):
+                        iter_vals[v] = iter_val
+                response_data = query_data(datasource_urls, grafana_url, query, start_time, end_time)
 
                 if response_data:
                     if data_type == "prometheus":
-                        dashboard_data[panel_title] = parse_result_prometheus(response_data, panel, query_name)
+                        dashboard_data[panel_title] = parse_result_prometheus(response_data, query_name)
 
                     elif data_type == "influxdb":
-                        dashboard_data[panel_title] = parse_result_influx(response_data, panel)
+                        dashboard_data[panel_title] = parse_result_influx(response_data, panel, iter_vals)
 
                     else:
                         print(f"not sure how to parse this data type: {data_type}")
-
         print(dashboard_data)
+
+        for k in dashboard_data:
+            if dashboard_data[k] is None:
+                dashboard_data[k] = pd.DataFrame({})
 
         # Save the dataframes
         filename = output_csv_file.replace(".hdf5", "")
         output = f'grafana-{dashboard_uid_to_use}-{filename}.hdf5'
         try:
             write_dict_hdf5(dashboard_data, output)
+            out_files.append(output)
             print(f'Data saved to HDF5 successfully: {output}')
         except Exception as e:
             print(f'Exception Error: Failed to save data to HDF5: {str(e)}')
+
+    return out_files
 
 
 def uprof_pcm_formatter(input_dir, file):

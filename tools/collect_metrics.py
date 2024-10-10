@@ -64,10 +64,10 @@ def main(args : argparse.Namespace):
             cpu_df.to_csv(cu_file.name)
             core_utilisation_files.append(cu_file.resolve().as_posix())
 
-        gr_file = pathlib.Path(f"grafana-{name}.csv")
         # extract grafana data
-        extract_grafana_data(test_args["grafana_url"], test_args["dashboard_uid"], test_args["delta_time"][i], test_args["host"], test_args["partition"][i], name)
-        grafana_files.append(gr_file.resolve().as_posix())
+        filenames = extract_grafana_data(test_args["grafana_url"], test_args["dashboard_uid"], test_args["delta_time"][i], test_args["host"], test_args["partition"][i], name)
+        for f in filenames:
+            grafana_files.append(pathlib.Path(f).resolve().as_posix())
 
     new_args["grafana_data_files"] = grafana_files
 
