@@ -6,6 +6,11 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 
+def set_plot_style():
+    plt.style.use('ggplot')
+    return
+
+
 class PlotBook:
     def __init__(self, name : str, open : bool = True) -> None:
         self.name = name
@@ -57,6 +62,7 @@ def plot(x, y, label : str, xlabel : str, ylabel : str, newFigure : bool = True,
     plt.ylabel(ylabel)
     plt.legend()
     plt.tight_layout()
+
     if book is not None:
         print("saving")
         book.Save()

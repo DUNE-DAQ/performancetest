@@ -32,7 +32,11 @@ def write_dict_hdf5(dictionary : dict, file : str):
     """
     with pd.HDFStore(file) as hdf:
         for k, v in dictionary.items():
-            hdf.put(k, v)
+            try:
+                hdf.put(k, v)
+            except Exception as e:
+                print(f"cannot write {k} to file: {e}")
+                pass
     return
 
 
@@ -560,7 +564,7 @@ def parse_result_influx(response_data : dict, panel : dict, iter_vals : dict) ->
         if df is None:
             df = entry
         else:
-            df = pd.concat([df, entry], axis = 1)
+            df = pd.concat([df, entry], axis = 1).astype(float)
 
     return df
 
@@ -577,7 +581,7 @@ def parse_result_prometheus(response_data, name) -> pd.DataFrame:
         parsed["time"] = v[:, 0]
         parsed[key] = v[:, 1]
 
-    return pd.DataFrame(parsed).set_index("time")
+    return pd.DataFrame(parsed).set_index("time").astype(float)
 
 
 def is_collection(x : any) -> bool:
@@ -694,7 +698,7 @@ def extract_grafana_data(grafana_url, dashboard_uid, delta_time, host, partition
 
         dashboard_data = {}
         for p, panel in enumerate(panels):
-            
+
             if 'targets' not in panel:
                 print(f'Skipping panel {panel_title}, with no targets.')
                 continue
@@ -712,7 +716,7 @@ def extract_grafana_data(grafana_url, dashboard_uid, delta_time, host, partition
             panel_title = panel.get('title', '')
             if not panel_title:
                 continue
-            
+
             if ("resultFormat" in panel["targets"][0]) and (panel["targets"][0]["resultFormat"] == "table"): continue
 
             query_urls = get_query_urls(panel)
@@ -746,6 +750,7 @@ def extract_grafana_data(grafana_url, dashboard_uid, delta_time, host, partition
                         print(f"not sure how to parse this data type: {data_type}")
             
             single_columns = all([len(data.columns) == 1 for data in data_from_panel.values() if data is not None])
+
             if single_columns:
                 merged_df = None
                 for k, v in data_from_panel.items():
@@ -754,17 +759,18 @@ def extract_grafana_data(grafana_url, dashboard_uid, delta_time, host, partition
                     else:
                         merged_df = pd.concat([merged_df, v], axis = 1)
                 data_from_panel = merged_df
-    
+            elif len(data_from_panel) == 1:
+                data_from_panel = list(data_from_panel.values())[0]
+            else:
+                print(f"don't know what to do for {panel_title}")
+                pass
+
             if data_from_panel is None:
                 dashboard_data[panel_title] = pd.DataFrame({})
             else:
                 dashboard_data[panel_title] = data_from_panel
 
         print(dashboard_data)
-
-        # for k in dashboard_data:
-        #     if dashboard_data[k] is None:
-        #         dashboard_data[k] = pd.DataFrame({})
 
         # Save the dataframes
         filename = output_csv_file.replace(".hdf5", "")

@@ -10,52 +10,48 @@ from rich import print
 
 import plotting
 
-def get_units(x):
-    label = x.lower()
-    if "packet" in label:
-        return "(p/s)"
-    elif "error" in label or "rate" in label:
-        return "(c/s)"
-    elif label == "rx good bytes":
-        return "(Gib/s)"
+
+def get_units(name : str):
+    if "rate" in name.lower():
+        return "(Hz)"
     else:
         return ""
+
 
 def main(args : argparse.Namespace):
     plotting.set_plot_style()
     test_args = load_json(args.file)
 
-    fe_data = "frontend_ethernet"
+    tp_data = "trigger_primitive"
 
     for file in test_args["grafana_data_files"]:
-        if fe_data in file:
+        if tp_data in file:
             data = read_hdf5(file)
             break
 
     tlabel = "Relative time (s)"
 
-    rx_metrics = []
-    for k in data:
-        if "RX" in k:
-            rx_metrics.append(k)
+    metrics = list(data.keys())
+    metrics.remove('Highest TP rates per channel') # this dataframe is impractical for a plot
 
-    with plotting.PlotBook("frontend_ethernet.pdf") as book:
-        for i in rx_metrics:
-            if i.lower() == "rx good bytes":
-                scale = 1E9
-            else:
-                scale = 1
+    with plotting.PlotBook("trigger_primitive.pdf") as book:
+        for i in metrics:
             df = data[i]
             if df.empty:
                 print(f"warning : dataframe for {i} is empty! Skipping.")
                 continue
 
-            plotting.plt.figure(figsize=(8*1.2, 6*1.2))
+            plotting.plt.figure(figsize=(8, 6))
             for c in df.columns:
-                plotting.plot(plotting.relative_time(df), df[c]/scale, c, tlabel, i + f" {get_units(i)}", False)
+                plotting.plot(plotting.relative_time(df), df[c].astype(float), c, tlabel, i + f" {get_units(i)}", False)
             plotting.plt.ylim(0) # data should never be < 0
-            plotting.plt.legend(ncols = 1 + (len(df.columns)**0.5 / 2), fontsize = "small")
-            plotting.plt.tight_layout()
+            
+            if len(df.columns) > 10:
+                plotting.plt.legend(ncols = 1 + (len(df.columns)**0.5 / 2), fontsize = "x-small", bbox_to_anchor=(1.10, 1))
+                plotting.plt.tight_layout()
+                plotting.plt.gcf().set_size_inches(18, 6)
+                # plotting.plt.tight_layout()
+
             book.Save()
             plotting.plt.clf()
 
