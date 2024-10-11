@@ -497,7 +497,7 @@ def get_fe_eth_vars(grafana_url, datasource_urls, start_time, end_time, partitio
     return values
 
 
-def get_dhs(grafana_url, datasource_urls, start_time, end_time):
+def get_dhs(grafana_url, datasource_urls, start_time, end_time, partition):
 
     query_str = f'SELECT element FROM (SELECT "sum_payloads", element FROM "dunedaq.datahandlinglibs.opmon.DataHandlerInfo" WHERE time >= {start_time}s and time <= {end_time}s)'
 
@@ -513,8 +513,7 @@ def get_dhs(grafana_url, datasource_urls, start_time, end_time):
         if "tphandler" in v[1]:
             tphandler_names.append(v[1])
 
-    return {"DLH" : DLH_names, "tphandler" : tphandler_names}
-
+    return {"DLH" : np.unique(DLH_names), "tphandler" : np.unique(tphandler_names)}
 
 def query_var(grafana_url, datasource_urls, query_str, start_time):
 
@@ -530,11 +529,6 @@ def query_var(grafana_url, datasource_urls, query_str, start_time):
         except HTTPError as e:
             print(e)
     return
-
-
-class hashabledict(dict):
-    def __hash__(self):
-        return hash(tuple(sorted(self.items())))
 
 
 def dict_to_str(d : dict) -> str:
@@ -619,10 +613,15 @@ def search_panel(d, action : callable, args : dict):
 
 
 def collect_vars(grafana_url, datasource_urls, start_time, end_time, partition, host) -> dict:
-    
-    dlh_str = get_dhs(grafana_url, datasource_urls, start_time, end_time)
-    fe_strs = get_fe_eth_vars(grafana_url, datasource_urls, start_time, end_time, partition)
-    dpdk_strs = get_dpdk_vars(grafana_url, datasource_urls, start_time, end_time, partition)
+
+    vars_to_collect = {"dhs" : get_dhs, "fe" : get_fe_eth_vars, "dpdk" : get_dpdk_vars}
+
+    collected_vars = {}
+    for k, v in vars_to_collect.items():
+        try:
+            collected_vars[k] = v(grafana_url, datasource_urls, start_time, end_time, partition)
+        except:
+            print(f"cannot get {k} for session {partition}")
 
     var_map = {
         "host" : host, # only true is expr in target?
@@ -635,7 +634,9 @@ def collect_vars(grafana_url, datasource_urls, start_time, end_time, partition, 
         "{__to}" : str(end_time)
     }
 
-    return var_map | dlh_str | fe_strs | dpdk_strs
+    for v in collected_vars.values():
+        var_map = var_map | v
+    return var_map
 
 
 def extract_vars(x):
@@ -682,7 +683,6 @@ def extract_grafana_data(grafana_url, dashboard_uid, delta_time, host, partition
 
     out_files = []
 
-
     for dashboard_uid_to_use in dashboard_uid:
         panels = fetch_grafana_panels(grafana_url, dashboard_uid_to_use)
 
@@ -694,7 +694,7 @@ def extract_grafana_data(grafana_url, dashboard_uid, delta_time, host, partition
 
         dashboard_data = {}
         for p, panel in enumerate(panels):
-
+            
             if 'targets' not in panel:
                 print(f'Skipping panel {panel_title}, with no targets.')
                 continue
@@ -723,6 +723,7 @@ def extract_grafana_data(grafana_url, dashboard_uid, delta_time, host, partition
                 print(f'Skipping panel {panel_title}, with no valid query URL')
                 continue
 
+            data_from_panel = {}
             for (query_name, query), var in zip(query_urls.items(), vars_in_query):
 
                 iter_vals = {}
@@ -734,18 +735,36 @@ def extract_grafana_data(grafana_url, dashboard_uid, delta_time, host, partition
 
                 if response_data:
                     if data_type == "prometheus":
-                        dashboard_data[panel_title] = parse_result_prometheus(response_data, query_name)
+                        data_from_panel[query_name] = parse_result_prometheus(response_data, query_name)
+                        # dashboard_data[panel_title] = parse_result_prometheus(response_data, query_name)
 
                     elif data_type == "influxdb":
-                        dashboard_data[panel_title] = parse_result_influx(response_data, panel, iter_vals)
+                        data_from_panel[query_name] = parse_result_influx(response_data, panel, iter_vals)
+                        # dashboard_data[panel_title] = parse_result_influx(response_data, panel, iter_vals)
 
                     else:
                         print(f"not sure how to parse this data type: {data_type}")
+            
+            single_columns = all([len(data.columns) == 1 for data in data_from_panel.values() if data is not None])
+            if single_columns:
+                merged_df = None
+                for k, v in data_from_panel.items():
+                    if merged_df is None:
+                        merged_df = v
+                    else:
+                        merged_df = pd.concat([merged_df, v], axis = 1)
+                data_from_panel = merged_df
+    
+            if data_from_panel is None:
+                dashboard_data[panel_title] = pd.DataFrame({})
+            else:
+                dashboard_data[panel_title] = data_from_panel
+
         print(dashboard_data)
 
-        for k in dashboard_data:
-            if dashboard_data[k] is None:
-                dashboard_data[k] = pd.DataFrame({})
+        # for k in dashboard_data:
+        #     if dashboard_data[k] is None:
+        #         dashboard_data[k] = pd.DataFrame({})
 
         # Save the dataframes
         filename = output_csv_file.replace(".hdf5", "")
