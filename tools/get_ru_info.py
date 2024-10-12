@@ -1,9 +1,8 @@
 #!/usr/bin/env python
-import subprocess
-import os
-import json
-
 import argparse
+import json
+import os
+import subprocess
 
 from rich import print
 

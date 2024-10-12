@@ -1,10 +1,22 @@
 #!/usr/bin/env python
-from basic_functions import extract_grafana_data, load_json, save_json, reformat_cpu_util, create_filename
-from rich import print
+"""
+Created on: 13/10/2024 00:06
+
+Author: Shyam Bhuller
+
+Description: Collect metrics from the grafana dashboards.
+"""
 import argparse
 import pathlib
 
 from warnings import warn
+
+from basic_functions import reformat_cpu_util #! this should be deprecated as core utilisation need to be included in the dashboards
+import files
+import harvester
+import utils
+
+from rich import print
 
 def generate_config_template():
     """Generate a template json file for the test reports.
@@ -39,15 +51,14 @@ def generate_config_template():
         "report_comment" : ["comment for each test"]
 
     }
-    save_json("template_report.json", cfg)
+    files.save_json("template_report.json", cfg)
     print("template config file template_report.json created")
 
 
 def main(args : argparse.Namespace):
+    test_args = files.load_json(args.file)
 
-    test_args = load_json(args.file)
-
-    new_args = load_json(args.file) # reopen config file to add the data file paths
+    new_args = files.load_json(args.file) # reopen config file to add the data file paths
     core_utilisation_files = []
     grafana_files = []
 
@@ -55,7 +66,7 @@ def main(args : argparse.Namespace):
         warn("no core utilisation files were specified!!! Skipping.")
 
     for i in range(len(test_args["test_name"])):
-        name = create_filename(test_args, i)
+        name = utils.create_filename(test_args, i)
 
         if "core_utilisation_files" in test_args:
             cu_file = pathlib.Path(f"core_utilisation-{name}.csv")
@@ -65,7 +76,7 @@ def main(args : argparse.Namespace):
             core_utilisation_files.append(cu_file.resolve().as_posix())
 
         # extract grafana data
-        filenames = extract_grafana_data(test_args["grafana_url"], test_args["dashboard_uid"], test_args["delta_time"][i], test_args["host"], test_args["partition"][i], name)
+        filenames = harvester.extract_grafana_data(test_args["grafana_url"], test_args["dashboard_uid"], test_args["delta_time"][i], test_args["host"], test_args["partition"][i], name)
         for f in filenames:
             grafana_files.append(pathlib.Path(f).resolve().as_posix())
 
@@ -74,7 +85,7 @@ def main(args : argparse.Namespace):
     if len(core_utilisation_files) > 0:
         new_args["reformatted_utilisation_files"] = core_utilisation_files
 
-    save_json(args.file, new_args)
+    files.save_json(args.file, new_args)
     print(f"{args.file} updated to include processed data files.")
 
 

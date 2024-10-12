@@ -1,14 +1,11 @@
 #!/usr/bin/env python
-import pathlib
 import argparse
+import pathlib
 
-import pandas as pd
-
-from basic_functions import read_hdf5, load_json
+import files
+import plotting
 
 from rich import print
-
-import plotting
 
 def get_units(x):
     label = x.lower()
@@ -23,13 +20,13 @@ def get_units(x):
 
 def main(args : argparse.Namespace):
     plotting.set_plot_style()
-    test_args = load_json(args.file)
+    test_args = files.load_json(args.file)
 
     fe_data = "frontend_ethernet"
 
     for file in test_args["grafana_data_files"]:
         if fe_data in file:
-            data = read_hdf5(file)
+            data = files.read_hdf5(file)
             break
 
     tlabel = "Relative time (s)"
@@ -56,14 +53,14 @@ def main(args : argparse.Namespace):
             plotting.plt.ylim(0) # data should never be < 0
             plotting.plt.legend(ncols = 1 + (len(df.columns)**0.5 / 2), fontsize = "small")
             plotting.plt.tight_layout()
-            book.Save()
+            book.save()
             plotting.plt.clf()
 
     return
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser("Create basic plots for performance reports.")
+    parser = argparse.ArgumentParser("Create plots for the frontend ethernet metrics.")
 
     file_arg = parser.add_argument("-f", "--file", type = pathlib.Path, help = "json file which contains the details of the test.", required = True)
 

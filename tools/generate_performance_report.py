@@ -1,18 +1,28 @@
 #!/usr/bin/env python
-from basic_functions import load_json, create_filename
-from basic_functions_performance import create_report_performance
-from rich import print
-import argparse
-import pathlib
-import os
+"""
+Created on: 13/10/2024 00:10
 
+Author: Shyam Bhuller
+
+Description: Deprecated, likely does not work with current data files.
+"""
+import argparse
+import os
+import pathlib
+
+from basic_functions_performance import create_report_performance
+
+import files
+import utils
+
+from rich import print
 
 def main(args : argparse.Namespace):
 
-    test_args = load_json(args.file)
+    test_args = files.load_json(args.file)
 
     if test_args["report_name"] is None:
-        name = create_filename(test_args, 0) # should this be something unique?
+        name = utils.create_filename(test_args, 0) # should this be something unique?
     else:
         name = test_args["report_name"]
 

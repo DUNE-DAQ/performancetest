@@ -1,5 +1,4 @@
 import os
-import json
 import re
 
 from warnings import warn
@@ -14,7 +13,8 @@ from fpdf.enums import XPos, YPos
 import conffwk
 import confmodel
 
-from basic_functions import break_file_name, current_time, load_json
+from basic_functions import break_file_name, current_time
+from files import load_json
 
 from rich import print
 

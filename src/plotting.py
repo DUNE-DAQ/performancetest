@@ -1,17 +1,27 @@
-import matplotlib.pyplot as plt
+"""
+Created on: 12/10/2024 18:35
+
+Author: Shyam Bhuller
+
+Description: Module for making plots.
+"""
 import warnings
 
 import pandas as pd
-
 import matplotlib.pyplot as plt
+
 from matplotlib.backends.backend_pdf import PdfPages
 
 def set_plot_style():
+    """ Set the plotting style for performance tests.
+    """
     plt.style.use('ggplot')
     return
 
 
 class PlotBook:
+    """ Object to manage saving plots to a pdf file.
+    """
     def __init__(self, name : str, open : bool = True) -> None:
         self.name = name
         if ".pdf" not in self.name: self.name += ".pdf" 
@@ -25,7 +35,7 @@ class PlotBook:
         self.close()
         self.is_open = False
 
-    def Save(self):
+    def save(self):
         if hasattr(self, "pdf"):
             try:
                 self.pdf.savefig(bbox_inches='tight')
@@ -56,6 +66,17 @@ class PlotBook:
 
 
 def plot(x, y, label : str, xlabel : str, ylabel : str, newFigure : bool = True, book : PlotBook = None):
+    """ Create a line plot.
+
+    Args:
+        x : x data.
+        y : y data.
+        label (str): Label for line.
+        xlabel (str): x label.
+        ylabel (str): y label.
+        newFigure (bool, optional): Option to create a new figure. Defaults to True.
+        book (PlotBook, optional): PlotBook to save the plot to. Defaults to None.
+    """
     if newFigure: plt.figure()
     plt.plot(x, y, label = label)
     plt.xlabel(xlabel)
@@ -64,12 +85,19 @@ def plot(x, y, label : str, xlabel : str, ylabel : str, newFigure : bool = True,
     plt.tight_layout()
 
     if book is not None:
-        print("saving")
-        book.Save()
+        book.save()
         plt.clf()
     return
 
 
 def relative_time(df : pd.DataFrame) -> pd.Series:
+    """ Convert absolute time from the performance matric into relative time.
+
+    Args:
+        df (pd.DataFrame): Performance metric.
+
+    Returns:
+        pd.Series: Relative time.
+    """
     time = df.index.astype(int)
     return time - time[0]

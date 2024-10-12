@@ -1,24 +1,22 @@
 #!/usr/bin/env python
-import pathlib
 import argparse
+import pathlib
 
-import pandas as pd
-
-from basic_functions import read_hdf5, load_json
+import files
+import plotting
 
 from rich import print
 
-import plotting
 
 def main(args : argparse.Namespace):
     plotting.set_plot_style()
-    test_args = load_json(args.file)
+    test_args = files.load_json(args.file)
 
     pcm_data = "A_CvwTCWk"
 
     for file in test_args["grafana_data_files"]:
         if pcm_data in file:
-            data = read_hdf5(file)
+            data = files.read_hdf5(file)
             break
 
     print(data.keys())
@@ -51,7 +49,7 @@ def main(args : argparse.Namespace):
             df = data[i]
             for c in df.columns:
                 plotting.plot(plotting.relative_time(df), df[c].astype(float), c, tlabel, i, False)
-            book.Save()
+            book.save()
             plotting.plt.clf()
             
 
@@ -60,16 +58,14 @@ def main(args : argparse.Namespace):
             df = cache_ratio[i]
             for c in df.columns:
                 plotting.plot(plotting.relative_time(df), df[c].astype(float), c, tlabel, i, False)
-            book.Save()
+            book.save()
             plotting.plt.clf()
-
-        # plotting.plot(plotting.relative_time(data[total_cpu_util]), data[total_cpu_util]["C0"].astype(float), label= None, xlabel= tlabel, ylabel = total_cpu_util, book = book)
 
     return
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser("Create basic plots for performance reports.")
+    parser = argparse.ArgumentParser("Create plots for resource utilisation metrics.")
 
     file_arg = parser.add_argument("-f", "--file", type = pathlib.Path, help = "json file which contains the details of the test.", required = True)
 
