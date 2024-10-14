@@ -18,6 +18,7 @@ import utils
 
 from rich import print
 
+
 def generate_config_template():
     """Generate a template json file for the test reports.
     """
@@ -30,7 +31,7 @@ def generate_config_template():
 
         "grafana_url" : "grafana url to access monitoring",
         "dashboard_uid" : ["dashboard uid"],
-        "delta_time" : [["start time of test", "end time of test"]],
+        "run_number" : "run number of the test",
         "partition" : ["grafana partition name for the given test"],
 
         "core_utilisation_files" : [
@@ -76,7 +77,7 @@ def main(args : argparse.Namespace):
             core_utilisation_files.append(cu_file.resolve().as_posix())
 
         # extract grafana data
-        filenames = harvester.extract_grafana_data(test_args["grafana_url"], test_args["dashboard_uid"], test_args["delta_time"][i], test_args["host"], test_args["partition"][i], name)
+        filenames = harvester.extract_grafana_data(test_args["grafana_url"], test_args["dashboard_uid"], test_args["run_number"], test_args["host"], test_args["partition"][i], name)
         for f in filenames:
             grafana_files.append(pathlib.Path(f).resolve().as_posix())
 

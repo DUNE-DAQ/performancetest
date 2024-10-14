@@ -24,6 +24,28 @@ warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning) # 
 warnings.simplefilter(action='ignore', category=tables.NaturalNameWarning) # cause screw pandas
 
 
+def get_run_time(url : str, datasources : list[dict], run_number : int) -> time_range:
+    """ Get the start time and end time of the run.
+
+    Args:
+        url (str): Grafana url.
+        datasources (list[dict]): List of datasources.
+        run_number (int): run number of the test.
+
+    Returns:
+        time_range: start and end times in unix time.
+    """
+    query_str = f"SELECT \"run_number\" FROM \"dunedaq.rcif.opmon.RunInfo\" WHERE \"run_number\" >0"
+    response = queries.query_var(url, datasources, query_str)
+
+    values = np.array(response["results"][0]["series"][0]["values"])
+    times = values[values[:, 1].astype(int) == run_number][:, 0] # select times for the given run number
+
+    utimes = utils.dt_to_unix_array([times[0], times[-1]]).values # get the unix time for start and end times
+
+    return time_range(start = min(utimes), end =max(utimes))
+
+
 def collect_vars(url : str, datasources : list[dict], time : time_range, partition : str, host : str) -> dict:
     """ Collect relavent variables from the grafana dashboards. This is very specific to the DUNEDAQ,
         so this would be a likely failure point if operational monitoring changes.
@@ -233,13 +255,13 @@ def format_panels(panels: list[dict], var_map : dict) -> tuple[list[dict], list[
     return new_panels, original_queries
 
 
-def extract_grafana_data(url : str, dashboards : list[str], delta_time : time_range, host : str, partition : str, output_file : str) -> list[str]:
+def extract_grafana_data(url : str, dashboards : list[str], run_number : int, host : str, partition : str, output_file : str) -> list[str]:
     """ Extract data from Grafana dashboards.
 
     Args:
         url (str): Grafana url.
         dashboard_uid (list[str]): Dashboard uid.
-        delta_time (time_range): Time range of test.
+        run_number (int): run number of specific test.
         host (str): Host name.
         partition (str): Partition/session name.
         output_file (str): Output file name.
@@ -247,9 +269,9 @@ def extract_grafana_data(url : str, dashboards : list[str], delta_time : time_ra
     Returns:
         list[str]: List of the output files.
     """
-    datasource_urls = queries.get_datasources(url) # gather list of all datasources
 
-    time = time_range(utils.get_unix_timestamp(delta_time[0]), utils.get_unix_timestamp(delta_time[1])) # convert time range to unix time
+    datasource_urls = queries.get_datasources(url) # gather list of all datasources
+    time = get_run_time(url, datasource_urls, run_number)
 
     var_map = collect_vars(url, datasource_urls, time, partition, host) # get list of relavent variables used by the dashboards
 

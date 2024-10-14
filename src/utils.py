@@ -10,6 +10,20 @@ from datetime import datetime as dt
 import numpy as np
 import pandas as pd
 
+import requests
+import pathlib
+
+def transfer(url : str, files : dict[pathlib.Path]):    
+    for k, v in files.items():
+        response = requests.put(url + k, files = {k : pathlib.Path(v).open("rb")})
+    return response
+
+
+def make_public_link(fp : pathlib.Path | str):
+    cernbox_url_pdf = "https://cernbox.cern.ch/pdf-viewer/public/gEl6XmzXbW8OffB/"
+    return cernbox_url_pdf + fp
+
+
 def dt_to_unix_array(times : np.array) -> pd.Series:
     """ Convert an array of times from numpy into unix time in units of seconds.
 
