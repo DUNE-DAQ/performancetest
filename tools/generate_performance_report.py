@@ -1,40 +1,37 @@
 #!/usr/bin/env python
-from basic_functions import load_json, create_filename
-from basic_functions_performance import create_report_performance
-from rich import print
-import argparse
+"""
+Created on: 13/10/2024 00:10
+
+Author: Shyam Bhuller
+
+Description: Deprecated, likely does not work with current data files.
+"""
 import pathlib
-import json
-import os
+import argparse
+
+import files
+
+from collect_metrics import collect_metrics
+from fronted_ethernet_metrics import frontend_ethernet
+from resource_utilization import resource_utilization
+from tp_metrics import tp_metrics
+from performance_report import performance_report
+
+from rich import print
+
 
 def main(args : argparse.Namespace):
+    collect_metrics(args)
+    test_args = files.load_json(args.file)
 
-    test_args = load_json(args.file)
+    for i in [frontend_ethernet, resource_utilization, tp_metrics, performance_report]:
+        i(test_args)
 
-    if test_args["report_name"] is None:
-        name = create_filename(test_args, 0) # should this be something unique?
-    else:
-        name = test_args["report_name"]
+    return
 
-    if "reformatted_utilisation_files" not in test_args:
-        test_args["reformatted_utilisation_files"] = [None]*len(test_args["grafana_data_files"])
-
-    create_report_performance(
-        input_dir = test_args["data_path"],
-        output_dir = "./",
-        all_files = test_args["grafana_data_files"],
-        readout_name = test_args["readout_name"],
-        daqconf_files = test_args["configuration_file"],
-        core_utilization_files = test_args["reformatted_utilisation_files"],
-        parent_folder_dir = os.environ["PERFORMANCE_TEST_PATH"],
-        pdf_name = name,
-        repin_threads_file = test_args["repin_threads_file"],
-        comment = test_args["report_comment"],
-        times = test_args["delta_time"]
-        )
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser("Create the performance reports.")
+    parser = argparse.ArgumentParser("Create a performance report with one command.")
 
     file_arg = parser.add_argument("-f", "--file", type = pathlib.Path, help = "json file which contains the details of the test.", required = True)
 

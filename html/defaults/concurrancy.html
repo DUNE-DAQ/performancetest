@@ -1,0 +1,13 @@
+<p>Concurrency will be maintained as a single point of test responsibility: A single RU will be tested against the target load test criteria. Any parallel resource usage not responsible for telemetry and profiling purposes on the RU will invalidate the test and its results.</p>
+
+<p><b>In order to verify this criteria, needed items to be logged are:</b></p>
+<ul>
+    <li>Active user sessions on the RU during the load test</li>
+    <li>Active processes and services running on the RU during the load test</li>
+</ul>
+<p><b>Examples:</b></p>
+<ul>
+    <li>Control processes running on the RU</li>
+    <li>DAQ Services on the RU</li>
+    <li>Parallel emulator tests are executed on the RU</li>
+</ul>

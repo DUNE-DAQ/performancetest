@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html>
+<body style="font-family:Arial;">
+
+<style>
+table, th, td {
+    border: 1px solid black;
+    border-collapse: collapse;
+}
+</style>
+
+<style>
+    td {font-size : 12px;}
+</style>
+
+<table>
+    <tr>
+        <th colspan="2" style="font-size:14px;background-color:#ac1414;height:40px;color:white">Readout System Performance Test: &run-&host-&topology</th>
+    </tr>
+    <tr>
+        <td style="font-size:13px;"><b>Purpose:</b></td>
+        <td>
+            &purpose
+        </td>
+    </tr>
+
+    <tr>
+        <td style="font-size:13px;"><b>Definitions:</b></td>
+        <td>
+            <b>Abbreviations:</b>
+            <ul>
+                <li>RU - Readout Unit: The COTS server that runs the Readout subsystem</li>
+                <li>NIC - Network Interface Controller</li>
+                <li>NUMA - Non-Uniform Memory Access: Usually used in testing multi socket systems, where each CPU has its own memory region</li>
+                <li>APA - Anode Plane Assembly</li>
+                <li>CRP - Charge Readout Plane</li>
+                <li>SNB - Supernova Burst</li>
+                <li>KPI - Key Performance Indicator: The set of metrics and their relation that we make our analysis and fail/pass scenarios on.</li>
+            </ul>
+
+            <b>Readout System Components:</b>
+            <ul>
+                <li>Readout Data Type: Adapter types/structures of detector data frames</li>
+                <li>Data Reception: Receives data from the high-speed I/O device. (Corresponding DAQ plugin: NICReceiver)</li>
+                <li>Processing Pipeline: Data integrity check pipeline stages before buffering</li>
+                <li>Trigger Primitive Generation - TPG: The most important computing intensive processing stage is executed on every received data frame, and extracts activity from the frames. The extracted data is sent out to the backend network. The process must be efficient in ordering and distribution to aid the performance of the downstream subsystems. (E.g.: Trigger, Dataflow)</li>
+                <li>Latency Buffer: Software containers that buffer data for several seconds in the host RAM</li>
+                <li>Request Handling: Software component that extracts requested data from the latency buffers and sends the extracted data to the backend network. It also ensures that old, non-requested data is periodically discarded from the latency buffers.</li>
+                <li>SNB Store: Software component and local high-speed storage media on the RU, that persists data for continuous 100 seconds to the storage media.</li>
+            </ul>
+        </td>
+    </tr>
+
+    <tr>
+        <td style="font-size:13px;"colspan=2><b>Performance Criteria:</b></td>
+    </tr>
+    <tr>
+        <td><b>Goals:</b></td>
+        <td>
+            &goals
+        </td>
+    </tr>
+    <tr>
+        <td><b>How:</b></td>
+        <td>
+            &method
+        </td>
+    </tr>
+    <tr>
+        <td><b>Test Type:</b></td>
+
+        <td>
+        <b>Baseline Testing</b>
+        <p>Process for evaluating a system or its component's initial performance and characteristics.</p>
+        <p>For the Readout System and the Readout Unit, this includes all the components operating in parallel. (Peak utilization with all functionalities active.)</p>
+        </td>
+
+    </tr>
+    <tr>
+        <td><b>Failure Criteria:</b></td>
+        <td>
+            <p>A test run will be considered “failed” if any of the following conditions are met:</p>
+
+            <p><u><b>Readout Component Failures:</b></u></p>
+
+            <ul>        
+                <li><u>Data Reception failure:</u></li>
+                <ul>
+                    <li><b>Continuous occurrence of missed or dropped packets</b></li>
+                        <b>(Reconsider configuration adjustments and re-run the test.)</b>
+                </ul>
+                <li><u>Trigger Primitive Generation failure:</u></li>
+                <ul>
+                    <li><b>Frequent error messages about post-processing not keeping up.</b></li>
+                        <b>(Reconsider allocating more resources to the component and re-run the test.)</b>
+                </ul>
+                <li><u>SNB recording failure:</u></li>
+                <ul>
+                    <li><b>At the end of the 100s recording test, if the recorded data size on the fast storage doesn't match the expected value</b></li>
+                    <ul>
+                        <li>For a single APA for 100 seconds: ~876.25 GB</li>
+                        <li>For a single CRP for 100 seconds: ~1024 GB</li>
+                    </ul>
+                    <li><b>Recorded file sizes are zero</b></li>
+                    <li><b>Recorded file sizes are not matching in size</b></li>
+                </ul>
+
+            </ul>
+
+
+            <p><u><b>Excessive system utilization:</b></u></p>
+            <ul>
+                <li><u>CPU utilization:</u></li>
+                <ul>
+                    <li><b>Any CPU core on the system is above avg. 80% utilization during the test</b></li>
+                </ul>
+
+                <li><u>Memory bandwidth utilization:</u></li>
+                <ul>
+                    <li><b>Any NUMA node bandwidth is above avg. 80% utilization during the test</b></li>
+                </ul>
+
+            </ul>
+
+        <i>These constraints are introduced in order to avoid artifacts and resource utilization spikes that might hinder deterministic performance characteristics of the readout applications on the target RU.</i>
+
+        </td>
+    </tr>
+
+    <tr>
+        <td style="font-size:13px;"colspan=2><b>Technical Requirements:</b></td>
+    </tr>
+    <tr>
+        <td><b>Environment:</b></td>
+        <td>
+            &environment
+        </td>
+    </tr>
+
+    <tr>
+        <td style="font-size:13px;"colspan=2><b>Load Profile:</b></td>
+    </tr>
+    <tr>
+        <td><b>Software:</b></td>
+        <td>
+            <ul>
+                <li> &daq_version</li>
+                <li> &commit_hashes </li>
+            </ul>
+        </td>
+    </tr>
+    <tr>
+        <td><b>Control and Configuration:</b></td>
+        <td>
+            <ul>
+                <li>&control_plane</li>
+                <li>&configuration</li>
+            </ul>
+        </td>
+    </tr>
+    <tr>
+        <td><b>Concurrancy:</b></td>
+        <td>
+            &concurrancy
+        </td>
+    </tr>
+
+    <tr>
+        <td style="font-size:13px;" colspan = 2><b>Post-Test Analysis:</b></td>
+    </tr>
+    <tr>
+        <td><b>Data collection:</b></td>
+        <td>
+            <p>The test aims to measure the resource utilization footprint of the application running on the target RU during the test, with their configuration in terms of topology and hardware usage claim. The RU should be employed with hardware and kernel observability tools in order to capture the following metrics:</p>
+
+            Overall RU utilization in terms of:
+            <ul>
+                <li>CPU instructions per second and percentile per core</li>
+                <li>Memory BW utilization per channel</li>
+                <li>CPU cache utilization in terms of misses and hits</li>
+            </ul>
+
+            Every application and their threads' utilization in terms of:
+            <ul>
+                <li>Peak and average CPU percentile</li>
+                <li>Peak and average memory BW utilization</li>
+                <li>Peak and average CPU cache utilization in terms of misses and hits</li>
+            </ul>
+
+            Application and system profiler summary:
+            <ul>
+                <li>uProf, vTune, gProf, etc. or any other non-architecture specific profiler output for the application during the test must be available for further analysis.</li>
+            </ul>
+
+            <p>Data collections should be centralized in the available hardware apparatus. If this is not feasible, reports in terms of plain text or CSV files can be used to generate reports on the KPIs and cross-metric evaluations.</p>
+            &data-urls
+        </td>
+    </tr>
+    <tr>
+        <td><b>Reporting:</b></td>
+        <td>
+            <!-- <p>An overall main KPI report should be done that summarizes the test details described above in terms of each component involved during the tests.</p>
+
+            <p>Reports should also include:</p>
+            <ul>
+                <li>Kernel’s and other services’ resource utilization</li>
+                <li>Available headroom on the RU, in terms of:</li>
+                <ul>
+                    <li>Unused cores </li>
+                    <li>Unused memory bandwidth</li>
+                    <li>Downstream network bandwidth available</li>
+                </ul>
+            </ul> -->
+            &plot-urls
+        </td>
+    </tr>
+
+    <tr>
+        <td style="font-size:13px;"><b>Summary</b></td>
+        <td>&summary</td>
+    </tr>
+</table>
+
+</body>
+</html>
