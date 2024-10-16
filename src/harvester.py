@@ -6,6 +6,7 @@ Author: Shyam Bhuller
 Description: Collect and parse data from the Grafana dashboards (The spice must flow) 
 """
 import copy
+import pathlib
 import tables
 import warnings
 
@@ -255,28 +256,28 @@ def format_panels(panels: list[dict], var_map : dict) -> tuple[list[dict], list[
     return new_panels, original_queries
 
 
-def extract_grafana_data(url : str, dashboards : list[str], run_number : int, host : str, partition : str, output_file : str) -> list[str]:
+def extract_grafana_data(dashboard_info : dict[str], run_number : int, host : str, test_session : str, output_file : str, out_dir : str | pathlib.Path) -> list[str]:
     """ Extract data from Grafana dashboards.
 
     Args:
-        url (str): Grafana url.
-        dashboard_uid (list[str]): Dashboard uid.
+        dashboard_info (dict[str]): url, uid and sesssion names for the grafana page.
         run_number (int): run number of specific test.
         host (str): Host name.
-        partition (str): Partition/session name.
+        partition (str): Partition/session name of the test.
         output_file (str): Output file name.
 
     Returns:
         list[str]: List of the output files.
     """
+    url = dashboard_info["grafana_url"]
 
     datasource_urls = queries.get_datasources(url) # gather list of all datasources
     time = get_run_time(url, datasource_urls, run_number)
 
-    var_map = collect_vars(url, datasource_urls, time, partition, host) # get list of relavent variables used by the dashboards
-
     out_files = []
-    for dashboard in dashboards: # iterate over each dashboard
+    for dashboard, session in zip(dashboard_info["dashboard_uid"], dashboard_info["session"]): # iterate over each dashboard
+        var_map = collect_vars(url, datasource_urls, time, session, host) # get list of relavent variables used by the dashboards
+
         panels = queries.get_grafana_panels(url, dashboard) # get panels from dashboard
 
         if not panels:
@@ -305,17 +306,15 @@ def extract_grafana_data(url : str, dashboards : list[str], run_number : int, ho
             panel_title = panel.get('title', '') # if a panel has not title ignore it (we wont know what the data is)
             if not panel_title: continue
 
-            # for now ignore panels at the first pass #TODO implement 
+            # for now ignore tables at the first pass #TODO implement
             if ("resultFormat" in panel["targets"][0]) and (panel["targets"][0]["resultFormat"] == "table"): continue
 
             query_strs = queries.get_queries(panel) # get the query strings from the panel
 
-            vars_in_query = [queries.extract_vars(v) for v in original_queries[p].values()] # get any variables which were used in the query
-
             if len(query_strs) == 0: continue
 
             data_from_panel = {}
-            for (query_name, query), var in zip(query_strs.items(), vars_in_query): # loop over all queries
+            for query_name, query in query_strs.items(): # loop over all queries
 
                 response_data = queries.make_query(datasource_urls, url, query, time) # make the query
 
@@ -355,8 +354,7 @@ def extract_grafana_data(url : str, dashboards : list[str], run_number : int, ho
         print(dashboard_data)
 
         # Save the dataframes
-        filename = output_file.replace(".hdf5", "")
-        output = f'grafana-{dashboard}-{filename}.hdf5'
+        output = out_dir.joinpath(f"grafana-{dashboard}-{output_file}.hdf5")
         try:
             files.write_dict_hdf5(dashboard_data, output)
             out_files.append(output)

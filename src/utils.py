@@ -5,6 +5,8 @@ Author: Shyam Bhuller
 
 Description: general utility functions.
 """
+import warnings
+
 from datetime import datetime as dt
 
 import numpy as np
@@ -71,7 +73,7 @@ def get_unix_timestamp(time : str) -> int:
     raise ValueError(f'Invalid time format: {time}')
 
 
-def create_filename(test_args : dict, test_num : int) -> str:
+def create_filename(test_args : dict) -> str:
     """Create filename based on the test report information.
 
     Args:
@@ -84,7 +86,13 @@ def create_filename(test_args : dict, test_num : int) -> str:
     return "-".join([
         test_args["dunedaq_version"].replace(".", "_"),
         test_args["host"].replace("-", ""),
-        str(test_args["socket_num"][test_num]),
-        test_args["data_type"],
-        test_args["test_name"][test_num]
+        str(test_args["socket_num"]),
+        test_args["data_source"],
+        test_args["test_name"]
         ])
+
+
+def search_data_file(s : str, path : str | pathlib.Path) -> pathlib.Path:
+    for p in pathlib.Path(path).glob("**/*"):
+        if s in p.stem: return p
+    warnings.warn(f"No data file for {s} was found!")

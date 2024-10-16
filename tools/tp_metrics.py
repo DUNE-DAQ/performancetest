@@ -4,6 +4,7 @@ import pathlib
 
 import files
 import plotting
+import utils
 
 from rich import print
 
@@ -15,23 +16,17 @@ def get_units(name : str):
         return ""
 
 
-def main(args : argparse.Namespace):
+def tp_metrics(args : dict):
     plotting.set_plot_style()
-    test_args = files.load_json(args.file)
 
-    tp_data = "trigger_primitive"
-
-    for file in test_args["grafana_data_files"]:
-        if tp_data in file:
-            data = files.read_hdf5(file)
-            break
+    data = files.read_hdf5(utils.search_data_file("trigger_primitive", args["data_path"]))
 
     tlabel = "Relative time (s)"
 
     metrics = list(data.keys())
     metrics.remove('Highest TP rates per channel') # this dataframe is impractical for a plot
 
-    with plotting.PlotBook("trigger_primitive.pdf") as book:
+    with plotting.PlotBook(args["data_path"] + "trigger_primitive.pdf") as book:
         for i in metrics:
             df = data[i]
             if df.empty:
@@ -51,6 +46,10 @@ def main(args : argparse.Namespace):
             book.save()
             plotting.plt.clf()
 
+
+def main(args : argparse.Namespace):
+    test_args = files.load_json(args.file)
+    tp_metrics(test_args)
     return
 
 

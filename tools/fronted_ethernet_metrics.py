@@ -4,10 +4,11 @@ import pathlib
 
 import files
 import plotting
+import utils
 
 from rich import print
 
-def get_units(x):
+def get_units(x : str):
     label = x.lower()
     if "packet" in label:
         return "(p/s)"
@@ -18,16 +19,11 @@ def get_units(x):
     else:
         return ""
 
-def main(args : argparse.Namespace):
+
+def frontend_ethernet(args : dict):
     plotting.set_plot_style()
-    test_args = files.load_json(args.file)
 
-    fe_data = "frontend_ethernet"
-
-    for file in test_args["grafana_data_files"]:
-        if fe_data in file:
-            data = files.read_hdf5(file)
-            break
+    data = files.read_hdf5(utils.search_data_file("frontend_ethernet", args["data_path"]))
 
     tlabel = "Relative time (s)"
 
@@ -36,7 +32,7 @@ def main(args : argparse.Namespace):
         if "RX" in k:
             rx_metrics.append(k)
 
-    with plotting.PlotBook("frontend_ethernet.pdf") as book:
+    with plotting.PlotBook(args["data_path"] + "frontend_ethernet.pdf") as book:
         for i in rx_metrics:
             if i.lower() == "rx good bytes":
                 scale = 1E9
@@ -55,7 +51,12 @@ def main(args : argparse.Namespace):
             plotting.plt.tight_layout()
             book.save()
             plotting.plt.clf()
+    return
 
+
+def main(args : argparse.Namespace):
+    test_args = files.load_json(args.file)
+    frontend_ethernet(test_args)
     return
 
 

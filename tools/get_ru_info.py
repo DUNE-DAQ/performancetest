@@ -61,8 +61,14 @@ def get_disk_info(host : str):
     return json.loads(run_command(host, "lsblk -o NAME,MODEL,SIZE -d --json").stdout)
 
 
-def main(args : argparse.Namespace):
-    host = "np02-srv-003"
+def create_list_dict(dictionary : dict):
+    l = "<ul>\n"
+    for k, v in dictionary.items():
+        l += f"<li> {k} : {v} </li>\n"
+    l += "</ul>"
+    return l
+
+def get_ru_info(host : str) -> list[str]:
     cpu = get_cpu_info(host)
     pci = get_pci_info(host)
     op = get_os_info(host)
@@ -92,26 +98,32 @@ def main(args : argparse.Namespace):
         "ID",
     ]
 
-    for k, v in cpu.items():
-        if k in cpu_info:
-            print(f"{k} : {v}")
+    lines = ["<p> CPU: </p>"]
+    
+    lines.append(create_list_dict({k : v for k, v in cpu.items() if k in cpu_info}))
 
-    for k, v in pci.items():
-        if ".0" in k:
-            name = k.split(".0 ")[-1]
-            print(f"{name} : {v}")
+    lines.append("<p> PCI: </p>")
 
-    for k, v in op.items():
-        if k in op_info:
-            print(f"{k.lower()} : {v}")
+    lines.append(create_list_dict({k.split(".0 ")[-1] : v for k, v in pci.items() if ".0" in k}))
 
-    for k, v in dpdk.items():
-        print(f"{k} : {v}")
+    lines.append("<p> OS: </p>")
+    lines.append(create_list_dict({k : v for k, v in op.items() if k in op_info}))
 
+    lines.append("<p> DPDK: </p>")
+    lines.append(create_list_dict({k : v for k, v in dpdk.items() if k in dpdk}))
+
+    lines.append("<p> DISK: </p>")
     for i in disk["blockdevices"]:
-        for k, v in i.items():
-            print(f"{k} : {v}")
+        lines.append(create_list_dict({k : v for k, v in i.items()}))
+    return lines
 
+def main(args : argparse.Namespace):
+    host = args.host
+    file_path = f"{host}_specs.html"
+    with open(file_path, "w") as file:
+        file.writelines(get_ru_info(host))
+
+    print(f"specifications written to {file_path}")
     return
 
 

@@ -6,6 +6,7 @@ Author: Shyam Bhuller
 
 Description: Collect metrics from the grafana dashboards.
 """
+import os
 import argparse
 import pathlib
 
@@ -19,92 +20,75 @@ import utils
 from rich import print
 
 
-def generate_config_template():
-    """Generate a template json file for the test reports.
+def create_dashboard_info(args : argparse.Namespace) -> dict:
+    """ Load information about which dashboards to query and which grafana url to use.
+
+    Args:
+        args (argparse.Namespace): arguments for the test.
+
+    Returns:
+        dict: Grafana url, dashboard uid, and session names for each dashboard.
     """
-    cfg = {
-        "dunedaq_version" : "version of DUNEDAQ used to perform tests e.g. v4.4.8",
-        "host" : "server being tested e.g. np02-srv-003",
-        "data_type" : "type of readout data, e.g. eth",
-        "socket_num" : ["socket number tested on the host machine, 0, 1 or 01 for both"],
-        "test_name" : ["name of test performed"],
+    dashboard_config = files.load_json(f"{os.environ['PERFORMANCE_TEST_PATH']}/config/dashboard_info.json")
 
-        "grafana_url" : "grafana url to access monitoring",
-        "dashboard_uid" : ["dashboard uid"],
-        "run_number" : "run number of the test",
-        "partition" : ["grafana partition name for the given test"],
+    for i, uid in enumerate(dashboard_config["dashboard_uid"]):
+        if uid == "A_CvwTCWk" : continue # pcm dashboard is not tied to a specific dunedaq version
+        dashboard_config["dashboard_uid"][i] = f"{args['dunedaq_version'].replace('.', '_')}-{uid}"
 
-        "core_utilisation_files" : [
-            "core utilisation file generated during the run"
-        ],
+    for i, uid in enumerate(dashboard_config["session"]):
+        if uid is None:
+            dashboard_config["session"][i] = args["session"]
 
-        "readout_name" : [
-            [
-                "readouthost names in daqconf file, for each test"
-            ]
-        ],
-        "configuration_file" : [
-            "daqconf or oks configuration file used in each test"
-        ],
-
-        "repin_threads_file" : [None],
-        "report_name" : None,
-        "report_comment" : ["comment for each test"]
-
-    }
-    files.save_json("template_report.json", cfg)
-    print("template config file template_report.json created")
+    return dashboard_config
 
 
-def main(args : argparse.Namespace):
+def test_path(test_args : dict) -> pathlib.Path:
+    path = f"perftest-run{test_args['run_number']}-{test_args['dunedaq_version'].replace('.', '_')}-{test_args['host'].replace('-', '')}-{test_args['test_name']}"
+
+    path = pathlib.Path(test_args["out_path"] + "/" + path + "/")
+    os.makedirs(path, exist_ok = True)
+    print(f"created output directory: {path}")
+    return path
+
+
+def collect_metrics(args : argparse.Namespace):
     test_args = files.load_json(args.file)
+    dashboard_info = create_dashboard_info(test_args)
 
     new_args = files.load_json(args.file) # reopen config file to add the data file paths
     core_utilisation_files = []
-    grafana_files = []
 
     if "core_utilisation_files" not in test_args:
         warn("no core utilisation files were specified!!! Skipping.")
 
-    for i in range(len(test_args["test_name"])):
-        name = utils.create_filename(test_args, i)
+    name = utils.create_filename(test_args)
+    out_dir = test_path(test_args)
 
-        if "core_utilisation_files" in test_args:
-            cu_file = pathlib.Path(f"core_utilisation-{name}.csv")
-            # format core util files
-            cpu_df = reformat_cpu_util(test_args["core_utilisation_files"][i])
-            cpu_df.to_csv(cu_file.name)
-            core_utilisation_files.append(cu_file.resolve().as_posix())
+    if "core_utilisation_files" in test_args:
+        cu_file = pathlib.Path(f"core_utilisation-{name}.csv")
+        # format core util files
+        cpu_df = reformat_cpu_util(test_args["core_utilisation_files"])
+        cpu_df.to_csv(cu_file.name)
+        core_utilisation_files.append(cu_file.resolve().as_posix())
 
-        # extract grafana data
-        filenames = harvester.extract_grafana_data(test_args["grafana_url"], test_args["dashboard_uid"], test_args["run_number"], test_args["host"], test_args["partition"][i], name)
-        for f in filenames:
-            grafana_files.append(pathlib.Path(f).resolve().as_posix())
+    # extract grafana data
+    harvester.extract_grafana_data(dashboard_info, test_args["run_number"], test_args["host"], test_args["session"], output_file = name, out_dir = out_dir)
 
-    new_args["grafana_data_files"] = grafana_files
-
-    if len(core_utilisation_files) > 0:
-        new_args["reformatted_utilisation_files"] = core_utilisation_files
+    new_args["data_path"] = str(out_dir) + "/"
 
     files.save_json(args.file, new_args)
-    print(f"{args.file} updated to include processed data files.")
+    print(f"{args.file} updated to include data path.")
+    return
+
+
+def main(args : argparse.Namespace):
+    collect_metrics(args)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser("Collect results from performance tests.")
 
-    parser.add_argument("-g", "--generate-template", action = "store_true", help = "Generate template json file for report arguments")
-
     file_arg = parser.add_argument("-f", "--file", type = pathlib.Path, help = "json file which contains the details of the test.")
-
-    args = parser.parse_args()
-
-    if args.generate_template is False:
-        file_arg.required = True
-        gen_args = parser.parse_args()
-    else:
-        generate_config_template()
-        exit()
 
     args = parser.parse_args()
 

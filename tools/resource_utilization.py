@@ -4,22 +4,14 @@ import pathlib
 
 import files
 import plotting
+import utils
 
 from rich import print
 
-
-def main(args : argparse.Namespace):
+def resource_utilization(args : dict):
     plotting.set_plot_style()
-    test_args = files.load_json(args.file)
 
-    pcm_data = "A_CvwTCWk"
-
-    for file in test_args["grafana_data_files"]:
-        if pcm_data in file:
-            data = files.read_hdf5(file)
-            break
-
-    print(data.keys())
+    data = files.read_hdf5(utils.search_data_file("A_CvwTCWk", args["data_path"]))
 
     memory_info = []
     for k in data.keys():
@@ -43,7 +35,7 @@ def main(args : argparse.Namespace):
 
     tlabel = "Relative time (s)"
 
-    with plotting.PlotBook("resourse_utilisation.pdf") as book:
+    with plotting.PlotBook(args["data_path"] + "resourse_utilization.pdf") as book:
         for i in (memory_info + cache_info):
             plotting.plt.figure()
             df = data[i]
@@ -64,8 +56,14 @@ def main(args : argparse.Namespace):
     return
 
 
+def main(args : argparse.Namespace):
+    test_args = files.load_json(args.file)
+    resource_utilization(test_args)
+    return
+
+
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser("Create plots for resource utilisation metrics.")
+    parser = argparse.ArgumentParser("Create plots for resource utilization metrics.")
 
     file_arg = parser.add_argument("-f", "--file", type = pathlib.Path, help = "json file which contains the details of the test.", required = True)
 

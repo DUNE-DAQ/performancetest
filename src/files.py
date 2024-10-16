@@ -80,5 +80,5 @@ def save_json(file : str | pathlib.Path, data : dict):
         file (str | pathlib.Path): path to save dictonary to.
         data (dict): dictionary to save.
     """
-    with pathlib.Path(file).open("w") as f:
+    with pathlib.Path(file).with_suffix(".json").open("w") as f:
         json.dump(data, f, indent = 4)

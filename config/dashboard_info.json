@@ -1,0 +1,10 @@
+{
+    "grafana_url": "http://np04-srv-017.cern.ch:31023/",
+    "dashboard_uid": [
+        "frontend_ethernet",
+        "overview",
+        "trigger_primitives",
+        "A_CvwTCWk"
+    ],
+    "session" : [null, null, null, "np04-daq"]
+}
