@@ -16,7 +16,24 @@ def get_units(name : str):
         return ""
 
 
-def tp_metrics(args : dict):
+class tp_plotter(plotting.PlotEngine):
+    def plot_metric(self, metric: str):
+        tlabel = "Relative time (s)"
+        df = self.data[metric]
+
+        for c in df.columns:
+            plotting.plot(plotting.relative_time(df), df[c].astype(float), c, tlabel, metric + f" {get_units(metric)}", False)
+        plotting.plt.ylim(0) # data should never be < 0
+        
+        if len(df.columns) > 10:
+            plotting.plt.legend(ncols = 1 + (len(df.columns)**0.5 / 2), fontsize = "x-small", bbox_to_anchor=(1.10, 1))
+            plotting.plt.tight_layout()
+            plotting.plt.gcf().set_size_inches(18, 6)
+
+        return
+
+
+def tp_metrics(args : dict, display : bool = False):
     plotting.set_plot_style()
 
     for file in utils.search_data_file("trigger_primitive", args["data_path"]):
@@ -29,25 +46,12 @@ def tp_metrics(args : dict):
     metrics = list(data.keys())
     metrics.remove('Highest TP rates per channel') # this dataframe is impractical for a plot
 
-    with plotting.PlotBook(args["data_path"] + "trigger_primitive.pdf") as book:
-        for i in metrics:
-            df = data[i]
-            if df.empty:
-                print(f"warning : dataframe for {i} is empty! Skipping.")
-                continue
+    plotter = tp_plotter(metrics, data)
 
-            plotting.plt.figure(figsize=(8, 6))
-            for c in df.columns:
-                plotting.plot(plotting.relative_time(df), df[c].astype(float), c, tlabel, i + f" {get_units(i)}", False)
-            plotting.plt.ylim(0) # data should never be < 0
-            
-            if len(df.columns) > 10:
-                plotting.plt.legend(ncols = 1 + (len(df.columns)**0.5 / 2), fontsize = "x-small", bbox_to_anchor=(1.10, 1))
-                plotting.plt.tight_layout()
-                plotting.plt.gcf().set_size_inches(18, 6)
-
-            book.save()
-            plotting.plt.clf()
+    if display is True:
+        plotter.plot_display()
+    else:
+        plotter.plot_book(args["data_path"] + f"trigger_primitive.pdf")
 
 
 def main(args : argparse.Namespace):

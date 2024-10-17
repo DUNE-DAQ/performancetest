@@ -119,3 +119,10 @@ Note that when you are done you shold also move the json file to the `data_path`
 ### Micro Service
 
 **TODO: Implement service through jupyter notebook or equivalent to provide and easier user interface.**
+
+
+## Setup software area:
+
+Mount cernbox for file transfers
+
+add public viewer link, keep uploader link hidden
