@@ -92,7 +92,8 @@ def create_filename(test_args : dict) -> str:
         ])
 
 
-def search_data_file(s : str, path : str | pathlib.Path) -> pathlib.Path:
+def search_data_file(s : str, path : str | pathlib.Path) -> pathlib.Path | list[pathlib.Path]:
+    matches = []
     for p in pathlib.Path(path).glob("**/*"):
-        if s in p.stem: return p
-    warnings.warn(f"No data file for {s} was found!")
+        if s in p.name: matches.append(p)
+    return matches

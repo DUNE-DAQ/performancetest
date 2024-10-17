@@ -23,7 +23,7 @@ def get_units(x : str):
 def frontend_ethernet(args : dict):
     plotting.set_plot_style()
 
-    data = files.read_hdf5(utils.search_data_file("frontend_ethernet", args["data_path"]))
+    data = files.read_hdf5(utils.search_data_file("frontend_ethernet", args["data_path"])[0])
 
     tlabel = "Relative time (s)"
 

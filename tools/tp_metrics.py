@@ -19,7 +19,10 @@ def get_units(name : str):
 def tp_metrics(args : dict):
     plotting.set_plot_style()
 
-    data = files.read_hdf5(utils.search_data_file("trigger_primitive", args["data_path"]))
+    for file in utils.search_data_file("trigger_primitive", args["data_path"]):
+        if "hdf5" in file.suffix: break
+
+    data = files.read_hdf5(file)
 
     tlabel = "Relative time (s)"
 

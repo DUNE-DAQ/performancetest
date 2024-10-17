@@ -11,7 +11,7 @@ from rich import print
 def resource_utilization(args : dict):
     plotting.set_plot_style()
 
-    data = files.read_hdf5(utils.search_data_file("A_CvwTCWk", args["data_path"]))
+    data = files.read_hdf5(utils.search_data_file("A_CvwTCWk", args["data_path"])[0])
 
     memory_info = []
     for k in data.keys():
