@@ -26,9 +26,10 @@ def create_urls(args : dict) -> tuple[dict, dict]:
         else:
             continue
 
-        link = utils.make_public_link(p.parent.stem + "/" + p.name)
+        link = utils.make_public_link_pdf(p.parent.stem + "/" + p.name)
         target[p.name] = link
 
+    print(plots)
     return data, plots
 
 
