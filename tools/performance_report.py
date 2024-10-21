@@ -9,8 +9,6 @@ import argparse
 import files
 import utils
 
-from get_ru_info import get_ru_info
-
 from rich import print
 
 
@@ -92,7 +90,7 @@ def performance_report(test_args : dict):
 
     html = html.replace("&environment", environment)
 
-    file_path = test_args["data_path"] + f"performance_report-run{run}-{host.replace('-', '')}.pdf"
+    file_path = test_args["out_path"] + f"performance_report-run{run}-{host.replace('-', '')}.pdf"
 
     weasyprint.HTML(string = html).write_pdf(file_path)
 

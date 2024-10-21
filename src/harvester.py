@@ -206,16 +206,18 @@ def parse_result_influx(response_data : dict, panel : dict) -> pd.DataFrame:
 def parse_result_prometheus(response_data, name) -> pd.DataFrame:
     parsed = {}
 
-    for i, result in enumerate(response_data["data"]["result"]):
-        if len(response_data["data"]["result"]) == 1:
-            key = name
-        else:
-            key = name + f"x_{i}"
-        v = np.array(result["values"])
-        parsed["time"] = v[:, 0]
-        parsed[key] = v[:, 1]
-
-    return pd.DataFrame(parsed).set_index("time").astype(float)
+    if len(response_data["data"]["result"]) == 0:
+        return pd.DataFrame()
+    else:
+        for i, result in enumerate(response_data["data"]["result"]):
+            if len(response_data["data"]["result"]) == 1:
+                key = name
+            else:
+                key = name + f"x_{i}"
+            v = np.array(result["values"])
+            parsed["time"] = v[:, 0]
+            parsed[key] = v[:, 1]
+        return pd.DataFrame(parsed).set_index("time").astype(float)
 
 
 def format_panels(panels: list[dict], var_map : dict) -> tuple[list[dict], list[str]]:
@@ -352,6 +354,12 @@ def extract_grafana_data(dashboard_info : dict[str], run_number : int, host : st
                 dashboard_data[panel_title] = data_from_panel
 
         print(dashboard_data)
+
+        for data in dashboard_data.values:
+            if not data.empty:
+                break
+            else:
+                warnings.warn("no data was extracted from the dashboard. Check the data has not expired!")
 
         # Save the dataframes
         output = out_dir.joinpath(f"grafana-{dashboard}-{output_file}.hdf5")

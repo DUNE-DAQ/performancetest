@@ -21,10 +21,10 @@ def transfer(url : str, files : dict[pathlib.Path]):
     return response
 
 
-def make_public_link_pdf(fp : pathlib.Path | str):
+def make_public_link(fp : pathlib.Path | str):
     # cernbox_url_pdf = "https://cernbox.cern.ch/pdf-viewer/public/gEl6XmzXbW8OffB/"
-    cernbox_url_pdf = "https://cernbox.cern.ch/files/link/public/ceg2IUASsNrHSvn/"
-    return cernbox_url_pdf + fp
+    cernbox_url = "https://cernbox.cern.ch/files/link/public/ceg2IUASsNrHSvn/"
+    return cernbox_url + fp
 
 
 def dt_to_unix_array(times : np.array) -> pd.Series:

@@ -52,7 +52,7 @@ def resource_utilization(args : dict, display : bool = False):
     if display is True:
         plotter.plot_display()
     else:
-        plotter.plot_book(args["data_path"] + f"resourse_utilization.pdf")
+        plotter.plot_book(args["out_path"] + f"resourse_utilization.pdf")
 
     return
 
