@@ -26,10 +26,9 @@ def create_urls(args : dict) -> tuple[dict, dict]:
         else:
             continue
 
-        link = utils.make_public_link_pdf(p.parent.stem + "/" + p.name)
+        link = utils.make_public_link(p.parent.stem + "/" + p.name)
         target[p.name] = link
 
-    print(plots)
     return data, plots
 
 
@@ -59,10 +58,14 @@ def create_url_list(urls : dict):
 
 def performance_report(test_args : dict):
     defaults = get_defaults()
+
+    host = test_args["host"]
+    run = test_args["run_number"]
+
     html = html_to_str(os.environ["PERFORMANCE_TEST_PATH"] + "/html/report_template.html")
 
-    html = html.replace("&run", str(test_args["run_number"]))
-    html = html.replace("&host", test_args["host"])
+    html = html.replace("&run", str(run))
+    html = html.replace("&host", host)
     html = html.replace("&topology", test_args["data_source"])
     
     for k, v in test_args["documentation"].items():
@@ -80,16 +83,20 @@ def performance_report(test_args : dict):
     html = html.replace("&data-urls", data)
     html = html.replace("&plot-urls", plots)
 
-    environment = "".join(get_ru_info(test_args["host"]))
+    hw_specs = ["dmidecode", "lshw"]
+    environment = ""
+    for i in hw_specs:
+        environment += write_url(utils.make_public_link(f"hwinfo_{host}/{host}-{i}.pdf"), i) + "\n"
+    # utils.make_public_link(f"hw_info_{host}/{host}-dmidecode.pdf")
+    # utils.make_public_link(f"hw_info_{host}/{host}-lshw.pdf")
 
     html = html.replace("&environment", environment)
 
-    file_path = test_args["data_path"] + f"performance_report-run{test_args['run_number']}-{test_args['host'].replace('-', '')}.pdf"
+    file_path = test_args["data_path"] + f"performance_report-run{run}-{host.replace('-', '')}.pdf"
 
     weasyprint.HTML(string = html).write_pdf(file_path)
 
     print(f"performance report written to {file_path}")
-
     return
 
 
