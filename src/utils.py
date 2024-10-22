@@ -22,8 +22,9 @@ def transfer(url : str, files : dict[pathlib.Path]):
 
 
 def make_public_link(fp : pathlib.Path | str):
-    cernbox_url_pdf = "https://cernbox.cern.ch/pdf-viewer/public/gEl6XmzXbW8OffB/"
-    return cernbox_url_pdf + fp
+    # cernbox_url_pdf = "https://cernbox.cern.ch/pdf-viewer/public/gEl6XmzXbW8OffB/"
+    cernbox_url = "https://cernbox.cern.ch/files/link/public/ceg2IUASsNrHSvn/"
+    return cernbox_url + fp
 
 
 def dt_to_unix_array(times : np.array) -> pd.Series:
@@ -92,7 +93,8 @@ def create_filename(test_args : dict) -> str:
         ])
 
 
-def search_data_file(s : str, path : str | pathlib.Path) -> pathlib.Path:
+def search_data_file(s : str, path : str | pathlib.Path) -> pathlib.Path | list[pathlib.Path]:
+    matches = []
     for p in pathlib.Path(path).glob("**/*"):
-        if s in p.stem: return p
-    warnings.warn(f"No data file for {s} was found!")
+        if s in p.name: matches.append(p)
+    return matches

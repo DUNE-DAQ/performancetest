@@ -6,7 +6,10 @@ import files
 import plotting
 import utils
 
+import pandas as pd
+
 from rich import print
+
 
 def get_units(x : str):
     label = x.lower()
@@ -20,38 +23,43 @@ def get_units(x : str):
         return ""
 
 
-def frontend_ethernet(args : dict):
+class feplotter(plotting.PlotEngine):
+    def plot_metric(self, metric : str):
+        tlabel = "Relative time (s)"
+
+        if metric.lower() == "rx good bytes":
+            scale = 1E9
+        else:
+            scale = 1
+        df = self.data[metric]
+        if df.empty:
+            print(f"warning : dataframe for {metric} is empty! Skipping.")
+            return
+
+        for c in df.columns:
+            plotting.plot(plotting.relative_time(df), df[c]/scale, c, tlabel, metric + f" {get_units(metric)}", False)
+        plotting.plt.ylim(0) # data should never be < 0
+        plotting.plt.legend(ncols = 1 + (len(df.columns)**0.5 / 2), fontsize = "small")
+        plotting.plt.tight_layout()
+        return
+
+
+def frontend_ethernet(args : dict, display : bool = False):
     plotting.set_plot_style()
 
-    data = files.read_hdf5(utils.search_data_file("frontend_ethernet", args["data_path"]))
+    data = files.read_hdf5(utils.search_data_file("frontend_ethernet", args["data_path"])[0])
 
-    tlabel = "Relative time (s)"
-
-    rx_metrics = []
+    metrics = []
     for k in data:
         if "RX" in k:
-            rx_metrics.append(k)
+            metrics.append(k)
 
-    with plotting.PlotBook(args["data_path"] + "frontend_ethernet.pdf") as book:
-        for i in rx_metrics:
-            if i.lower() == "rx good bytes":
-                scale = 1E9
-            else:
-                scale = 1
-            df = data[i]
-            if df.empty:
-                print(f"warning : dataframe for {i} is empty! Skipping.")
-                continue
+    plotter = feplotter(metrics, data)
 
-            plotting.plt.figure(figsize=(8*1.2, 6*1.2))
-            for c in df.columns:
-                plotting.plot(plotting.relative_time(df), df[c]/scale, c, tlabel, i + f" {get_units(i)}", False)
-            plotting.plt.ylim(0) # data should never be < 0
-            plotting.plt.legend(ncols = 1 + (len(df.columns)**0.5 / 2), fontsize = "small")
-            plotting.plt.tight_layout()
-            book.save()
-            plotting.plt.clf()
-    return
+    if display is True:
+        plotter.plot_display()
+    else:
+        plotter.plot_book(args["out_path"] + f"frontend_ethernet.pdf")
 
 
 def main(args : argparse.Namespace):

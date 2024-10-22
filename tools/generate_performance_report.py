@@ -21,8 +21,18 @@ from rich import print
 
 
 def main(args : argparse.Namespace):
-    collect_metrics(args)
+
     test_args = files.load_json(args.file)
+    collect = True
+    if "data_path" not in test_args:
+        print("data path was not created, collecting metrics")
+    elif args.regen is True:
+        print("force collecting metrics")
+    else:
+        collect = False
+
+    if collect: collect_metrics(args)
+    test_args = files.load_json(args.file) # reload the config because collect metrics modifies the config
 
     for i in [frontend_ethernet, resource_utilization, tp_metrics, performance_report]:
         i(test_args)
@@ -33,15 +43,10 @@ def main(args : argparse.Namespace):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser("Create a performance report with one command.")
 
-    file_arg = parser.add_argument("-f", "--file", type = pathlib.Path, help = "json file which contains the details of the test.", required = True)
+    parser.add_argument("-f", "--file", type = pathlib.Path, help = "json file which contains the details of the test.", required = True)
+    parser.add_argument("-r", "--regen", action = "store_true", help = "enable flag to re-collect data from the dashboard (data is collected by default if this is run for the first time.)")
 
     args = parser.parse_args()
-
-    file_arg.required = True
-    gen_args = parser.parse_args()
-
-    args = parser.parse_args()
-
     if args.file.suffix != ".json":
         raise Exception("not a json file")
 

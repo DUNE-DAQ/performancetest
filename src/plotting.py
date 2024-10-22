@@ -5,8 +5,10 @@ Author: Shyam Bhuller
 
 Description: Module for making plots.
 """
+from abc import ABC, abstractmethod
 import warnings
 
+import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
@@ -17,6 +19,30 @@ def set_plot_style():
     """
     plt.style.use('ggplot')
     return
+
+
+def figure_dimensions(x : int, orientation : str = "horizontal") -> tuple[int]:
+    """ Compute dimensions for a multiplot which makes the grid as "square" as possible.
+
+    Args:
+        x (int): number of plots in multiplot
+        orientation (str, optional): which axis of the grid is longer. Defaults to "horizontal".
+
+    Returns:
+        tuple[int]: length of each grid axes
+    """
+    nearest_square = int(np.ceil(x**0.5)) # get the nearest square number, always round up to ensure there is enough space in the grid to contain all the plots
+
+    if x < 4: # the special case where the the smallest axis is 1
+        dim = (1, x)
+    elif (nearest_square - 1) * nearest_square >= x: # check if we can fit the plots in a smaller grid than a square to reduce whitespace
+        dim = ((nearest_square - 1), nearest_square)
+    else:
+        dim = (nearest_square, nearest_square)
+    
+    if orientation == "vertical": # reverse orientation if needed
+        dim = dim[::-1]
+    return dim
 
 
 class PlotBook:
@@ -101,3 +127,37 @@ def relative_time(df : pd.DataFrame) -> pd.Series:
     """
     time = df.index.astype(int)
     return time - time[0]
+
+
+class PlotEngine(ABC):
+    def __init__(self, metrics : list[str], data : dict[pd.DataFrame]) -> None:
+        self.metrics = metrics
+        self.data = data
+        pass
+
+    @abstractmethod
+    def plot_metric(self, metric : str):
+        pass
+
+
+    def plot_display(self):
+        valid_metrics = [m for m in self.metrics if not self.data[m].empty]
+        dims = figure_dimensions(len(valid_metrics), "vertical")
+
+        fig_size = (8 * dims[1], 6 * dims[0])
+
+        plt.figure(figsize = fig_size)
+        for i, m in enumerate(valid_metrics):
+            plt.subplot(*dims, i + 1)
+            self.plot_metric(m)
+        return
+
+
+    def plot_book(self, name : str):
+        with PlotBook(name) as book:
+            for i in self.metrics:
+                plt.figure(figsize=(8*1.2, 6*1.2))
+                self.plot_metric(i)
+                book.save()
+                plt.clf()
+        return

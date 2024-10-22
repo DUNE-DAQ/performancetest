@@ -51,11 +51,16 @@ def test_path(test_args : dict) -> pathlib.Path:
     return path
 
 
-def collect_metrics(args : argparse.Namespace):
-    test_args = files.load_json(args.file)
+def collect_metrics(args : argparse.Namespace | dict) -> None | dict:
+    if type(args) == argparse.Namespace:
+        test_args = files.load_json(args.file)
+        new_args = files.load_json(args.file) # reopen config file to add the data file paths
+    else:
+        test_args = args
+        new_args = None
+
     dashboard_info = create_dashboard_info(test_args)
 
-    new_args = files.load_json(args.file) # reopen config file to add the data file paths
     core_utilisation_files = []
 
     if "core_utilisation_files" not in test_args:
@@ -74,11 +79,15 @@ def collect_metrics(args : argparse.Namespace):
     # extract grafana data
     harvester.extract_grafana_data(dashboard_info, test_args["run_number"], test_args["host"], test_args["session"], output_file = name, out_dir = out_dir)
 
-    new_args["data_path"] = str(out_dir) + "/"
+    if type(args) == argparse.Namespace:
+        new_args["data_path"] = str(out_dir) + "/"
 
-    files.save_json(args.file, new_args)
-    print(f"{args.file} updated to include data path.")
-    return
+        files.save_json(args.file, new_args)
+        print(f"{args.file} updated to include data path.")
+        return
+    else:
+        test_args["data_path"] = str(out_dir) + "/"
+        return test_args
 
 
 def main(args : argparse.Namespace):

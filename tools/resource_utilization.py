@@ -6,12 +6,26 @@ import files
 import plotting
 import utils
 
+import pandas as pd
+
 from rich import print
 
-def resource_utilization(args : dict):
+
+class ru_plotter(plotting.PlotEngine):
+    def plot_metric(self, metric: str):
+        tlabel = "Relative time (s)"
+ 
+        df = self.data[metric]
+        for c in df.columns:
+            plotting.plot(plotting.relative_time(df), df[c].astype(float), c, tlabel, metric, False)
+
+        return
+
+
+def resource_utilization(args : dict, display : bool = False):
     plotting.set_plot_style()
 
-    data = files.read_hdf5(utils.search_data_file("A_CvwTCWk", args["data_path"]))
+    data = files.read_hdf5(utils.search_data_file("A_CvwTCWk", args["data_path"])[0])
 
     memory_info = []
     for k in data.keys():
@@ -33,25 +47,12 @@ def resource_utilization(args : dict):
         if ("Cache" in k) and ("(Million)" in k):
             cache_info.append(k)
 
-    tlabel = "Relative time (s)"
+    plotter = ru_plotter(memory_info + cache_info, data | cache_ratio)
 
-    with plotting.PlotBook(args["data_path"] + "resourse_utilization.pdf") as book:
-        for i in (memory_info + cache_info):
-            plotting.plt.figure()
-            df = data[i]
-            for c in df.columns:
-                plotting.plot(plotting.relative_time(df), df[c].astype(float), c, tlabel, i, False)
-            book.save()
-            plotting.plt.clf()
-            
-
-        for i in cache_ratio:
-            plotting.plt.figure()
-            df = cache_ratio[i]
-            for c in df.columns:
-                plotting.plot(plotting.relative_time(df), df[c].astype(float), c, tlabel, i, False)
-            book.save()
-            plotting.plt.clf()
+    if display is True:
+        plotter.plot_display()
+    else:
+        plotter.plot_book(args["out_path"] + f"resourse_utilization.pdf")
 
     return
 
