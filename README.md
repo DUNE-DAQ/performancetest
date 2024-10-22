@@ -118,11 +118,37 @@ Note that when you are done you shold also move the json file to the `data_path`
 
 ### Micro Service
 
-**TODO: Implement service through jupyter notebook or equivalent to provide and easier user interface.**
+**Note that this should only be run on np0x machines which are seldom used, for example np04-srv-013.**
+
+The shared work area is setup on `/nfs/sw/dunedaq_performance_test/`. To setup, simply run
+```[bash]
+source env.sh
+```
+
+all work should be done in the `work` directory which any user can read/write from.
+
+In this environment, the above instructions can be run to produce performance reports, but in addition, a jupyter notebook has been setup for a more interactive experience.
+
+To start the notebook session run the following command
+
+```[bash]
+jupyter notebook $PERFORMANCE_TEST_PATH/app/ --no-browser --port=8080
+```
+
+and note that if the port is being used then another 4 digit number should be used in place of `8080`. You should see a url which looks like
+```[bash]
+http://localhost:8080/tree?token=...
+```
+
+Now, on your local machine tunnel to the server running the service:
+
+```[bash]
+ssh -L 8080:localhost:8080 <user-name>@<server-name>
+```
+
+Then, in your browser open the above url and you should be able to see the jupyter file explorer and you can open `performance_report.ipynb`
 
 
-## Setup software area:
+In the notebook There are two headings; one for putting in information about the test and report, the second for running the above applications.
 
-Mount cernbox for file transfers
-
-add public viewer link, keep uploader link hidden
+**Screenshots for usage**
