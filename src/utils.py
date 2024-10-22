@@ -5,6 +5,7 @@ Author: Shyam Bhuller
 
 Description: general utility functions.
 """
+import argparse
 import warnings
 
 from datetime import datetime as dt
@@ -21,7 +22,15 @@ def transfer(url : str, files : dict[pathlib.Path]):
     return response
 
 
-def make_public_link(fp : pathlib.Path | str):
+def make_public_link(fp : pathlib.Path | str) -> str:
+    """ Create cernbox link for file using the public url and file path (only works if the file path has been uploaded).
+
+    Args:
+        fp (pathlib.Path | str): file path in cernbox
+
+    Returns:
+        str: url
+    """
     # cernbox_url_pdf = "https://cernbox.cern.ch/pdf-viewer/public/gEl6XmzXbW8OffB/"
     cernbox_url = "https://cernbox.cern.ch/files/link/public/ceg2IUASsNrHSvn/"
     return cernbox_url + fp
@@ -98,3 +107,41 @@ def search_data_file(s : str, path : str | pathlib.Path) -> pathlib.Path | list[
     for p in pathlib.Path(path).glob("**/*"):
         if s in p.name: matches.append(p)
     return matches
+
+
+def create_app_args(description : str) -> argparse.Namespace:
+    """ Boiler plate code for application arguments.
+
+    Args:
+        description (str): description of the application.
+
+    Raises:
+        Exception: incorrect file type passed as the config.
+
+    Returns:
+        argparse.Namespace: parsed arguments.
+    """
+    parser = argparse.ArgumentParser(description)
+
+    parser.add_argument("-f", "--file", type = pathlib.Path, help = "json file which contains the details of the test.", required = True)
+
+    args = parser.parse_args()
+
+    if args.file.suffix != ".json":
+        raise Exception("not a json file")
+
+    print(args)
+
+    return args
+
+
+def dunedaq_major_version(version : str) -> int:
+    """ Get the major version of the dunedaq verison.
+
+    Args:
+        version (str): version string (format is vX.Y.Z).
+
+    Returns:
+        int: version number
+    """
+    return int(version.split(".")[0][-1])
