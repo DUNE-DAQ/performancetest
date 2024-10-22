@@ -77,7 +77,7 @@ def collect_metrics(args : argparse.Namespace | dict) -> None | dict:
         core_utilisation_files.append(cu_file.resolve().as_posix())
 
     # extract grafana data
-    harvester.extract_grafana_data(dashboard_info, test_args["run_number"], test_args["host"], test_args["session"], output_file = name, out_dir = out_dir)
+    harvester.extract_grafana_data(dashboard_info, test_args["run_number"], test_args["host"], test_args["session"], test_args["dunedaq_version"], output_file = name, out_dir = out_dir)
 
     if type(args) == argparse.Namespace:
         new_args["data_path"] = str(out_dir) + "/"
@@ -95,14 +95,5 @@ def main(args : argparse.Namespace):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser("Collect results from performance tests.")
-
-    file_arg = parser.add_argument("-f", "--file", type = pathlib.Path, help = "json file which contains the details of the test.")
-
-    args = parser.parse_args()
-
-    if args.file.suffix != ".json":
-        raise Exception("not a json file")
-
-    print(args)
+    args = utils.create_app_args("Collect results from performance tests.")
     main(args)

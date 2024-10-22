@@ -131,59 +131,52 @@ def get_queries(panel : dict) -> dict:
     return queries
 
 
-def make_query(datasources : list[dict], url : str, query : str, time : time_range) -> dict | None:
+def make_query(datasource : dict, url : str, query : str, time : time_range) -> dict | None:
     """ Query from the grafana dashboard, and return the data if the query is successful.
 
     Args:
-        datasources (list[dict]): datasources to make the queries to.
-        url (str): Grafana url to make the queries through.
+        datasource (dict): datasource to query from.
+        url (str): Grafana url to make the query through.
         query (str): query string.
-        time (str): time range to make the query within (required for Prometheus queries, but not InfluxDB as the string contains the time range).
+        time (time_range): time range to make the query within (required for Prometheus queries, but not InfluxDB as the string contains the time range).
 
     Returns:
         dict | None: data from the response if the query was successful or None if the query fails.
     """
     response_data = None
-    error = None # error message
-    for i in datasources: # loop through all data sources and attempt the query #! this can be improved as the panel information should contain the datasource type
-        if i["name"] in ["CERN IT Networking SNMP", "KluPrometheus"]: continue # These datasources do not contain any information from the run
 
-        url_extension = "query" # extension to make queries from the api
-        if i["type"] == "influxdb": # Check the datasource type and populate the data required for the query appropriately.
-            # data for influxdb v1
-            data = {
-                "q" : query,
-                "db" : i["jsonData"]["dbName"]
-            }
-        elif i["type"] == "prometheus":
-            # data for prometheus
-            data = {
-                'query': query,
-                'start': time.start,
-                'end': time.end,
-                'step': 2 # make this configurable?
-            }
-            url_extension = "api/v1/query_range"
-        elif i["type"] == "postgres":
-            #! not 100% if this is correct.
-            data = {
-                "query" : query,
-            }
-        else:
-            warn(f"unknown database type: {i['type']}")
-            continue
+    url_extension = "query" # extension to make queries from the api
+    if datasource["type"] == "influxdb":
+        # data for influxdb v1
+        data = {
+            "q" : query,
+            "db" : datasource["jsonData"]["dbName"]
+        }
+    elif datasource["type"] == "prometheus":
+        # data for prometheus
+        data = {
+            'query': query,
+            'start': time.start,
+            'end': time.end,
+            'step': 2 # make this configurable?
+        }
+        url_extension = "api/v1/query_range"
+    elif datasource["type"] == "postgres":
+        #! not 100% if this is correct.
+        data = {
+            "query" : query,
+        }
+    else:
+        warn(f"unknown database type: {datasource['type']}")
+        return response_data
 
-        try: # attempt to make the query, and stop if it is successful
-            with urlopen(urljoin(url, f"api/datasources/proxy/uid/{i['uid']}/{url_extension}"), urlencode(data).encode()) as response:
-                if response.status == 200:
-                    response_data = urljson(response)
-                    break
-        except (HTTPError, URLError, ValueError) as e:
-            error = e
-            pass
 
-    if not response_data:
-        print(f"query could not be made to any database: {error}")
+    try: # attempt to make the query, and stop if it is successful
+        with urlopen(urljoin(url, f"api/datasources/proxy/uid/{datasource['uid']}/{url_extension}"), urlencode(data).encode()) as response:
+            if response.status == 200:
+                response_data = urljson(response)
+    except (HTTPError, URLError, ValueError) as e:
+        print(f"query could not be made to any database: {e}")
 
     return response_data
 
@@ -202,8 +195,6 @@ def search_panel(d, action : callable, args : dict) -> dict:
     if (type(d) == dict) and utils.is_collection(d): # specific rule to iterate through a dictionary
         #? is there a way to iterate dictionaries and lists/arrays in the same way?
         for k in d:
-
-            if k == "datasource" : d[k]["uid"] = None # we need to try each uid
 
             if utils.is_collection(d): # if the value from the key is a collection, call search_panel again
                 new = search_panel(d[k], action, args)
@@ -237,28 +228,27 @@ def replace_var(query : str, target : str, value : str) -> str:
     return query
 
 
-def query_var(url : str, datasources : list[dict], query_str : str) -> dict | None:
+def query_var_influx(url : str, datasource : dict, query_str : str) -> dict | None:
     """ Query from specifically the opmon influxdb datasource used for the daq applications.
 
     Args:
         url (str): Grafana url.
-        datasources (list[dict]): List of datasources.
+        datasources (dict): influx datasource.
         query_str (str): Query string.
+        ds_id (int) : dashboard id
 
     Returns:
         dict | None: data from the response if successful, otherwise None.
     """
-    for i in datasources:
-        if i["id"] != 11: continue
-        data = {
-            "q" : query_str,
-            "db" : i["jsonData"]["dbName"]
-        }
-        try:
-            with urlopen(urljoin(url, f"api/datasources/proxy/uid/{i['uid']}/query"), urlencode(data).encode()) as response:
-                return urljson(response)
-        except HTTPError as e:
-            print(e)
+    data = {
+        "q"  : query_str,
+        "db" : datasource["jsonData"]["dbName"]
+    }
+    try:
+        with urlopen(urljoin(url, f"api/datasources/proxy/uid/{datasource['uid']}/query"), urlencode(data).encode()) as response:
+            return urljson(response)
+    except HTTPError as e:
+        print(e)
     return
 
 

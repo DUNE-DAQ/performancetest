@@ -34,6 +34,7 @@ def main(args : argparse.Namespace):
     if collect: collect_metrics(args)
     test_args = files.load_json(args.file) # reload the config because collect metrics modifies the config
 
+    test_args["out_path"] = test_args["data_path"] # for all in one usage pdf and data are stored in the same directory to correctly generate urls
     for i in [frontend_ethernet, resource_utilization, tp_metrics, performance_report]:
         i(test_args)
 
