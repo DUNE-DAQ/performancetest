@@ -71,6 +71,9 @@ def performance_report(test_args : dict):
             text = defaults.get(k, "")
         html = html.replace(f"&{k}", text)
 
+
+    if test_args["plot_path"] is None:
+        test_args["plot_path"] = utils.make_plot_dir(test_args)
     urls = create_urls(test_args)
 
     data = create_url_list(urls["data"])

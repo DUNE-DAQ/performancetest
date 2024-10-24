@@ -50,21 +50,21 @@ which should create a configuration which looks like:
     "test_name": "short test name",
     "run_number": "run number of the test",
     "session": "grafana partition name for the given test",
-    "out_path": "override this if you want to save data and reports locally.",
-    "readout_name": [
-        "readouthost names in daqconf file, for each test"
-    ],
+    "out_path": "/nfs/rscratch/sbhuller/perftest/",
+    "data_path": null,
+    "plot_path": null,
     "documentation": {
         "purpose": "state the purpose of your test, if not provided, default text will be added instead",
         "goals": "state the goals of this sepcific test, if not provided, default text will be added instead",
         "method": "state how you will attempt to reach the goal, if not provided, default text will be added instead",
         "control plane": "how was the system controlled during the test i.e. proceess manager configuration",
         "configuration": "path to configuration or git commit hash from ehn1configs",
-        "concurrancy": "active users on the readout machine during the time of the run, what applications were run in parallel on the machine"
+        "concurrancy": "active users on the readout machine during the time of the run, what applications were run in parallel on the machine",
+        "summary": "summary/conclusions of the test"
     }
 }
 ```
-Each key has a description of what it is and what value can be added. Note that for `documentation`, the values can be set to `null` and boilerplate text is inserted into the report instead. Also note that `out_path` can be removed if you are saving reports to the shared cernbox.
+Each key has a description of what it is and what value can be added. Note that the `plot_path` and `data_path` are values which you can override, otherwise they are automaically filled so they can be left as is. In addition, the `out_path` is the location where the directory for the test report is created. This should not be changed unless you want to keep the data and reports locally (note the urls in the report will not work in this case). Finally, note that for `documentation`, the values can be set to `null` and boilerplate text is inserted into the report instead. Also note that `out_path` can be removed if you are saving reports to the shared cernbox.
 
 Below is an example configuration file with the minimal information required:
 ```[json]
@@ -76,6 +76,9 @@ Below is an example configuration file with the minimal information required:
     "test_name": "example",
     "run_number": 29641,
     "session": "np02-session",
+    "out_path": "/nfs/rscratch/sbhuller/perftest/",
+    "data_path": null,
+    "plot_path": null,
     "documentation": {
         "purpose": null,
         "goals": null,
@@ -150,12 +153,23 @@ Then, in your browser open the above url and you should be able to see the jupyt
 
 The notebook should look something like this:
 
-**image of notebook**
+![image](docs/screenshots/notebook_1.png)
 
 The first cell shows infmormation in the json file, so fill these out as appropriate. The cells below are markdown text with a heading corresponding to each one in the performance report. in the cells called `insert text here` you can add your comments and notes to the performance report.
 
-**image of modifying the markdown cells**
+![image](docs/screenshots/notebook_2.png)
 
 Note that is the text is not modified or is left blank, the boilerplate text is added to the notebook instead. Once all the comments are made and the test info is supplied, save the notebook (Ctrl-S) and then on the tab click Run -> Run All Cells.
 
-**image of run all cells**
+![image](docs/screenshots/notebook_3.png)
+
+Once complete, you should be able to see plots of the metrics for the given run:
+
+![image](docs/screenshots/notebook_4.png)
+
+and the final cell should also create the pdf version of the performance report written to `out_path`.
+
+### extra information
+
+ - When using either the notebook or `generate_performance_report.py`, you can manually supply the `data_path` and the `plot_path` if you want to skip the metrics collection or plotting steps.
+ - For the urls to work, you need to upload the files to the public cernbox (url provided), this sohuld be done periodically anyway if your performance reports are written to `/nfs/rscratch/sbhuller/perftest`
