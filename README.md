@@ -132,7 +132,7 @@ In this environment, the above instructions can be run to produce performance re
 To start the notebook session run the following command
 
 ```[bash]
-jupyter notebook $PERFORMANCE_TEST_PATH/app/ --no-browser --port=8080
+jupyter lab $PERFORMANCE_TEST_PATH/app/ --no-browser --port=8080
 ```
 
 and note that if the port is being used then another 4 digit number should be used in place of `8080`. You should see a url which looks like
