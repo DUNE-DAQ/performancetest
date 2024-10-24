@@ -24,7 +24,9 @@ class ru_plotter(plotting.PlotEngine):
 def resource_utilization(args : dict, display : bool = False):
     plotting.set_plot_style()
 
-    data = files.read_hdf5(utils.search_data_file("A_CvwTCWk", args["data_path"])[0])
+    for file in utils.search_data_file("A_CvwTCWk", args["data_path"]):
+        if "hdf5" in file.suffix: break
+    data = files.read_hdf5(file)
 
     memory_info = []
     for k in data.keys():
@@ -54,7 +56,8 @@ def resource_utilization(args : dict, display : bool = False):
     if display is True:
         plotter.plot_display()
     else:
-        plotter.plot_book(args["out_path"] + f"resourse_utilization.pdf")
+        out_dir = utils.make_plot_dir(args)
+        plotter.plot_book(out_dir + "resourse_utilization.pdf")
 
     return
 

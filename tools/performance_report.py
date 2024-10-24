@@ -12,22 +12,20 @@ import utils
 from rich import print
 
 
-def create_urls(args : dict) -> tuple[dict, dict]:
+def create_urls(args : dict) -> dict:
     data = {}
     plots = {}
-    
-    for p in pathlib.Path(args["data_path"]).glob("**/*"):
-        if p.suffix == ".hdf5":
-            target = data
-        elif (p.suffix == ".pdf") and ("performance_report" not in p.name):
-            target = plots
-        else:
-            continue
 
-        link = utils.make_public_link(p.parent.stem + "/" + p.name)
-        target[p.name] = link
+    paths = {"data" : args["data_path"], "plots" : args["plot_path"]}
 
-    return data, plots
+    urls = {"data" : {}, "plots" : {}}
+    for k, v in paths.items():
+        for p in pathlib.Path(v).glob("**/*"):
+
+            link = utils.make_public_link(p.parents[1].stem + f"/{k}/" + p.name)
+            urls[k][p.name] = link
+
+    return urls
 
 
 def html_to_str(path : pathlib.Path | str) -> str:
@@ -73,10 +71,10 @@ def performance_report(test_args : dict):
             text = defaults.get(k, "")
         html = html.replace(f"&{k}", text)
 
-    data, plots = create_urls(test_args)
+    urls = create_urls(test_args)
 
-    data = create_url_list(data)
-    plots = create_url_list(plots)
+    data = create_url_list(urls["data"])
+    plots = create_url_list(urls["plots"])
 
     html = html.replace("&data-urls", data)
     html = html.replace("&plot-urls", plots)
@@ -85,12 +83,10 @@ def performance_report(test_args : dict):
     environment = ""
     for i in hw_specs:
         environment += write_url(utils.make_public_link(f"hwinfo_{host}/{host}-{i}.pdf"), i) + "\n"
-    # utils.make_public_link(f"hw_info_{host}/{host}-dmidecode.pdf")
-    # utils.make_public_link(f"hw_info_{host}/{host}-lshw.pdf")
 
     html = html.replace("&environment", environment)
 
-    file_path = test_args["out_path"] + f"performance_report-run{run}-{host.replace('-', '')}.pdf"
+    file_path = str(utils.test_path(test_args)) + "/" + f"performance_report-run{run}-{host.replace('-', '')}.pdf"
 
     weasyprint.HTML(string = html).write_pdf(file_path)
 

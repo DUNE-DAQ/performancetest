@@ -148,7 +148,14 @@ ssh -L 8080:localhost:8080 <user-name>@<server-name>
 
 Then, in your browser open the above url and you should be able to see the jupyter file explorer and you can open `performance_report.ipynb`
 
+The notebook should look something like this:
 
-In the notebook There are two headings; one for putting in information about the test and report, the second for running the above applications.
+**image of notebook**
 
-**Screenshots for usage**
+The first cell shows infmormation in the json file, so fill these out as appropriate. The cells below are markdown text with a heading corresponding to each one in the performance report. in the cells called `insert text here` you can add your comments and notes to the performance report.
+
+**image of modifying the markdown cells**
+
+Note that is the text is not modified or is left blank, the boilerplate text is added to the notebook instead. Once all the comments are made and the test info is supplied, save the notebook (Ctrl-S) and then on the tab click Run -> Run All Cells.
+
+**image of run all cells**

@@ -18,7 +18,9 @@ def generate_config_template(name : str | pathlib.Path):
         "test_name" : "short test name",
         "run_number" : "run number of the test",
         "session" : "grafana partition name for the given test",
-        "out_path" : "override this if you want to save data and reports locally.",
+        "out_path" : "/nfs/rscratch/sbhuller/perftest/",
+        "data_path" : None,
+        "plot_path" : None,
         "documentation" : {
             "purpose" : "state the purpose of your test, if not provided, default text will be added instead",
             "goals" : "state the goals of this sepcific test, if not provided, default text will be added instead",

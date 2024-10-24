@@ -6,7 +6,7 @@ Author: Shyam Bhuller
 Description: general utility functions.
 """
 import argparse
-import warnings
+import os
 
 from datetime import datetime as dt
 
@@ -15,6 +15,34 @@ import pandas as pd
 
 import requests
 import pathlib
+
+
+def make_plot_dir(args : dict):
+    make_outdir = False
+    if "plot_path" in args:
+        if args["plot_path"] is None:
+            make_outdir = True
+    else:
+        make_outdir = True
+
+    if make_outdir:
+        out_dir = str(test_path(args)) + "/plots/"
+        print(out_dir)
+        os.makedirs(out_dir, exist_ok = True)
+    else:
+        out_dir = args["plot_path"]
+
+    return out_dir
+
+
+def test_path(test_args : dict) -> pathlib.Path:
+    path = f"perftest-run{test_args['run_number']}-{test_args['dunedaq_version'].replace('.', '_')}-{test_args['host'].replace('-', '')}-{test_args['test_name']}"
+
+    path = pathlib.Path(test_args["out_path"] + "/" + path + "/")
+    os.makedirs(path, exist_ok = True)
+    print(f"created output directory: {path}")
+    return path
+
 
 def transfer(url : str, files : dict[pathlib.Path]):    
     for k, v in files.items():
