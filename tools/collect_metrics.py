@@ -42,15 +42,6 @@ def create_dashboard_info(args : argparse.Namespace) -> dict:
     return dashboard_config
 
 
-def test_path(test_args : dict) -> pathlib.Path:
-    path = f"perftest-run{test_args['run_number']}-{test_args['dunedaq_version'].replace('.', '_')}-{test_args['host'].replace('-', '')}-{test_args['test_name']}"
-
-    path = pathlib.Path(test_args["out_path"] + "/" + path + "/")
-    os.makedirs(path, exist_ok = True)
-    print(f"created output directory: {path}")
-    return path
-
-
 def collect_metrics(args : argparse.Namespace | dict) -> None | dict:
     if type(args) == argparse.Namespace:
         test_args = files.load_json(args.file)
@@ -67,7 +58,8 @@ def collect_metrics(args : argparse.Namespace | dict) -> None | dict:
         warn("no core utilisation files were specified!!! Skipping.")
 
     name = utils.create_filename(test_args)
-    out_dir = test_path(test_args)
+    out_dir = str(utils.test_path(test_args)) + "/data/"
+    os.makedirs(out_dir, exist_ok = True)
 
     if "core_utilisation_files" in test_args:
         cu_file = pathlib.Path(f"core_utilisation-{name}.csv")
@@ -80,13 +72,12 @@ def collect_metrics(args : argparse.Namespace | dict) -> None | dict:
     harvester.extract_grafana_data(dashboard_info, test_args["run_number"], test_args["host"], test_args["session"], test_args["dunedaq_version"], output_file = name, out_dir = out_dir)
 
     if type(args) == argparse.Namespace:
-        new_args["data_path"] = str(out_dir) + "/"
-
+        new_args["data_path"] = out_dir
         files.save_json(args.file, new_args)
         print(f"{args.file} updated to include data path.")
         return
     else:
-        test_args["data_path"] = str(out_dir) + "/"
+        test_args["data_path"] = out_dir
         return test_args
 
 

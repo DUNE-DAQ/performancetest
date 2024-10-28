@@ -52,7 +52,8 @@ def tp_metrics(args : dict, display : bool = False):
     if display is True:
         plotter.plot_display()
     else:
-        plotter.plot_book(args["out_path"] + f"trigger_primitive.pdf")
+        out_dir = utils.make_plot_dir(args)
+        plotter.plot_book(out_dir + "trigger_primitive.pdf")
 
 
 def main(args : argparse.Namespace):

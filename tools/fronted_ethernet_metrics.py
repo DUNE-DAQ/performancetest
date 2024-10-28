@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import argparse
+import os
 
 import files
 import plotting
@@ -46,7 +47,10 @@ class feplotter(plotting.PlotEngine):
 def frontend_ethernet(args : dict, display : bool = False):
     plotting.set_plot_style()
 
-    data = files.read_hdf5(utils.search_data_file("frontend_ethernet", args["data_path"])[0])
+    for file in utils.search_data_file("frontend_ethernet", args["data_path"]):
+        if "hdf5" in file.suffix: break
+
+    data = files.read_hdf5(file)
 
     metrics = []
     for k in data:
@@ -58,7 +62,8 @@ def frontend_ethernet(args : dict, display : bool = False):
     if display is True:
         plotter.plot_display()
     else:
-        plotter.plot_book(args["out_path"] + f"frontend_ethernet.pdf")
+        out_dir = utils.make_plot_dir(args)
+        plotter.plot_book(out_dir + "frontend_ethernet.pdf")
 
 
 def main(args : argparse.Namespace):

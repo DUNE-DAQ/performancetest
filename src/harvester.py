@@ -311,7 +311,7 @@ def get_valid_datasources(datasources : list[dict], dunedaq_version : str) -> di
     return valid_datasources
 
 
-def extract_grafana_data(dashboard_info : dict[str], run_number : int, host : str, test_session : str, dunedaq_version : str, output_file : str, out_dir : str | pathlib.Path) -> list[str]:
+def extract_grafana_data(dashboard_info : dict[str], run_number : int, host : str, test_session : str, dunedaq_version : str, output_file : str, out_dir : str) -> list[str]:
     """ Extract data from Grafana dashboards.
 
     Args:
@@ -415,7 +415,7 @@ def extract_grafana_data(dashboard_info : dict[str], run_number : int, host : st
                 warnings.warn("no data was extracted from the dashboard. Check the data has not expired!")
 
         # Save the dataframes
-        output = out_dir.joinpath(f"grafana-{dashboard}-{output_file}.hdf5")
+        output = str(out_dir) + f"grafana-{dashboard}-{output_file}.hdf5"
         try:
             files.write_dict_hdf5(dashboard_data, output)
             out_files.append(output)

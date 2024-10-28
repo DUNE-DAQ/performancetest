@@ -11,6 +11,7 @@ import tables
 
 import pandas as pd
 
+
 def write_dict_hdf5(dictionary : dict, file : str):
     """ Write dictionary to a HDF5 file.
 
