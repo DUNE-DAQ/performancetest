@@ -1,6 +1,6 @@
 # performancetest
 
-Link to CERNBox with reports, data and plots: https://cernbox.cern.ch/s/gEl6XmzXbW8OffB
+Link to CERNBox with reports, data and plots: https://cernbox.cern.ch/files/link/public/ceg2IUASsNrHSvn
 
 path to performance test work area: `/nfs/sw/dunedaq_performance_test/`. Use a low usage server for running the tools e.g. np04-srv-013.
 
