@@ -22,9 +22,27 @@ from rich import print
 time_range = namedtuple("time_range", ["start", "end"])
 
 
-def request():
+def request(url : str, extension : str, data : dict = None) -> dict | None:
     #! make function to make a generic http request with exception handling.
-    return
+    response_data = None
+    try: # attempt to make the query, and stop if it is successful
+        with urlopen(urljoin(url, extension), data = urlencode(data).encode() if data else None) as response:
+            if response.status == 200:
+                response_data = urljson(response)
+    except (HTTPError, URLError, ValueError) as e:
+        print(f"request could not be made: {e}")
+
+    return response_data
+
+
+def query_prometheus(url, query_str, time_range : time_range):
+    data = {
+        'query': query_str,
+        'start': time_range.start,
+        'end': time_range.end,
+        'step': 2 # make this configurable?
+    }
+    return request(url, "api/v1/query_range", data)
 
 
 def make_names_str(names : list) -> str:
@@ -171,13 +189,7 @@ def make_query(datasource : dict, url : str, query : str, time : time_range) -> 
         return response_data
 
 
-    try: # attempt to make the query, and stop if it is successful
-        with urlopen(urljoin(url, f"api/datasources/proxy/uid/{datasource['uid']}/{url_extension}"), urlencode(data).encode()) as response:
-            if response.status == 200:
-                response_data = urljson(response)
-    except (HTTPError, URLError, ValueError) as e:
-        print(f"query could not be made to any database: {e}")
-
+    request(url, f"api/datasources/proxy/uid/{datasource['uid']}/{url_extension}", data) # attempt to make the query, and stop if it is successful
     return response_data
 
 
