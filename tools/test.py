@@ -13,7 +13,10 @@ def parse_prometheus_generic(response : dict):
     metrics = {}
     values = []
 
-    # get the metrics and values for each smaple
+    # get the metrics and values for each sample
+    if len(response["data"]["result"]) == 0:
+        return pd.DataFrame()
+
     for r in response["data"]["result"]:
         for k in r["metric"]:
             if k not in metrics:
@@ -68,14 +71,9 @@ query_dict = {
 }
 
 dfs = {}
-sample_desc = {}
+# sample_desc = {}
 for query in query_dict:
-    name, df = parse_prometheus_generic(queries.query_prometheus(prometheus_url, query_str = query_dict[query], time_range = time))
+    _, df = parse_prometheus_generic(queries.query_prometheus(prometheus_url, query_str = query_dict[query], time_range = time))
     dfs[query] = df
-    sample_desc[query] = name
 
 print(dfs)
-print(sample_desc)
-
-# response = queries.query_prometheus(prometheus_url, query_str = query_str, time_range = time)
-# print(parse_prometheus_generic(response))

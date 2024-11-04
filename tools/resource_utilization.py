@@ -15,43 +15,92 @@ class ru_plotter(plotting.PlotEngine):
         tlabel = "Relative time (s)"
  
         df = self.data[metric]
+        
+        make_labels = (len(df.columns) < 10) and (len(df.columns) > 1)
         for c in df.columns:
-            plotting.plot(plotting.relative_time(df), df[c].astype(float), c, tlabel, metric, False)
+            plotting.plot(plotting.relative_time(df), df[c].astype(float), c if make_labels else None, tlabel, metric, False)
 
+        if "(%)" in metric:
+            plotting.plt.ylim(0, 100)
         return
+
+
+def search_hdf5(search_term : str, path : str) -> str | None:
+    """ Search for hdf5 files with a specific term in a directory.
+
+    Args:
+        search_term (str): Term to search for.
+        path (str): Directory.
+
+    Returns:
+        str | None: hdf5 file path if found.
+    """
+    for file in utils.search_data_file(search_term, path):
+        if "hdf5" in file.suffix: return file
+    return
+
+
+def process_ru(ru_data : dict) -> tuple[list[str], dict[pd.DataFrame]]:
+    """ Process resource utilisation metrics to calculate cache information.
+
+    Args:
+        ru_data (dict): Resource utilisation data.
+
+    Returns:
+        tuple[list[str], dict[pd.DataFrame]]: metric names and data
+    """
+    cache_ratio = {}
+    for i in [2, 3]:
+        miss = f"L{i} Cache Misses"
+        hits = f"L{i} Cache Hits"
+        if (miss not in ru_data) or (hits not in ru_data):
+            continue
+        else:
+            total = ru_data[miss] + ru_data[hits]
+            cache_ratio[f"{miss} (%)"] = ru_data[miss] / total
+            cache_ratio[f"{hits} (%)"] = ru_data[hits] /  total
+
+    cache_info = []
+    for k in ru_data.keys():
+        if ("Cache" in k) and ("(Million)" in k):
+            cache_info.append(k)
+
+    return cache_info, cache_ratio
 
 
 def resource_utilization(args : dict, display : bool = False):
     plotting.set_plot_style()
 
-    for file in utils.search_data_file("A_CvwTCWk", args["data_path"]):
-        if "hdf5" in file.suffix: break
-    data = files.read_hdf5(file)
+    fp = {
+        "ru" : search_hdf5("A_CvwTCWk", args["data_path"]),
+        "ne" : search_hdf5("node-exporter", args["data_path"])
+    }
 
-    memory_info = []
-    for k in data.keys():
-        if "Memory Bandwidth (MByte/sec)" in k:
-            memory_info.append(k)
+    data = {}
+    for k, v in fp.items():
+        if v:
+            data[k] = files.read_hdf5(v)
 
-    total_cpu_util =  "Core C-state residency" #? is this true? don't think so...
+    keys = []
+    values = {}
 
-    cache_ratio = {}
-    for i in [2, 3]:
-        miss = f"L{i} Cache Misses"
-        hits = f"L{i} Cache Hits"
-        if (miss not in data) or (hits not in data):
-            continue
-        else:
-            total = data[miss] + data[hits]
-            cache_ratio[f"{miss} (%)"] = data[miss] / total
-            cache_ratio[f"{hits} (%)"] = data[hits] /  total
+    if "ru" in data:
+        memory_info = []
+        for k in data["ru"].keys():
+            if "Memory Bandwidth (MByte/sec)" in k:
+                memory_info.append(k)
 
-    cache_info = []
-    for k in data.keys():
-        if ("Cache" in k) and ("(Million)" in k):
-            cache_info.append(k)
+        cache_info, cache_ratio = process_ru(data["ru"])
+        keys = keys + memory_info + cache_info
+        values = values | data["ru"] | cache_ratio
 
-    plotter = ru_plotter(memory_info + cache_info, data | cache_ratio)
+    if "ne" in data:
+        for k in data["ne"]:
+            if "(%)" in k:
+                keys.append(k)
+                values[k] = data["ne"][k]
+
+    plotter = ru_plotter(keys, values)
 
     if display is True:
         plotter.plot_display()

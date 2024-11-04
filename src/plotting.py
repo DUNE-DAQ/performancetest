@@ -107,7 +107,7 @@ def plot(x, y, label : str, xlabel : str, ylabel : str, newFigure : bool = True,
     plt.plot(x, y, label = label)
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
-    plt.legend()
+    if label: plt.legend()
     plt.tight_layout()
 
     if book is not None:
@@ -141,6 +141,8 @@ class PlotEngine(ABC):
 
 
     def plot_display(self):
+        """ Plot metrics in a grid layout for displaying in notebooks.
+        """
         valid_metrics = [m for m in self.metrics if not self.data[m].empty]
         dims = figure_dimensions(len(valid_metrics), "vertical")
 
@@ -154,6 +156,11 @@ class PlotEngine(ABC):
 
 
     def plot_book(self, name : str):
+        """ Plot matrics to pdf file.
+
+        Args:
+            name (str): file name.
+        """
         with PlotBook(name) as book:
             for i in self.metrics:
                 plt.figure(figsize=(8*1.2, 6*1.2))
