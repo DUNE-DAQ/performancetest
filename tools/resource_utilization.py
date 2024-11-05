@@ -15,10 +15,22 @@ class ru_plotter(plotting.PlotEngine):
         tlabel = "Relative time (s)"
  
         df = self.data[metric]
-        
+
+        if "(Bps)" in metric:
+            df = df / 1E9
+            metric = metric.replace("Bps", "GB/s")
+
+        if "(B)" in metric:
+            df = df / 1E9
+            metric = metric.replace("B", "GB")
+
+        if "pps" in metric:
+            metric = metric.replace("pps", "p/s")
+
         make_labels = (len(df.columns) < 10) and (len(df.columns) > 1)
         for c in df.columns:
             plotting.plot(plotting.relative_time(df), df[c].astype(float), c if make_labels else None, tlabel, metric, False)
+        plotting.plt.ylim(0)
 
         if "(%)" in metric:
             plotting.plt.ylim(0, 100)
@@ -96,7 +108,7 @@ def resource_utilization(args : dict, display : bool = False):
 
     if "ne" in data:
         for k in data["ne"]:
-            if "(%)" in k:
+            if ("(%)" in k) or ("Network" in k) or ("Softnet" in k):
                 keys.append(k)
                 values[k] = data["ne"][k]
 

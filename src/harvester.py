@@ -347,7 +347,45 @@ def extract_node_exporter_data(dashboard_info : dict[str], run_number : int, hos
         "Total Memory (B)" : f"node_memory_MemTotal_bytes{{nodename=\"{host}\"}}",
         "Available Memory (B)" : f"node_memory_MemAvailable_bytes{{nodename=\"{host}\"}}",
         "Memory Usage (%)" : f"100 * (node_memory_MemTotal_bytes{{nodename=\"{host}\"}} - node_memory_MemAvailable_bytes{{nodename=\"{host}\"}}) / node_memory_MemTotal_bytes{{nodename=\"{host}\"}}",
+
+        "Network Speed (B) " : f"node_network_speed_bytes{{nodename=\"{host}\"}}",
+        "Network MTU (B)" : f" node_network_mtu_bytes{{nodename=\"{host}\"}}",
+        "Softnet Packets Processed (pps)" : f"irate(node_softnet_processed_total{{nodename=\"{host}\"}}[10m])",
+        "Softnet Packets Dropped (pps) "  : f"irate(node_softnet_dropped_total{{nodename=\"{host}\"}}[10m])",
+        "Softnet Packets Squeezed (pps)"  : f"irate(node_softnet_times_squeezed_total{{nodename=\"{host}\"}}[10m])",
+        # node_network_up
+        # node_network_carrier
     }
+
+    rt = ["bytes", "packets", "fifo", "errs", "drop", "compressed"]
+    t = ["queue_length", "carrier", "colls"]
+    r = ["frame"]
+
+    names = {
+        "bytes" : "(Bps)",
+        "packets" : "(pps)",
+        "fifo" : "FIFO (pps)",
+        "errs" : "Errors (pps)",
+        "drop" : "Dropped (pps)",
+        "colls" : "Colls (counter)",
+        "compressed" : "Compressed (pps)",
+        "carrier" : "Carrier (counts)",
+        "queue_length" : "Queue Length (pps)",
+        "frame" : "Frame (pps)",
+    }
+
+    for i in ["receive", "transmit"]:
+        if i == "receive":
+            metrics = rt + r
+        if i == "transmit":
+            metrics = rt + t
+        for m in metrics:
+            name = f"Network {i} {names[m]}"
+            query = f"node_network_{i}_{m}_total{{nodename=\"{host}\"}}"
+            if "ps" in name:
+                query = f"irate({query}[10m])"
+            query_dict[name] = query
+
     url = dashboard_info["grafana_url"]
     datasources = queries.get_datasources(url)
 
