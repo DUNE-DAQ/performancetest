@@ -383,10 +383,12 @@ def extract_node_exporter_data(dashboard_info : dict[str], run_number : int, hos
     for i in ["receive", "transmit"]:
         if i == "receive":
             metrics = rt + r
+            suffix = "received"
         if i == "transmit":
             metrics = rt + t
+            suffix = "transmitted"
         for m in metrics:
-            name = f"Network {i} {names[m]}"
+            name = f"Network {suffix} {names[m]}"
             query = f"node_network_{i}_{m}_total{{nodename=\"{host}\"}}"
             if "ps" in name:
                 query = f"irate({query}[10m])"
