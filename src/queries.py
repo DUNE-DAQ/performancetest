@@ -188,8 +188,7 @@ def make_query(datasource : dict, url : str, query : str, time : time_range) -> 
         warn(f"unknown database type: {datasource['type']}")
         return response_data
 
-
-    request(url, f"api/datasources/proxy/uid/{datasource['uid']}/{url_extension}", data) # attempt to make the query, and stop if it is successful
+    response_data = request(url, f"api/datasources/proxy/uid/{datasource['uid']}/{url_extension}", data) # attempt to make the query, and stop if it is successful
     return response_data
 
 

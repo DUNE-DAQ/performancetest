@@ -220,6 +220,9 @@ def parse_result_influx(response_data : dict, panel : dict) -> pd.DataFrame:
     """
     parsed_results = {}
 
+    if response_data is None:
+        return pd.DataFrame()
+
     if "series" in response_data["results"][0]:
         for i in response_data["results"][0]["series"]:
             if "tags" in i:
@@ -247,7 +250,7 @@ def parse_result_influx(response_data : dict, panel : dict) -> pd.DataFrame:
     return df
 
 
-def parse_result_prometheus(response_data : dict, name : str) -> pd.DataFrame:
+def parse_result_prometheus(response_data : dict, name : dict) -> pd.DataFrame:
     """ Parse the Grafana api reponse from the prometheus database and write the data into dataframes.
 
     Args:
@@ -259,6 +262,9 @@ def parse_result_prometheus(response_data : dict, name : str) -> pd.DataFrame:
     """
     parsed = {}
 
+    if response_data is None:
+        return pd.DataFrame()
+
     if len(response_data["data"]["result"]) == 0:
         return pd.DataFrame()
     else:
@@ -266,7 +272,7 @@ def parse_result_prometheus(response_data : dict, name : str) -> pd.DataFrame:
             if len(response_data["data"]["result"]) == 1:
                 key = name
             else:
-                key = name + f"x_{i}"
+                key = name + f"_{i}"
             v = np.array(result["values"])
             parsed["time"] = v[:, 0]
             parsed[key] = v[:, 1]
@@ -389,7 +395,7 @@ def extract_node_exporter_data(dashboard_info : dict[str], run_number : int, hos
     url = dashboard_info["grafana_url"]
     datasources = queries.get_datasources(url)
 
-    valid_ds = get_valid_datasources(datasources, dunedaq_version = "v5.2.0")
+    valid_ds = get_valid_datasources(datasources, dunedaq_version)
     prometheus_url = valid_ds["prometheus"]["url"]
 
     time = get_run_time(url, valid_ds["influxdb"], run_number, test_session, dunedaq_version)
@@ -521,9 +527,11 @@ def extract_grafana_data(dashboard_info : dict[str], run_number : int, host : st
             
             data_from_panel = {}
             for query_name, query in query_strs.items(): # loop over all queries
-
                 response_data = queries.make_query(valid_ds[data_type], url, query, time) # make the query
-                data_from_panel[query_name] = ds_parser[data_type](response_data, panel) # get the data from the response, will be specific to the datasource type
+                if data_type == "prometheus":
+                    data_from_panel[query_name] = ds_parser[data_type](response_data, query_name)
+                else:
+                    data_from_panel[query_name] = ds_parser[data_type](response_data, panel) # get the data from the response, will be specific to the datasource type
 
             # organise the DataFrames to save to file
             single_columns = all([len(data.columns) == 1 for data in data_from_panel.values() if data is not None]) # check the panel returned multiple query DataFrames with a single column
