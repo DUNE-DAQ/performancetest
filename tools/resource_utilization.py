@@ -27,7 +27,7 @@ class ru_plotter(plotting.PlotEngine):
         if "pps" in metric:
             metric = metric.replace("pps", "p/s")
 
-        make_labels = (len(df.columns) < 10) and (len(df.columns) > 1)
+        make_labels = (len(df.columns) < 20) and (len(df.columns) > 1)
         for c in df.columns:
             plotting.plot(plotting.relative_time(df), df[c].astype(float), c if make_labels else None, tlabel, metric, False)
         plotting.plt.ylim(0)
@@ -108,7 +108,7 @@ def resource_utilization(args : dict, display : bool = False):
 
     if "ne" in data:
         for k in data["ne"]:
-            if ("(%)" in k) or ("Network" in k) or ("Softnet" in k):
+            if ("(%)" in k) or ("Network" in k) or ("Softnet" in k) or ("Disk") in k:
                 keys.append(k)
                 values[k] = data["ne"][k]
 

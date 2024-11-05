@@ -359,8 +359,10 @@ def extract_node_exporter_data(dashboard_info : dict[str], run_number : int, hos
         "Softnet Packets Processed (pps)" : f"irate(node_softnet_processed_total{{nodename=\"{host}\"}}[10m])",
         "Softnet Packets Dropped (pps) "  : f"irate(node_softnet_dropped_total{{nodename=\"{host}\"}}[10m])",
         "Softnet Packets Squeezed (pps)"  : f"irate(node_softnet_times_squeezed_total{{nodename=\"{host}\"}}[10m])",
-        # node_network_up
-        # node_network_carrier
+
+        "Disk Written (Bps)" : f"irate(node_disk_written_bytes_total{{nodename=\"{host}\"}}[10m])",
+        "Disk IO time (s)"   : f"node_disk_io_time_seconds_total{{nodename=\"{host}\"}}",
+        "Disk Read (Bps) "   : f"irate(node_disk_read_bytes_total{{nodename=\"{host}\"}}[10m])",
     }
 
     rt = ["bytes", "packets", "fifo", "errs", "drop", "compressed"]

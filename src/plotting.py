@@ -6,6 +6,7 @@ Author: Shyam Bhuller
 Description: Module for making plots.
 """
 from abc import ABC, abstractmethod
+from matplotlib.cm import get_cmap
 import warnings
 
 import numpy as np
@@ -18,6 +19,7 @@ def set_plot_style():
     """ Set the plotting style for performance tests.
     """
     plt.style.use('ggplot')
+    plt.rcParams.update({"axes.prop_cycle" : plt.cycler("color", get_cmap("tab20").colors)})
     return
 
 
