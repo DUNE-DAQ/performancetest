@@ -67,14 +67,15 @@ def performance_report(test_args : dict):
     html = html.replace("&topology", test_args["data_source"])
     
     if "workarea" in test_args:
-        tables = workarea_info.get_info(test_args["workarea"])
+        if test_args["workarea"] is not None:
+            tables = workarea_info.get_info(test_args["workarea"])
 
-        html = html.replace("&daq_version", "release information: \n" + tables["release_info"])
+            html = html.replace("&daq_version", "release information: \n" + tables["release_info"])
 
-        html = html.replace("&commit_hashes", f"release packages: \n {tables['release']} \n local packages: \n {tables['local']} \n")
+            html = html.replace("&commit_hashes", f"release packages: \n {tables['release']} \n local packages: \n {tables['local']} \n")
 
-        html = html.replace(f"&configuration", tables["configuration"])
-        test_args["documentation"].pop("configuration")
+            html = html.replace(f"&configuration", tables["configuration"])
+            test_args["documentation"].pop("configuration")
 
     for k, v in test_args["documentation"].items():
         if v is not None:
