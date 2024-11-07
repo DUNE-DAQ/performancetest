@@ -9,6 +9,8 @@ import argparse
 import files
 import utils
 
+import workarea_info
+
 from rich import print
 
 
@@ -64,6 +66,12 @@ def performance_report(test_args : dict):
     html = html.replace("&host", host)
     html = html.replace("&topology", test_args["data_source"])
     
+    if "workarea" in test_args:
+        tables = workarea_info.get_info(test_args["workarea"])
+        text = "\n".join(list(tables.values()))
+        html = html.replace(f"&configuration", text)
+        test_args["documentation"].pop("configuration")
+
     for k, v in test_args["documentation"].items():
         if v is not None:
             text = v

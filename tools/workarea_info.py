@@ -89,7 +89,7 @@ def check_configs(dire : str) -> tabulate.JupyterHTMLStr | None:
     """
     ehn1_daqconf_path = utils.search_data_file("ehn1-daqconfigs", dire)
 
-    if ehn1_daqconf_path > 0:
+    if len(ehn1_daqconf_path) > 0:
         info = get_repo_info(ehn1_daqconf_path[0]) # should only have one
         html_table = make_repo_table({"ehn1-daqconfigs" : info})
         return html_table
