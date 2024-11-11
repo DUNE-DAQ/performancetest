@@ -17,6 +17,35 @@ import requests
 import pathlib
 
 
+class ApplicationArguments(argparse.ArgumentParser):
+    """ Class for managing application arguments for the performance report tools.
+        Inherits from application.ArgumentParser and modifies class to reduce boilerplate when defining application args.
+    """
+    def __init__(self, description : str) -> None:
+        super().__init__(description =description)
+        # add arguments all applications should require
+        self.add_argument("-f", "--file", type = pathlib.Path, help = "json file which contains the details of the test.", required = True)
+
+
+    def create(self) -> argparse.Namespace:
+        """ Parse the arguments and check provided arguments make sense.
+
+        Raises:
+            Exception: Incorrect value for configuration file passed. 
+
+        Returns:
+            argparse.Namespace: Parsed arguments.
+        """
+        args = self.parse_args()
+
+        if args.file.suffix != ".json":
+            raise Exception("not a json file")
+
+        print(args)
+
+        return args
+
+
 def make_plot_dir(args : dict):
     make_outdir = False
     if "plot_path" in args:
@@ -130,37 +159,20 @@ def create_filename(test_args : dict) -> str:
         ])
 
 
-def search_data_file(s : str, path : str | pathlib.Path) -> pathlib.Path | list[pathlib.Path]:
+def search_data_file(s : str, path : str | pathlib.Path) -> list[pathlib.Path]:
+    """ Search for terms in the names of files in a directory. Acts recursively.
+
+    Args:
+        s (str): Search term.
+        path (str | pathlib.Path): Directory to search in.
+
+    Returns:
+        list[pathlib.Path]: list of matches for the search term.
+    """
     matches = []
     for p in pathlib.Path(path).glob("**/*"):
         if s in p.name: matches.append(p)
     return matches
-
-
-def create_app_args(description : str) -> argparse.Namespace:
-    """ Boiler plate code for application arguments.
-
-    Args:
-        description (str): description of the application.
-
-    Raises:
-        Exception: incorrect file type passed as the config.
-
-    Returns:
-        argparse.Namespace: parsed arguments.
-    """
-    parser = argparse.ArgumentParser(description)
-
-    parser.add_argument("-f", "--file", type = pathlib.Path, help = "json file which contains the details of the test.", required = True)
-
-    args = parser.parse_args()
-
-    if args.file.suffix != ".json":
-        raise Exception("not a json file")
-
-    print(args)
-
-    return args
 
 
 def dunedaq_major_version(version : str) -> int:
