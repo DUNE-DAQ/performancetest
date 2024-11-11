@@ -65,17 +65,17 @@ def performance_report(test_args : dict):
     html = html.replace("&run", str(run))
     html = html.replace("&host", host)
     html = html.replace("&topology", test_args["data_source"])
-    
-    if "workarea" in test_args:
-        if test_args["workarea"] is not None:
-            tables = workarea_info.get_info(test_args["workarea"])
 
-            html = html.replace("&daq_version", "release information: \n" + tables["release_info"])
+    if test_args["workarea"] is not None:
+        winfo = utils.search_data_file("workarea_info", test_args["data_path"])
+        if len(winfo) > 0:
+            winfo = files.load_json(winfo[0])
 
-            html = html.replace("&commit_hashes", f"release packages: \n {tables['release']} \n local packages: \n {tables['local']} \n")
+        html = html.replace("&daq_version", "release information: \n" + workarea_info.make_release_table(winfo["release"]))
+        html = html.replace("&commit_hashes", f"release packages: \n {workarea_info.make_repo_table(winfo['release_commit'])} \n local packages: \n {workarea_info.make_repo_table(winfo['local_commit'])} \n")
+        html = html.replace(f"&configuration", workarea_info.make_repo_table(winfo["configuration"]))
+        test_args["documentation"].pop("configuration")
 
-            html = html.replace(f"&configuration", tables["configuration"])
-            test_args["documentation"].pop("configuration")
 
     for k, v in test_args["documentation"].items():
         if v is not None:
@@ -117,5 +117,5 @@ def main(args : argparse.Namespace):
 
 
 if __name__ == "__main__":
-    args = utils.create_app_args("Creates performance reports from existing plots and provided documentation in the configuration.")
+    args = utils.ApplicationArguments("Creates performance reports from existing plots and provided documentation in the configuration.").create()
     main(args)
