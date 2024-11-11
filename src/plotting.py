@@ -109,7 +109,32 @@ def plot(x, y, label : str, xlabel : str, ylabel : str, newFigure : bool = True,
     plt.plot(x, y, label = label)
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
-    if label: plt.legend()
+    if label is not None: plt.legend()
+    plt.tight_layout()
+
+    if book is not None:
+        book.save()
+        plt.clf()
+    return
+
+
+def bar(x, y, xlabel : str, ylabel : str, title : str = None, rotation : int = 0, bar_label : bool = False, newFigure : bool = True, book : PlotBook = None):
+    if newFigure: plt.figure()
+    rect = plt.bar(x, y)
+
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    plt.title(title)
+
+    bl = []
+    for i in rect.datavalues:
+        if i > 10:
+            bl.append(f"{i:,.1f}")
+        else:
+            bl.append(f"{i:,.3f}")
+
+    if bar_label: plt.bar_label(rect, label_type = "edge", labels = bl)
+    plt.xticks(rotation = rotation)
     plt.tight_layout()
 
     if book is not None:
