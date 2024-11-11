@@ -165,13 +165,5 @@ def main(args : argparse.Namespace):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser("Create a performance report with one command.")
-
-    parser.add_argument("-f", "--file", type = pathlib.Path, help = "json file which contains the details of the test.", required = True)
-
-    args = parser.parse_args()
-    if args.file.suffix != ".json":
-        raise Exception("not a json file")
-
-    print(args)
+    args = utils.ApplicationArguments("Analyse performance metrics.").create()
     main(args)

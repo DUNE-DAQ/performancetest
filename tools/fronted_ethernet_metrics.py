@@ -73,5 +73,5 @@ def main(args : argparse.Namespace):
 
 
 if __name__ == "__main__":
-    args = utils.create_app_args("Create plots for the frontend ethernet metrics.")
+    args = utils.ApplicationArguments("Create plots for the frontend ethernet metrics.").create()
     main(args)

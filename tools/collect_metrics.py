@@ -89,5 +89,5 @@ def main(args : argparse.Namespace):
 
 
 if __name__ == "__main__":
-    args = utils.create_app_args("Collect results from performance tests.")
+    args = utils.ApplicationArguments("Collect results from performance tests.").create()
     main(args)
