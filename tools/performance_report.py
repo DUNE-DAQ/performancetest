@@ -9,21 +9,23 @@ import argparse
 import files
 import utils
 
+import workarea_info
+
 from rich import print
 
 
 def create_urls(args : dict) -> dict:
-    data = {}
-    plots = {}
-
     paths = {"data" : args["data_path"], "plots" : args["plot_path"]}
 
     urls = {"data" : {}, "plots" : {}}
     for k, v in paths.items():
+        print(v)
         for p in pathlib.Path(v).glob("**/*"):
-
+            print(p)
             link = utils.make_public_link(p.parents[1].stem + f"/{k}/" + p.name)
             urls[k][p.name] = link
+
+    print(urls)
 
     return urls
 
@@ -64,6 +66,17 @@ def performance_report(test_args : dict):
     html = html.replace("&host", host)
     html = html.replace("&topology", test_args["data_source"])
     
+    if "workarea" in test_args:
+        if test_args["workarea"] is not None:
+            tables = workarea_info.get_info(test_args["workarea"])
+
+            html = html.replace("&daq_version", "release information: \n" + tables["release_info"])
+
+            html = html.replace("&commit_hashes", f"release packages: \n {tables['release']} \n local packages: \n {tables['local']} \n")
+
+            html = html.replace(f"&configuration", tables["configuration"])
+            test_args["documentation"].pop("configuration")
+
     for k, v in test_args["documentation"].items():
         if v is not None:
             text = v

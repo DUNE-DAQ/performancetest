@@ -6,6 +6,7 @@ Author: Shyam Bhuller
 Description: Module for making plots.
 """
 from abc import ABC, abstractmethod
+from matplotlib.cm import get_cmap
 import warnings
 
 import numpy as np
@@ -18,6 +19,7 @@ def set_plot_style():
     """ Set the plotting style for performance tests.
     """
     plt.style.use('ggplot')
+    plt.rcParams.update({"axes.prop_cycle" : plt.cycler("color", get_cmap("tab20").colors)})
     return
 
 
@@ -107,7 +109,32 @@ def plot(x, y, label : str, xlabel : str, ylabel : str, newFigure : bool = True,
     plt.plot(x, y, label = label)
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
-    plt.legend()
+    if label is not None: plt.legend()
+    plt.tight_layout()
+
+    if book is not None:
+        book.save()
+        plt.clf()
+    return
+
+
+def bar(x, y, xlabel : str, ylabel : str, title : str = None, rotation : int = 0, bar_label : bool = False, newFigure : bool = True, book : PlotBook = None):
+    if newFigure: plt.figure()
+    rect = plt.bar(x, y)
+
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    plt.title(title)
+
+    bl = []
+    for i in rect.datavalues:
+        if i > 10:
+            bl.append(f"{i:,.1f}")
+        else:
+            bl.append(f"{i:,.3f}")
+
+    if bar_label: plt.bar_label(rect, label_type = "edge", labels = bl)
+    plt.xticks(rotation = rotation)
     plt.tight_layout()
 
     if book is not None:
@@ -141,6 +168,8 @@ class PlotEngine(ABC):
 
 
     def plot_display(self):
+        """ Plot metrics in a grid layout for displaying in notebooks.
+        """
         valid_metrics = [m for m in self.metrics if not self.data[m].empty]
         dims = figure_dimensions(len(valid_metrics), "vertical")
 
@@ -154,6 +183,11 @@ class PlotEngine(ABC):
 
 
     def plot_book(self, name : str):
+        """ Plot matrics to pdf file.
+
+        Args:
+            name (str): file name.
+        """
         with PlotBook(name) as book:
             for i in self.metrics:
                 plt.figure(figsize=(8*1.2, 6*1.2))

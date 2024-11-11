@@ -209,7 +209,19 @@ def parse_result_postgres(response_data : dict, panel : dict) -> pd.DataFrame:
 
 
 def parse_result_influx(response_data : dict, panel : dict) -> pd.DataFrame:
+    """ Parse the Grafana api reponse from the prometheus database and write the data into dataframes.
+
+    Args:
+        response_data (dict): API response in json format.
+        panel (dict): information from the panel the data was extracted from.
+
+    Returns:
+        pd.DataFrame: data in pandas DataFrame.
+    """
     parsed_results = {}
+
+    if response_data is None:
+        return pd.DataFrame()
 
     if "series" in response_data["results"][0]:
         for i in response_data["results"][0]["series"]:
@@ -238,8 +250,20 @@ def parse_result_influx(response_data : dict, panel : dict) -> pd.DataFrame:
     return df
 
 
-def parse_result_prometheus(response_data, name) -> pd.DataFrame:
+def parse_result_prometheus(response_data : dict, name : dict) -> pd.DataFrame:
+    """ Parse the Grafana api reponse from the prometheus database and write the data into dataframes.
+
+    Args:
+        response_data (dict): API response in json format.
+        name (str): Name of metric retreived.
+
+    Returns:
+        pd.DataFrame: data in pandas DataFrame.
+    """
     parsed = {}
+
+    if response_data is None:
+        return pd.DataFrame()
 
     if len(response_data["data"]["result"]) == 0:
         return pd.DataFrame()
@@ -248,7 +272,7 @@ def parse_result_prometheus(response_data, name) -> pd.DataFrame:
             if len(response_data["data"]["result"]) == 1:
                 key = name
             else:
-                key = name + f"x_{i}"
+                key = name + f"_{i}"
             v = np.array(result["values"])
             parsed["time"] = v[:, 0]
             parsed[key] = v[:, 1]
@@ -311,6 +335,135 @@ def get_valid_datasources(datasources : list[dict], dunedaq_version : str) -> di
     return valid_datasources
 
 
+def extract_node_exporter_data(dashboard_info : dict[str], run_number : int, host : str, test_session : str, dunedaq_version : str, output_file : str, out_dir : str):
+    """ Extract node exporter data form the prometheus database directly i.e. not through the Grafana api.
+
+    Args:
+        dashboard_info (dict[str]): url, uid and sesssion names for the grafana page.
+        run_number (int): run number of specific test.
+        host (str): Host name.
+        partition (str): Partition/session name of the test.
+        output_file (str): Output file name.
+        out_dir (str): Directory to write files to.
+    """
+    query_dict = {
+        "CPU Usage (%)" : f"100 * (1 - irate(node_cpu_seconds_total{{nodename=\"{host}\", mode=\"idle\"}}[10m]))",
+        "CPU Idle (s)" : f"node_cpu_seconds_total{{nodename=\"{host}\", mode=\"idle\"}}",
+
+        "Total Memory (B)" : f"node_memory_MemTotal_bytes{{nodename=\"{host}\"}}",
+        "Available Memory (B)" : f"node_memory_MemAvailable_bytes{{nodename=\"{host}\"}}",
+        "Memory Usage (%)" : f"100 * (node_memory_MemTotal_bytes{{nodename=\"{host}\"}} - node_memory_MemAvailable_bytes{{nodename=\"{host}\"}}) / node_memory_MemTotal_bytes{{nodename=\"{host}\"}}",
+
+        "Network Speed (B) " : f"node_network_speed_bytes{{nodename=\"{host}\"}}",
+        "Network MTU (B)" : f" node_network_mtu_bytes{{nodename=\"{host}\"}}",
+        "Softnet Packets Processed (pps)" : f"irate(node_softnet_processed_total{{nodename=\"{host}\"}}[10m])",
+        "Softnet Packets Dropped (pps) "  : f"irate(node_softnet_dropped_total{{nodename=\"{host}\"}}[10m])",
+        "Softnet Packets Squeezed (pps)"  : f"irate(node_softnet_times_squeezed_total{{nodename=\"{host}\"}}[10m])",
+
+        "Disk Written (Bps)" : f"irate(node_disk_written_bytes_total{{nodename=\"{host}\"}}[10m])",
+        "Disk IO time (s)"   : f"node_disk_io_time_seconds_total{{nodename=\"{host}\"}}",
+        "Disk Read (Bps) "   : f"irate(node_disk_read_bytes_total{{nodename=\"{host}\"}}[10m])",
+    }
+
+    rt = ["bytes", "packets", "fifo", "errs", "drop", "compressed"]
+    t = ["queue_length", "carrier", "colls"]
+    r = ["frame"]
+
+    names = {
+        "bytes" : "(Bps)",
+        "packets" : "(pps)",
+        "fifo" : "FIFO (pps)",
+        "errs" : "Errors (pps)",
+        "drop" : "Dropped (pps)",
+        "colls" : "Colls (counter)",
+        "compressed" : "Compressed (pps)",
+        "carrier" : "Carrier (counts)",
+        "queue_length" : "Queue Length (pps)",
+        "frame" : "Frame (pps)",
+    }
+
+    for i in ["receive", "transmit"]:
+        if i == "receive":
+            metrics = rt + r
+            suffix = "received"
+        if i == "transmit":
+            metrics = rt + t
+            suffix = "transmitted"
+        for m in metrics:
+            name = f"Network {suffix} {names[m]}"
+            query = f"node_network_{i}_{m}_total{{nodename=\"{host}\"}}"
+            if "ps" in name:
+                query = f"irate({query}[10m])"
+            query_dict[name] = query
+
+    url = dashboard_info["grafana_url"]
+    datasources = queries.get_datasources(url)
+
+    valid_ds = get_valid_datasources(datasources, dunedaq_version)
+    prometheus_url = valid_ds["prometheus"]["url"]
+
+    time = get_run_time(url, valid_ds["influxdb"], run_number, test_session, dunedaq_version)
+
+    print(f"{time=}")
+
+    dfs = {}
+    for query in query_dict:
+        response = queries.query_prometheus(prometheus_url, query_str = query_dict[query], time_range = time)
+        metrics = {}
+        values = []
+
+        # get the metrics and values for each sample
+        if len(response["data"]["result"]) == 0:
+            dfs[query] = pd.DataFrame()
+
+        for r in response["data"]["result"]:
+            for k in r["metric"]:
+                if k not in metrics:
+                    metrics[k] = [r["metric"][k]]
+                else:
+                    metrics[k].append(r["metric"][k])
+            values.append(np.array(r["values"]))
+
+        # construct a sample name from the metrics
+        tags = {}
+        for k in metrics:
+            if len(np.unique(metrics[k])) > 1:
+                tags[k] = metrics[k]
+
+        sample_label = None
+        name = None
+        for k, v in tags.items():
+            if sample_label is None:
+                sample_label = np.array(v)
+                name = k
+            else:
+                sample_label = np.char.add(np.char.add(sample_label, "_"), np.array(v))
+                name = name + "_" + k
+
+        if sample_label is None: sample_label = ["total"]
+
+        # construct the dataframe
+        parsed = {}
+        for s, v in zip(sample_label, values):
+            parsed["time"] = v[:, 0]
+            parsed[s] = v[:, 1]
+
+        if len(parsed) != 0:
+            dfs[query] = pd.DataFrame(parsed).set_index("time").astype(float)
+        else:
+            warnings.warn(f"no data found for {query}")
+            dfs[query] = pd.DataFrame()
+
+    print(dfs)
+    output = str(out_dir) + f"node-exporter-{output_file}.hdf5"
+    try:
+        files.write_dict_hdf5(dfs, output)
+        print(f'Data saved to HDF5 successfully: {output}')
+    except Exception as e:
+        print(f'Exception Error: Failed to save data to HDF5: {str(e)}')
+    return
+
+
 def extract_grafana_data(dashboard_info : dict[str], run_number : int, host : str, test_session : str, dunedaq_version : str, output_file : str, out_dir : str) -> list[str]:
     """ Extract data from Grafana dashboards.
 
@@ -320,6 +473,7 @@ def extract_grafana_data(dashboard_info : dict[str], run_number : int, host : st
         host (str): Host name.
         partition (str): Partition/session name of the test.
         output_file (str): Output file name.
+        out_dir (str): Directory to write files to.
 
     Returns:
         list[str]: List of the output files.
@@ -377,9 +531,11 @@ def extract_grafana_data(dashboard_info : dict[str], run_number : int, host : st
             
             data_from_panel = {}
             for query_name, query in query_strs.items(): # loop over all queries
-
                 response_data = queries.make_query(valid_ds[data_type], url, query, time) # make the query
-                data_from_panel[query_name] = ds_parser[data_type](response_data, panel) # get the data from the response, will be specific to the datasource type
+                if data_type == "prometheus":
+                    data_from_panel[query_name] = ds_parser[data_type](response_data, query_name)
+                else:
+                    data_from_panel[query_name] = ds_parser[data_type](response_data, panel) # get the data from the response, will be specific to the datasource type
 
             # organise the DataFrames to save to file
             single_columns = all([len(data.columns) == 1 for data in data_from_panel.values() if data is not None]) # check the panel returned multiple query DataFrames with a single column

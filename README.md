@@ -52,6 +52,7 @@ which should create a configuration which looks like:
     "test_name": "short test name",
     "run_number": "run number of the test",
     "session": "grafana partition name for the given test",
+    "workarea" : "path to dunedaq directory, can be left as null",
     "out_path": "/nfs/rscratch/sbhuller/perftest/",
     "data_path": null,
     "plot_path": null,
@@ -66,7 +67,7 @@ which should create a configuration which looks like:
     }
 }
 ```
-Each key has a description of what it is and what value can be added. Note that the `plot_path` and `data_path` are values which you can override, otherwise they are automaically filled so they can be left as is. In addition, the `out_path` is the location where the directory for the test report is created. This should not be changed unless you want to keep the data and reports locally (note the urls in the report will not work in this case). Finally, note that for `documentation`, the values can be set to `null` and boilerplate text is inserted into the report instead. Also note that `out_path` can be removed if you are saving reports to the shared cernbox.
+Each key has a description of what it is and what value can be added. Note that the `plot_path` and `data_path` are values which you can override, otherwise they are automaically filled so they can be left as is. In addition, the `out_path` is the location where the directory for the test report is created. This should not be changed unless you want to keep the data and reports locally (note the urls in the report will not work in this case). Also, the workarea value is the absolute path to the dunedaq directory, if provided the reports will contain information about the software and configuration, otherwise it can be left as null Finally, note that for `documentation`, the values can be set to `null` and boilerplate text is inserted into the report instead. Also note that `out_path` can be removed if you are saving reports to the shared cernbox.
 
 Below is an example configuration file with the minimal information required:
 ```[json]
@@ -78,6 +79,7 @@ Below is an example configuration file with the minimal information required:
     "test_name": "example",
     "run_number": 29641,
     "session": "np02-session",
+    "workarea" : null,
     "out_path": "/nfs/rscratch/sbhuller/perftest/",
     "data_path": null,
     "plot_path": null,
