@@ -6,6 +6,7 @@ Author: Shyam Bhuller
 Description: general utility functions.
 """
 import argparse
+import contextlib
 import os
 
 from datetime import datetime as dt
@@ -185,3 +186,17 @@ def dunedaq_major_version(version : str) -> int:
         int: version number
     """
     return int(version.split(".")[0][-1])
+
+@contextlib.contextmanager
+def chdir(dire : str):
+    """ Switch directories, then back to cwd.
+
+    Args:
+        dire (str): Temporary cwd.
+    """
+    cwd = os.getcwd()
+    try:
+        os.chdir(dire)
+        yield
+    finally:
+        os.chdir(cwd)

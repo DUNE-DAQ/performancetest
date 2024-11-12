@@ -8,7 +8,6 @@ Description: Information about the workarea used to perform the test.
 """
 
 import argparse
-import contextlib
 import os
 import subprocess
 
@@ -32,21 +31,6 @@ def verbprint(i : any):
     return
 
 
-@contextlib.contextmanager
-def chdir(dire : str):
-    """ Switch directories, then back to cwd.
-
-    Args:
-        dire (str): Temporary cwd.
-    """
-    cwd = os.getcwd()
-    try:
-        os.chdir(dire)
-        yield
-    finally:
-        os.chdir(cwd)
-
-
 def get_repo_info(repo : str) -> list[str]:
     """ Get the branch name and commit for a github directory.
 
@@ -56,7 +40,7 @@ def get_repo_info(repo : str) -> list[str]:
     Returns:
         list: branch name, short commit hash.
     """
-    with chdir(repo):
+    with utils.chdir(repo):
         result = subprocess.Popen("echo -n \"$(git rev-parse --abbrev-ref HEAD),$( git rev-parse --short HEAD )\"", shell = True, stdout = subprocess.PIPE)
 
         return result.communicate()[0].decode().split(",")
@@ -99,12 +83,20 @@ def check_configs(dire : str) -> dict | None:
 
 
 def make_release_table(release_info : dict) -> tabulate.JupyterHTMLStr:
+    """ Compile release information into a table.
+
+    Args:
+        release_info (dict): Release information from the yaml file. 
+
+    Returns:
+        tabulate.JupyterHTMLStr: HTML table of the information.
+    """
     verbprint(tabulate.tabulate(release_info.items(), tablefmt = "fancy"))
     return tabulate.tabulate(release_info.items(), tablefmt = "html")
 
 
 def make_repo_table(repos : dict) -> tabulate.JupyterHTMLStr:
-    """ Compile information form github repos into a table
+    """ Compile information from github repos into a table
 
     Args:
         repos (dict): Dictionary where key is repo name and value is output from get_repo_info.
@@ -152,7 +144,14 @@ def get_info(path : str, out : str) -> dict[str]:
 
     verbprint("release information:")
     info = yaml.safe_load(file.open())
+
     release_info = {k : v for k,v in info.items() if k in ["release", "type", "base_release"]}
+    release_info["release_type"] = env_vars["SPACK_RELEASES_DIR"].split("/")[-1]
+    release_info["dbt_version"] = env_vars["DBT_ROOT_WHEN_CREATED"].split("/")[-1]
+
+    if release_info["release_type"] == "candidates":
+        release_info["release_type"] = "candidate"
+
     make_release_table(release_info)
 
     workarea_info = {"release" : release_info}
