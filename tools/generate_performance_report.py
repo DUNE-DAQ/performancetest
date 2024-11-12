@@ -10,12 +10,14 @@ import pathlib
 import argparse
 
 import files
+import utils
 
 from collect_metrics import collect_metrics
 from fronted_ethernet_metrics import frontend_ethernet
 from resource_utilization import resource_utilization
 from tp_metrics import tp_metrics
 from performance_report import performance_report
+from workarea_info import get_info
 
 from rich import print
 
@@ -34,7 +36,11 @@ def main(args : argparse.Namespace):
     if collect: collect_metrics(args)
     test_args = files.load_json(args.file) # reload the config because collect metrics modifies the config
 
-    # test_args["out_path"] = test_args["data_path"] # for all in one usage pdf and data are stored in the same directory to correctly generate urls
+    if test_args["workarea"] is not None:
+        get_info(test_args["workarea"], test_args["data_path"])
+    else:
+        print("configuration has no workarea and it was not supplied. Software and DAQ config information cannot be calculated.")
+
     for i in [frontend_ethernet, resource_utilization, tp_metrics, performance_report]:
         i(test_args)
 
@@ -42,14 +48,7 @@ def main(args : argparse.Namespace):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser("Create a performance report with one command.")
-
-    parser.add_argument("-f", "--file", type = pathlib.Path, help = "json file which contains the details of the test.", required = True)
+    parser = utils.ApplicationArguments("Create a performance report with one command.")
     parser.add_argument("-r", "--regen", action = "store_true", help = "enable flag to re-collect data from the dashboard (data is collected by default if this is run for the first time.)")
-
-    args = parser.parse_args()
-    if args.file.suffix != ".json":
-        raise Exception("not a json file")
-
-    print(args)
+    args = parser.create()
     main(args)

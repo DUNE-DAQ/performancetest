@@ -130,5 +130,5 @@ def main(args : argparse.Namespace):
 
 
 if __name__ == "__main__":
-    args = utils.create_app_args("Create plots for resource utilization metrics.")
+    args = utils.ApplicationArguments("Create plots for resource utilization metrics.").create()
     main(args)

@@ -63,5 +63,5 @@ def main(args : argparse.Namespace):
 
 
 if __name__ == "__main__":
-    args = utils.create_app_args("Create basic plots for trigger primitive generation metrics.")
+    args = utils.ApplicationArguments("Create basic plots for trigger primitive generation metrics.").create()
     main(args)
