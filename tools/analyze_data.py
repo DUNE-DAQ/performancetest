@@ -3,10 +3,9 @@ import argparse
 import os
 import pathlib
 
-import files
-import utils
-import plotting
+import files, shell, plotting, utils
 
+import numpy as np
 import pandas as pd
 
 from rich import print
@@ -38,7 +37,7 @@ def search_file(data_files : list, signature : str) -> pathlib.Path | None:
     return
 
 
-def process_cpu_info(data : dict[pd.DataFrame], out : str, max_util : float = 80):
+def process_cpu_info(data : dict[pd.DataFrame], out : str, max_util : float = 80, pinning_file : dict = None):
     """ Analyse CPU information and plot the results.
         Calculates maximum, minimum and various quantiles for each core and across all cores.
 
@@ -64,10 +63,28 @@ def process_cpu_info(data : dict[pd.DataFrame], out : str, max_util : float = 80
             if max(cpu_metrics[c]) > 50:
                 plotting.plt.axhline(max_util, color  = "k", linestyle = "--")
             book.save()
+
+        for c in cpu_metrics:
+            metric_per_thread = {}
+            for name, num in pinning_file.items():
+                mask = cpu_metrics.index.isin(np.array(num).flatten())
+                metric = cpu_metrics[c][mask]
+                metric_per_thread[name] = np.mean(metric)
+
+            plotting.plt.figure(figsize=(6.4, 1.5 * 6))
+            plotting.bar(list(metric_per_thread.keys()), list(metric_per_thread.values()), "Utilization (%)", "Thread", horizontal = True, newFigure = False, title = c)
+            if max(cpu_metrics[c]) > 50:
+                plotting.plt.axvline(max_util, color  = "k", linestyle = "--")
+
+            plotting.plt.xlim(0, 100)
+            plotting.plt.tight_layout()
+            book.save()
+
         plotting.bar(total_metrics.index, total_metrics.values, None, "Total CPU Utilization (%)", None, 30, True)
         plotting.plt.axhline(max_util, color  = "k", linestyle = "--")
         plotting.plt.ylim(0, 100)
         book.save()
+
     return
 
 
@@ -140,11 +157,56 @@ def process_memory_info(data :dict[pd.DataFrame], out : str):
     return
 
 
+def get_thread_nums(thread_str):
+
+    split = thread_str.split(",")
+
+    for i in range(len(split)):
+        if "-" in split[i]:
+            trange = [int(j) for j in split[i].split("-")]
+            split[i] = list(range(min(trange), max(trange) + 1))
+        else:
+            split[i] = int(split[i])
+    return split
+
+def add_to_dict(dictionary : dict, item : list, key : any):
+    if key not in dictionary:
+        dictionary[key] = item
+    else:
+        dictionary[key] = dictionary[key] + item
+    return
+
+
+def parse_pinning_file(pinning_file, ru_host : str):
+    target = ru_host.replace("-", "")
+
+    parsed_pinning_file = {}
+
+    for k, v in pinning_file.items():
+        if k == "_comment" : continue
+        if k == "daq_application":
+            for name, application in v.items():
+                if target in name:
+                    print(name)
+                    add_to_dict(parsed_pinning_file, get_thread_nums(application["parent"]), key = "parent")
+                    for tname, threads in application["threads"].items():
+                        add_to_dict(parsed_pinning_file, get_thread_nums(threads), tname)
+    return parsed_pinning_file
+
+
 def main(args : argparse.Namespace):
     plotting.set_plot_style()
     test_args = files.load_json(args.file)
 
-    data_files = utils.search_data_file("hdf5", test_args["data_path"])
+    pinning_file = shell.search_data_file("cpupin-all-running", test_args["data_path"])
+    if len(pinning_file) == 0:
+        pinning_file = None
+    else:
+        pinning_file = files.load_json(pinning_file[0])
+
+    pinning_file = parse_pinning_file(pinning_file, test_args["host"])
+
+    data_files = shell.search_data_file("hdf5", test_args["data_path"])
 
     ne = search_file(data_files, "node-exporter")
 
@@ -155,10 +217,9 @@ def main(args : argparse.Namespace):
 
     # ru = search_file(data_files, "A_CvwTCWk")
     # data = files.read_hdf5(ru)
-    # print(data)
 
     process_disk_info(data, out)
-    process_cpu_info(data, out)
+    process_cpu_info(data, out, pinning_file = pinning_file)
     process_memory_info(data, out)
 
     return

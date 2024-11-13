@@ -118,9 +118,13 @@ def plot(x, y, label : str, xlabel : str, ylabel : str, newFigure : bool = True,
     return
 
 
-def bar(x, y, xlabel : str, ylabel : str, title : str = None, rotation : int = 0, bar_label : bool = False, newFigure : bool = True, book : PlotBook = None):
+def bar(x, y, xlabel : str, ylabel : str, title : str = None, rotation : int = 0, bar_label : bool = False, horizontal : bool = False, newFigure : bool = True, book : PlotBook = None):
     if newFigure: plt.figure()
-    rect = plt.bar(x, y)
+
+    if horizontal:
+        rect = plt.barh(x, y)
+    else:
+        rect = plt.bar(x, y)
 
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
