@@ -6,8 +6,7 @@ import weasyprint
 
 import argparse
 
-import files
-import utils
+import files, shell, utils
 
 import workarea_info
 
@@ -67,7 +66,7 @@ def performance_report(test_args : dict):
     html = html.replace("&topology", test_args["data_source"])
 
     if test_args["workarea"] is not None:
-        winfo = utils.search_data_file("workarea_info", test_args["data_path"])
+        winfo = shell.search_data_file("workarea_info", test_args["data_path"])
         if len(winfo) > 0:
             winfo = files.load_json(winfo[0])
 

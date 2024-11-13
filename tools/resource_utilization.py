@@ -1,9 +1,7 @@
 #!/usr/bin/env python
 import argparse
 
-import files
-import plotting
-import utils
+import files, plotting, shell, utils
 
 import pandas as pd
 
@@ -47,7 +45,7 @@ def search_hdf5(search_term : str, path : str) -> str | None:
     Returns:
         str | None: hdf5 file path if found.
     """
-    for file in utils.search_data_file(search_term, path):
+    for file in shell.search_data_file(search_term, path):
         if "hdf5" in file.suffix: return file
     return
 

@@ -9,13 +9,11 @@ Description: Information about the workarea used to perform the test.
 
 import argparse
 import os
-import subprocess
 
 import tabulate
 import yaml
 
-import files
-import utils
+import files, shell, utils
 
 from rich import print
 
@@ -40,10 +38,9 @@ def get_repo_info(repo : str) -> list[str]:
     Returns:
         list: branch name, short commit hash.
     """
-    with utils.chdir(repo):
-        result = subprocess.Popen("echo -n \"$(git rev-parse --abbrev-ref HEAD),$( git rev-parse --short HEAD )\"", shell = True, stdout = subprocess.PIPE)
-
-        return result.communicate()[0].decode().split(",")
+    with shell.chdir(repo):
+        result = shell.run("echo -n \"$(git rev-parse --abbrev-ref HEAD),$( git rev-parse --short HEAD )\"", capture = True)
+        return result.stdout.decode().split(",")
 
 
 def check_repos(dire : str) -> dict[list]:
@@ -63,7 +60,7 @@ def check_repos(dire : str) -> dict[list]:
     return repo_info
 
 
-def check_configs(dire : str) -> dict | None:
+def check_configs(dire : str, out : str) -> dict | None:
     """ Check workarea for ehn1-configurations, and return information about the repo.
 
     Args:
@@ -72,10 +69,17 @@ def check_configs(dire : str) -> dict | None:
     Returns:
         tabulate.JupyterHTMLStr | None: HTML table of repo info.
     """
-    ehn1_daqconf_path = utils.search_data_file("ehn1-daqconfigs", dire)
+    ehn1_daqconf_path = shell.search_data_file("ehn1-daqconfigs", dire)
 
     if len(ehn1_daqconf_path) > 0:
         info = get_repo_info(ehn1_daqconf_path[0]) # should only have one
+
+        # clone ehn1 repo in tmp and copy the pinning files to the output path.
+        with shell.chdir("/tmp/"):
+            shell.run(shell.clone("ssh://git@gitlab.cern.ch:7999/dune-daq/online/ehn1-daqconfigs.git", info[1]))
+            shell.run(f"cp ehn1-daqconfigs/hw/cpupin-all* {out}")
+            shell.run(f"rm -rf ehn1-daqconfigs/")
+
         return {"ehn1-daqconfigs" : info}
     else:
         verbprint("no ehn1-daqconfig area was found.")
@@ -140,7 +144,7 @@ def get_info(path : str, out : str) -> dict[str]:
     verbprint(env_vars)
 
     # get the release information from the yaml file in spack
-    file = utils.search_data_file(env_vars["SPACK_RELEASE"] + ".yaml", release_dir)[0]
+    file = shell.search_data_file(env_vars["SPACK_RELEASE"] + ".yaml", release_dir)[0]
 
     verbprint("release information:")
     info = yaml.safe_load(file.open())
@@ -163,7 +167,9 @@ def get_info(path : str, out : str) -> dict[str]:
         verbprint(f"{t} repositories:")
         make_repo_table(repos)
 
-    workarea_info["configuration"] = check_configs(path)
+    workarea_info["configuration"] = check_configs(path, out = out)
+
+    exit()
 
     files.save_json(out + "workarea_info.json", workarea_info)
 

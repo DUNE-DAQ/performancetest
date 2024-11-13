@@ -9,10 +9,8 @@ Description: Re-create a workarea provided the software and configuration inform
 
 import os
 import argparse
-import subprocess
 
-import files
-import utils
+import files, utils, shell
 
 from rich import print
 
@@ -35,28 +33,10 @@ def setup_commands(path : str, spack_version : str, release_type : str, release_
     return f'bash -c "{cmd}"'
 
 
-def clone(repo : str, sha : str) -> str:
-    """ Set of commands to clone a git compliant repo and checkout a specific commit.
-        repo will be in a detatched HEAD state.
-
-    Args:
-        repo (str): repo url; can be ssh, https or any other type.
-        sha (str): short commit hash.
-
-    Returns:
-        str: Bash commands.
-    """
-    dire = repo.split("/")[-1].split(".")[0]
-    cmd = f"git clone {repo};"
-    cmd += f"cd {dire};"
-    cmd += f"git checkout {sha}"
-    return cmd
-
-
 def main(args : argparse.Namespace):
 
     test_args = files.load_json(args.file)
-    info = files.load_json(utils.search_data_file("workarea_info.json", test_args["data_path"])[0])
+    info = files.load_json(shell.search_data_file("workarea_info.json", test_args["data_path"])[0])
 
     work_dir = args.path + f'RECREATED_{info["release"]["release"]}'
 
@@ -66,20 +46,20 @@ def main(args : argparse.Namespace):
 
     # make daq workarea
     cmd = setup_commands(args.path, info["release"]["dbt_version"], info["release"]["release_type"], info["release"]["release"])
-    subprocess.run(cmd, env = {}, shell = True)
+    shell.run(cmd, True)
 
     # commit local repos
-    with utils.chdir(f'{work_dir}/sourcecode/'):
+    with shell.chdir(f'{work_dir}/sourcecode/'):
         for k, v in info["local_commit"].items():
-            subprocess.run("pwd", env = {}, shell = True)
-            subprocess.run(clone(f"https://github.com/DUNE-DAQ/{k}.git", v[1]), shell = True)
+            shell.run("pwd")
+            shell.run(shell.clone(f"https://github.com/DUNE-DAQ/{k}.git", v[1]))
 
     # add ehn1-daqconfigs if applicable
     if info["configuration"] is not None:
         if "ehn1-daqconfigs" in info["configuration"]:
             os.makedirs(f"{work_dir}/work/", exist_ok = True)
-            with utils.chdir(f"{work_dir}/work/"):
-                subprocess.run(clone("ssh://git@gitlab.cern.ch:7999/dune-daq/online/ehn1-daqconfigs.git", info["configuration"]["ehn1-daqconfigs"][1]), shell = True)
+            with shell.chdir(f"{work_dir}/work/"):
+                shell.run(shell.clone("ssh://git@gitlab.cern.ch:7999/dune-daq/online/ehn1-daqconfigs.git", info["configuration"]["ehn1-daqconfigs"][1]))
 
     print(f"workarea created at: {work_dir}")
     print(f'make sure you run (in a brand new terminal) "cd {work_dir}; source env.sh; dbt-build; dbt-workarea-env" to finish making the workarea.')

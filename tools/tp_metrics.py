@@ -1,9 +1,7 @@
 #!/usr/bin/env python
 import argparse
 
-import files
-import plotting
-import utils
+import files, plotting, shell, utils
 
 from rich import print
 
@@ -35,7 +33,7 @@ class tp_plotter(plotting.PlotEngine):
 def tp_metrics(args : dict, display : bool = False):
     plotting.set_plot_style()
 
-    for file in utils.search_data_file("trigger_primitive", args["data_path"]):
+    for file in shell.search_data_file("trigger_primitive", args["data_path"]):
         if "hdf5" in file.suffix: break
 
     data = files.read_hdf5(file)

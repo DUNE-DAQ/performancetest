@@ -2,9 +2,7 @@
 import argparse
 import os
 
-import files
-import plotting
-import utils
+import files, plotting, shell, utils
 
 import pandas as pd
 
@@ -47,7 +45,7 @@ class feplotter(plotting.PlotEngine):
 def frontend_ethernet(args : dict, display : bool = False):
     plotting.set_plot_style()
 
-    for file in utils.search_data_file("frontend_ethernet", args["data_path"]):
+    for file in shell.search_data_file("frontend_ethernet", args["data_path"]):
         if "hdf5" in file.suffix: break
 
     data = files.read_hdf5(file)
