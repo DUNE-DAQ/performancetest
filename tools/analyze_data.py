@@ -21,6 +21,29 @@ Memory bandwidth should be bewlow 80%:
 """
 
 
+def fill_zeros_with_last(arr : np.array, axis : int) -> np.array:
+    """ Replace zeroes in an array with the previous non-zero value along a given axis.
+
+    Args:
+        arr (np.array): 1 or 2 dimensional array.
+        axis (int): axis to loop over.
+
+    Returns:
+        np.array: array with the zeroes filled.
+    """
+    if len(arr.shape) == 1:
+        return fill_zeros_with_last(np.expand_dims(arr, axis = 1), 1).flatten() # convert flat array to 2d, then flatten again.
+
+    new = []
+    for i in range(arr.shape[axis]):
+        a = np.take(arr, i, axis = axis)
+        prev = np.arange(len(a))
+        prev[a == 0] = 0
+        new.append(a[np.maximum.accumulate(prev)])
+    new = np.array(new).T
+    return new
+
+
 def search_file(data_files : list, signature : str) -> pathlib.Path | None:
     """ Return first file in a list which contains the signrature.
 
@@ -37,6 +60,32 @@ def search_file(data_files : list, signature : str) -> pathlib.Path | None:
     return
 
 
+def cpu_usage_rate(idle : pd.DataFrame | pd.Series, total : pd.DataFrame | pd.Series) -> np.array:
+    """ Compute the CPU usage as a rate per time.
+
+    Args:
+        idle (pd.DataFrame | pd.Series): Time cpu spends not doing any tasks
+        total (pd.DataFrame | pd.Series): Total cpu time.
+
+    Returns:
+        np.array : Array of usage rates, has dimensions n - 1 along the time axis.
+    """
+    return cpu_usage(fill_zeros_with_last(abs(idle[1:].values - idle[:-1].values), axis = 1), fill_zeros_with_last(abs(total[1:].values - total[:-1].values), axis = 1))
+
+
+def cpu_usage(idle : float | np.array, total : float | np.array) -> float | np.array:
+    """ CPU usage, defined as the pecrent of cpu time not idling.
+
+    Args:
+        idle (float | np.array): Time cpu spends not doing any tasks
+        total (float | np.array): Total cpu time.
+
+    Returns:
+        float | np.array: CPU usage.
+    """
+    return 100 * (1 - (idle/total))
+
+
 def process_cpu_info(data : dict[pd.DataFrame], out : str, max_util : float = 80, pinning_file : dict = None):
     """ Analyse CPU information and plot the results.
         Calculates maximum, minimum and various quantiles for each core and across all cores.
@@ -46,17 +95,55 @@ def process_cpu_info(data : dict[pd.DataFrame], out : str, max_util : float = 80
         out (str): Output directory.
         max_util (float): Maximum acceptable utilistation. Defaults to 80
     """
+
+    total_time_per_core = sum(utils.search_dict(data, "(?=.*CPU)(?!.*Usage)").values()) # total time per core
+
+    cpu_time_total = total_time_per_core.sum(axis=1) # total time across all cores
+    cpu_time_idle = data["CPU idle (s)"].sum(axis=1) # total idle time across all cores
+
+    usage = pd.DataFrame(cpu_usage_rate(data["CPU idle (s)"], total_time_per_core), columns = total_time_per_core.columns) # usage per core
+    total_usage = pd.Series(cpu_usage_rate(cpu_time_idle, cpu_time_total)) # usage of whole CPU
+
+    # metrics for the entire CPU
+    total_metrics = pd.DataFrame(np.expand_dims(np.array([
+            total_usage.quantile(q = 50/100),
+            total_usage.quantile(q = 99/100),
+            total_usage.quantile(q = 99.9/100),
+            total_usage.max(),
+            total_usage.min()
+        ]), axis=1), index = ["50% percentile", "99% percentile", "99.9% percentile", "Maximum", "Minimum"])
+
+
+    # metrics per CPU core
     cpu_metrics = pd.concat(
         [
-            data["CPU Usage (%)"].quantile(q = 50/100),
-            data["CPU Usage (%)"].quantile(q = 99/100),
-            data["CPU Usage (%)"].quantile(q = 99.9/100),
-            data["CPU Usage (%)"].max(),
-            data["CPU Usage (%)"].min()
+            usage.quantile(q = 50/100),
+            usage.quantile(q = 99/100),
+            usage.quantile(q = 99.9/100),
+            usage.max(),
+            usage.min()
         ], axis = 1, keys = ["50% percentile", "99% percentile", "99.9% percentile", "Maximum", "Minimum"])
     cpu_metrics.index = cpu_metrics.index.astype(int)
-    total_metrics = cpu_metrics.mean(axis = 0)
 
+    # metrics per thread
+    thread_usage = {}
+    for name, num in pinning_file.items():
+        mask = total_time_per_core.columns[np.array(num).flatten()]
+        thread_total_time = total_time_per_core[mask].sum(axis=1)
+        thread_idle_time = data["CPU idle (s)"][mask].sum(axis=1)
+        thread_usage[name] = cpu_usage_rate(thread_idle_time, thread_total_time)
+    thread_usage = pd.DataFrame(thread_usage)
+
+    thread_metric = pd.concat(
+        [
+            thread_usage.quantile(q = 50/100),
+            thread_usage.quantile(q = 99/100),
+            thread_usage.quantile(q = 99.9/100),
+            thread_usage.max(),
+            thread_usage.min()
+        ], axis = 1, keys = ["50% percentile", "99% percentile", "99.9% percentile", "Maximum", "Minimum"])
+
+    # plotting
     with plotting.PlotBook(out + "cpu_plots.pdf") as book:
         for c in cpu_metrics:
             plotting.bar(cpu_metrics[c].index, cpu_metrics[c], "Core", "Utilization (%)", c)
@@ -64,15 +151,9 @@ def process_cpu_info(data : dict[pd.DataFrame], out : str, max_util : float = 80
                 plotting.plt.axhline(max_util, color  = "k", linestyle = "--")
             book.save()
 
-        for c in cpu_metrics:
-            metric_per_thread = {}
-            for name, num in pinning_file.items():
-                mask = cpu_metrics.index.isin(np.array(num).flatten())
-                metric = cpu_metrics[c][mask]
-                metric_per_thread[name] = np.mean(metric)
-
+        for c in thread_metric:
             plotting.plt.figure(figsize=(6.4, 1.5 * 6))
-            plotting.bar(list(metric_per_thread.keys()), list(metric_per_thread.values()), "Utilization (%)", "Thread", horizontal = True, newFigure = False, title = c)
+            plotting.bar(thread_metric[c].index, thread_metric[c].values, "Utilization (%)", "Thread", horizontal = True, newFigure = False, title = c)
             if max(cpu_metrics[c]) > 50:
                 plotting.plt.axvline(max_util, color  = "k", linestyle = "--")
 
@@ -80,7 +161,7 @@ def process_cpu_info(data : dict[pd.DataFrame], out : str, max_util : float = 80
             plotting.plt.tight_layout()
             book.save()
 
-        plotting.bar(total_metrics.index, total_metrics.values, None, "Total CPU Utilization (%)", None, 30, True)
+        plotting.bar(total_metrics.index, total_metrics.values.flatten(), None, "Total CPU Utilization (%)", None, 30, True)
         plotting.plt.axhline(max_util, color  = "k", linestyle = "--")
         plotting.plt.ylim(0, 100)
         book.save()
@@ -218,9 +299,12 @@ def main(args : argparse.Namespace):
     # ru = search_file(data_files, "A_CvwTCWk")
     # data = files.read_hdf5(ru)
 
-    process_disk_info(data, out)
+    # process_disk_info(data, out)
     process_cpu_info(data, out, pinning_file = pinning_file)
-    process_memory_info(data, out)
+    # process_memory_info(data, out)
+
+
+
 
     return
 

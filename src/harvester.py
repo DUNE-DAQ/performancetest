@@ -348,7 +348,6 @@ def extract_node_exporter_data(dashboard_info : dict[str], run_number : int, hos
     """
     query_dict = {
         "CPU Usage (%)" : f"100 * (1 - irate(node_cpu_seconds_total{{nodename=\"{host}\", mode=\"idle\"}}[10m]))",
-        # "CPU Idle (s)" : f"node_cpu_seconds_total{{nodename=\"{host}\", mode=\"idle\"}}",
 
         "Total Memory (B)" : f"node_memory_MemTotal_bytes{{nodename=\"{host}\"}}",
         "Available Memory (B)" : f"node_memory_MemAvailable_bytes{{nodename=\"{host}\"}}",
@@ -369,7 +368,7 @@ def extract_node_exporter_data(dashboard_info : dict[str], run_number : int, hos
     t = ["queue_length", "carrier", "colls"]
     r = ["frame"]
 
-    cpu_times = ["idle", "iowait" "irq", "nice", "softirq", "steal", "system", "user"]
+    cpu_times = ["idle", "iowait", "irq", "nice", "softirq", "steal", "system", "user"]
     for i in cpu_times:
         query_dict[f"CPU {i} (s)"] = f"node_cpu_seconds_total{{nodename=\"{host}\", mode=\"{i}\"}}"
 
