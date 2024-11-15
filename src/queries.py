@@ -141,7 +141,11 @@ def get_queries(panel : dict) -> dict:
         if ('expr' in target) and (target["expr"] != ""):
             queries[target["legendFormat"]] = target["expr"]
         elif 'query' in target:
-            queries[panel["title"]] = target["query"]
+            if len(targets) > 1:
+                name = target["alias"]
+            else:
+                name = panel["title"]
+            queries[name] = target["query"]
         elif 'rawSql' in target:
             print(target)
             queries[target["table"]] = target["rawSql"]
