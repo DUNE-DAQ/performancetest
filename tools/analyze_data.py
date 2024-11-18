@@ -21,15 +21,15 @@ Memory bandwidth should be bewlow 80%:
 """
 
 
-def fill_zeros_with_last(arr : np.array, axis : int) -> np.array:
+def fill_zeros_with_last(arr : np.ndarray, axis : int) -> np.ndarray:
     """ Replace zeroes in an array with the previous non-zero value along a given axis.
 
     Args:
-        arr (np.array): 1 or 2 dimensional array.
+        arr (np.ndarray): 1 or 2 dimensional array.
         axis (int): axis to loop over.
 
     Returns:
-        np.array: array with the zeroes filled.
+        np.ndarray: array with the zeroes filled.
     """
     if len(arr.shape) == 1:
         return fill_zeros_with_last(np.expand_dims(arr, axis = 1), 1).flatten() # convert flat array to 2d, then flatten again.
@@ -60,7 +60,7 @@ def search_file(data_files : list, signature : str) -> pathlib.Path | None:
     return
 
 
-def cpu_usage_rate(idle : pd.DataFrame | pd.Series, total : pd.DataFrame | pd.Series) -> np.array:
+def cpu_usage_rate(idle : pd.DataFrame | pd.Series, total : pd.DataFrame | pd.Series) -> np.ndarray:
     """ Compute the CPU usage as a rate per time.
 
     Args:
@@ -68,20 +68,20 @@ def cpu_usage_rate(idle : pd.DataFrame | pd.Series, total : pd.DataFrame | pd.Se
         total (pd.DataFrame | pd.Series): Total cpu time.
 
     Returns:
-        np.array : Array of usage rates, has dimensions n - 1 along the time axis.
+        np.ndarray : Array of usage rates, has dimensions n - 1 along the time axis.
     """
     return cpu_usage(fill_zeros_with_last(abs(idle[1:].values - idle[:-1].values), axis = 1), fill_zeros_with_last(abs(total[1:].values - total[:-1].values), axis = 1))
 
 
-def cpu_usage(idle : float | np.array, total : float | np.array) -> float | np.array:
+def cpu_usage(idle : float | np.ndarray, total : float | np.ndarray) -> float | np.ndarray:
     """ CPU usage, defined as the pecrent of cpu time not idling.
 
     Args:
-        idle (float | np.array): Time cpu spends not doing any tasks
-        total (float | np.array): Total cpu time.
+        idle (float | np.ndarray): Time cpu spends not doing any tasks
+        total (float | np.ndarray): Total cpu time.
 
     Returns:
-        float | np.array: CPU usage.
+        float | np.ndarray: CPU usage.
     """
     return 100 * (1 - (idle/total))
 
@@ -300,11 +300,86 @@ def main(args : argparse.Namespace):
     # data = files.read_hdf5(ru)
 
     # process_disk_info(data, out)
-    process_cpu_info(data, out, pinning_file = pinning_file)
+    # process_cpu_info(data, out, pinning_file = pinning_file)
     # process_memory_info(data, out)
 
+    tp = search_file(data_files, "trigger_primitives")
+    data = files.read_hdf5(tp)
 
+    print(data.keys())
+    hit_rates = list(utils.search_dict(data, "hit rates").values())[0]
 
+    hits_sent = list(utils.search_dict(data, "TP Sent rates").values())[0]
+
+    tp_writer_info = list(utils.search_dict(data, "TP writing rates").values())[0]
+
+    tph_request_rates = list(utils.search_dict(data, "(?=.*Request rate)(?!.*tphandler)").values())[0]
+
+    total_tp_drop_rates = list(utils.search_dict(data, "dropped").values())[0]
+    total_tp_drop_rates = total_tp_drop_rates.sum(axis = 0)
+
+    #* 8 nics * 5 wibs = 40 DLHs
+    n_dlh = 40
+    n_apa = len(hit_rates.columns.values)//n_dlh
+    n_wires_apa = 2560
+    n_wires_dlh = n_wires_apa//n_dlh
+
+    total_hit_rate = hit_rates.sum(axis = 1) # hit rate across entire detector
+    total_hit_sent = hits_sent.sum(axis = 1) # hits sent by the DLH to the trigger?
+
+    #? code assumes APA wires are in ascending order, find another way to group DLHs?
+    hit_rate_apa = pd.DataFrame({f"APA {i}" : np.sum(hit_rates.values[:, i * n_dlh:(i+1)*n_dlh], axis=1) for i in range(n_apa)})
+    hits_sent_apa = pd.DataFrame({f"APA {i}" : np.sum(hit_rates.values[:, i * n_dlh:(i+1)*n_dlh], axis=1) for i in range(n_apa)})
+
+    expected_hit_rate = 100 # Hz/ch
+    acceptence_hit_rate = 500 # Hz/ch
+    tp_size = 384 # bits
+
+    with plotting.PlotBook("plots") as book:
+
+        plotting.plot(plotting.relative_time(total_hit_rate), total_hit_rate.values, "np04 hits produced", "Time (s)", "TP rate")
+        plotting.plot(plotting.relative_time(total_hit_sent), total_hit_sent.values, "np04 hits sent", "Time (s)", "TP rate", newFigure = False, autofmt = "Hz")
+        
+        plotting.hline(expected_hit_rate * n_wires_apa * n_apa, "expected hit rate", "red", "--", "Hz")
+        plotting.hline(acceptence_hit_rate * n_wires_apa * n_apa, "acceptence hit rate", "k", "--", "Hz")
+        plotting.plt.legend()
+        
+        book.save()
+
+        plotting.plt.figure()
+        for c in hit_rate_apa:
+            plotting.plot(plotting.relative_time(hit_rate_apa[c]), hit_rate_apa[c].values, c, "Time (s)", "TP rate", newFigure = False, autofmt = "Hz")
+        plotting.hline(expected_hit_rate * n_wires_apa, "expected hit rate per APA", "red", "--", "Hz")
+        plotting.hline(acceptence_hit_rate * n_wires_apa, "acceptence hit rate per APA", "k", "--", "Hz")
+        plotting.plt.legend()
+        book.save()
+
+        plotting.plot(plotting.relative_time(tp_writer_info), tp_writer_info[["TP Received", "TP written"]], ["received", "written"], "Time (s)", "TP rate", autofmt = "Hz")
+        plotting.plt.title("TPWriter receieve/write rates")
+        plotting.hline(expected_hit_rate * n_wires_apa * n_apa, "expected hit rate", "red", "--", "Hz")
+        plotting.hline(acceptence_hit_rate * n_wires_apa * n_apa, "acceptence hit rate", "k", "--", "Hz")
+        plotting.plt.legend()
+        book.save()
+
+        plotting.plot(plotting.relative_time(tp_writer_info), tp_size * tp_writer_info[["TP Received", "TP written"]], ["received", "written"], "Time (s)", "Rate", autofmt = "b/s")
+        plotting.plt.title("TPWriter receieve/write rates")
+        plotting.hline(expected_hit_rate * n_wires_apa * n_apa * tp_size, "expected hit rate", "red", "--", "b/s")
+        plotting.hline(acceptence_hit_rate * n_wires_apa * n_apa * tp_size, "acceptence hit rate", "k", "--", "b/s")
+        plotting.plt.legend()
+        book.save()
+
+        plotting.bar(total_tp_drop_rates.index, total_tp_drop_rates.values, "", "Number of TPs", "TPs dropped", bar_label = True)
+        plotting.plt.ylim(0)
+        book.save()
+
+        plotting.plot(plotting.relative_time(tph_request_rates), tph_request_rates.values, tph_request_rates.columns, "Time (s)", "Request Rates", autofmt = "Hz")
+        book.save()
+
+        request_rate_percent = tph_request_rates.sum(axis=0)
+        request_rate_percent = request_rate_percent.div(request_rate_percent["Total "], axis = 0)
+        request_rate_percent.pop("Total ")
+        plotting.bar(request_rate_percent.index, request_rate_percent, "Requst type", "Requests (%)", "Total number of requests", bar_label = True)
+        book.save()
 
     return
 
