@@ -7,6 +7,7 @@ Description: Collect and parse data from the Grafana dashboards (The spice must 
 """
 import copy
 import pathlib
+import re
 import tables
 import warnings
 
@@ -132,6 +133,7 @@ def get_dpdk_vars(url : str, datasource : dict, time : time_range, partition : s
     """
     #* query string is unique to the dashboard
     query_str = f'SELECT "bytes", application, queue FROM "dunedaq.dpdklibs.opmon.QueueEthXStats" WHERE session = \'{partition}\' AND time >= {time.start}s and time <= {time.end}s'
+    # 'SELECT "bytes", application, queue FROM "dunedaq.dpdklibs.opmon.QueueEthXStats" WHERE session = 'partition' AND time >= 1730819865s and time <= 1730820290s'
 
     response = queries.query_var_influx(url, datasource, query_str)
 
@@ -141,7 +143,16 @@ def get_dpdk_vars(url : str, datasource : dict, time : time_range, partition : s
         "application" : values[:, 2],
         "queue" : values[:, 3],
     }
-    return {k : np.unique(v) for k, v in values.items()}
+    values = {k : np.unique(v) for k, v in values.items()}
+
+    rx_queue_num = []
+    for i in values["queue"]:
+        if "rx" in i:
+            rx_queue_num.append(re.findall(r"\d+", i))
+
+    values["queue"] = np.array(rx_queue_num).flatten() # replace queues with just the rx variant
+
+    return values
 
 
 def get_fe_eth_vars(url : str, datasource : dict, time : time_range, partition : str) -> dict[str]:
