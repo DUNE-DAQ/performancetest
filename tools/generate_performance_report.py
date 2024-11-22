@@ -18,6 +18,7 @@ from resource_utilization import resource_utilization
 from tp_metrics import tp_metrics
 from performance_report import performance_report
 from workarea_info import get_info
+from analyze_data import analyse_data
 
 from rich import print
 
@@ -41,7 +42,7 @@ def main(args : argparse.Namespace):
     else:
         print("configuration has no workarea and it was not supplied. Software and DAQ config information cannot be calculated.")
 
-    for i in [frontend_ethernet, resource_utilization, tp_metrics, performance_report]:
+    for i in [frontend_ethernet, resource_utilization, tp_metrics, performance_report, analyse_data]:
         i(test_args)
 
     return

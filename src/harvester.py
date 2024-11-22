@@ -7,6 +7,7 @@ Description: Collect and parse data from the Grafana dashboards (The spice must 
 """
 import copy
 import pathlib
+import re
 import tables
 import warnings
 
@@ -132,6 +133,7 @@ def get_dpdk_vars(url : str, datasource : dict, time : time_range, partition : s
     """
     #* query string is unique to the dashboard
     query_str = f'SELECT "bytes", application, queue FROM "dunedaq.dpdklibs.opmon.QueueEthXStats" WHERE session = \'{partition}\' AND time >= {time.start}s and time <= {time.end}s'
+    # 'SELECT "bytes", application, queue FROM "dunedaq.dpdklibs.opmon.QueueEthXStats" WHERE session = 'partition' AND time >= 1730819865s and time <= 1730820290s'
 
     response = queries.query_var_influx(url, datasource, query_str)
 
@@ -141,7 +143,16 @@ def get_dpdk_vars(url : str, datasource : dict, time : time_range, partition : s
         "application" : values[:, 2],
         "queue" : values[:, 3],
     }
-    return {k : np.unique(v) for k, v in values.items()}
+    values = {k : np.unique(v) for k, v in values.items()}
+
+    rx_queue_num = []
+    for i in values["queue"]:
+        if "rx" in i:
+            rx_queue_num.append(re.findall(r"\d+", i))
+
+    values["queue"] = np.array(rx_queue_num).flatten() # replace queues with just the rx variant
+
+    return values
 
 
 def get_fe_eth_vars(url : str, datasource : dict, time : time_range, partition : str) -> dict[str]:
@@ -200,20 +211,20 @@ def get_dhs(url : str, datasource : dict, time : time_range, partition : str) ->
         if "tphandler" in v[1]:
             tphandler_names.append(v[1])
 
-    return {"DLH" : np.unique(DLH_names), "tphandler" : np.unique(tphandler_names)}
+    return {"DLH" : np.unique(DLH_names), "tp_handler" : np.unique(tphandler_names)}
 
 
-def parse_result_postgres(response_data : dict, panel : dict) -> pd.DataFrame:
+def parse_result_postgres(response_data : dict, name : str) -> pd.DataFrame:
     warnings.warn("postgres data not yet implemented.")
     return pd.DataFrame({})
 
 
-def parse_result_influx(response_data : dict, panel : dict) -> pd.DataFrame:
+def parse_result_influx(response_data : dict, name : str) -> pd.DataFrame:
     """ Parse the Grafana api reponse from the prometheus database and write the data into dataframes.
 
     Args:
         response_data (dict): API response in json format.
-        panel (dict): information from the panel the data was extracted from.
+        name (str): information from the panel the data was extracted from.
 
     Returns:
         pd.DataFrame: data in pandas DataFrame.
@@ -232,7 +243,7 @@ def parse_result_influx(response_data : dict, panel : dict) -> pd.DataFrame:
                     key = list(i["tags"].values())[0]
                 parsed_results[key] = np.array(i["values"])
             else:
-                parsed_results[panel["title"]] = np.array(i["values"])
+                parsed_results[name] = np.array(i["values"])
 
     df = None
     for k, v in parsed_results.items():
@@ -250,7 +261,7 @@ def parse_result_influx(response_data : dict, panel : dict) -> pd.DataFrame:
     return df
 
 
-def parse_result_prometheus(response_data : dict, name : dict) -> pd.DataFrame:
+def parse_result_prometheus(response_data : dict, name : str) -> pd.DataFrame:
     """ Parse the Grafana api reponse from the prometheus database and write the data into dataframes.
 
     Args:
@@ -348,7 +359,6 @@ def extract_node_exporter_data(dashboard_info : dict[str], run_number : int, hos
     """
     query_dict = {
         "CPU Usage (%)" : f"100 * (1 - irate(node_cpu_seconds_total{{nodename=\"{host}\", mode=\"idle\"}}[10m]))",
-        "CPU Idle (s)" : f"node_cpu_seconds_total{{nodename=\"{host}\", mode=\"idle\"}}",
 
         "Total Memory (B)" : f"node_memory_MemTotal_bytes{{nodename=\"{host}\"}}",
         "Available Memory (B)" : f"node_memory_MemAvailable_bytes{{nodename=\"{host}\"}}",
@@ -368,6 +378,10 @@ def extract_node_exporter_data(dashboard_info : dict[str], run_number : int, hos
     rt = ["bytes", "packets", "fifo", "errs", "drop", "compressed"]
     t = ["queue_length", "carrier", "colls"]
     r = ["frame"]
+
+    cpu_times = ["idle", "iowait", "irq", "nice", "softirq", "steal", "system", "user"]
+    for i in cpu_times:
+        query_dict[f"CPU {i} (s)"] = f"node_cpu_seconds_total{{nodename=\"{host}\", mode=\"{i}\"}}"
 
     names = {
         "bytes" : "(Bps)",
@@ -532,32 +546,33 @@ def extract_grafana_data(dashboard_info : dict[str], run_number : int, host : st
             data_from_panel = {}
             for query_name, query in query_strs.items(): # loop over all queries
                 response_data = queries.make_query(valid_ds[data_type], url, query, time) # make the query
-                if data_type == "prometheus":
-                    data_from_panel[query_name] = ds_parser[data_type](response_data, query_name)
-                else:
-                    data_from_panel[query_name] = ds_parser[data_type](response_data, panel) # get the data from the response, will be specific to the datasource type
+                data_from_panel[query_name] = ds_parser[data_type](response_data, query_name) # get the data from the response, will be specific to the datasource type
 
             # organise the DataFrames to save to file
             single_columns = all([len(data.columns) == 1 for data in data_from_panel.values() if data is not None]) # check the panel returned multiple query DataFrames with a single column
 
-            if single_columns: # condense data for panels which returned multiple DataFrames
-                merged_df = None
-                for v in data_from_panel.values():
-                    if merged_df is None:
-                        merged_df = v
-                    else:
-                        merged_df = pd.concat([merged_df, v], axis = 1)
-                data_from_panel = merged_df
-            elif len(data_from_panel) == 1:
-                data_from_panel = list(data_from_panel.values())[0]
-            else: # not sure how we end up here...
-                print(f"don't know what to do for {panel_title}")
-                pass
+            # if each query is a dataframe with single columns
+            if single_columns:
+                element_names = [data.columns[0] for data in data_from_panel.values() if data is not None]
+                if len(element_names) > 0:
+                    single_elements = element_names.count(element_names[0]) == len(element_names)
 
-            if data_from_panel is None:
+                    if single_elements:
+                        for k, v in data_from_panel.items():
+                            v.rename(columns = {element_names[0] : k}, inplace = True)
+
+            # condense data for panels which returned multiple DataFrames
+            merged_df = None
+            for v in data_from_panel.values():
+                if merged_df is None:
+                    merged_df = v
+                else:
+                    merged_df = pd.concat([merged_df, v], axis = 1)
+
+            if merged_df is None:
                 dashboard_data[panel_title] = pd.DataFrame({})
             else:
-                dashboard_data[panel_title] = data_from_panel
+                dashboard_data[panel_title] = merged_df.astype(float)
         print(dashboard_data)
 
         for data in dashboard_data.values():

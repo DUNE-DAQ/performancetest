@@ -18,15 +18,11 @@ class tp_plotter(plotting.PlotEngine):
         tlabel = "Relative time (s)"
         df = self.data[metric]
 
-        for c in df.columns:
-            plotting.plot(plotting.relative_time(df), df[c].astype(float), c, tlabel, metric + f" {get_units(metric)}", False)
-        plotting.plt.ylim(0) # data should never be < 0
-        
-        if len(df.columns) > 10:
-            plotting.plt.legend(ncols = 1 + (len(df.columns)**0.5 / 2), fontsize = "x-small", bbox_to_anchor=(1.10, 1))
-            plotting.plt.tight_layout()
-            plotting.plt.gcf().set_size_inches(18, 6)
+        show_label = len(df.columns) <= 20
 
+        for c in df.columns:
+            plotting.plot(plotting.relative_time(df), df[c].astype(float), c if show_label else None, tlabel, metric + f" {get_units(metric)}", False)
+        plotting.plt.ylim(0) # data should never be < 0
         return
 
 
@@ -37,9 +33,6 @@ def tp_metrics(args : dict, display : bool = False):
         if "hdf5" in file.suffix: break
 
     data = files.read_hdf5(file)
-
-    print(data)
-    tlabel = "Relative time (s)"
 
     metrics = list(data.keys())
     if 'Highest TP rates per channel' in metrics:

@@ -7,6 +7,7 @@ Description: general utility functions.
 """
 import argparse
 import os
+import re
 
 from datetime import datetime as dt
 
@@ -169,3 +170,35 @@ def dunedaq_major_version(version : str) -> int:
         int: version number
     """
     return int(version.split(".")[0][-1])
+
+
+def search_dict(d : dict[str], regex : str) -> dict[str]:
+    """ Search for string keys in a dictionary using regex.
+
+    Args:
+        d (dict[str]): Dictionary, keys must be string type
+        regex (str): regular expresison.
+
+    Returns:
+        dict[str]: Dictionary with the found items.
+    """
+    filtered_dict = {}
+    for k, v in d.items():
+        if re.search(regex, k):
+            filtered_dict[k] = v
+    return filtered_dict
+
+
+def add_to_dict(dictionary : dict, item : list, key : any):
+    """ Add an item to another item in a dictionary. The item must be an object that suports the addition operator.
+
+    Args:
+        dictionary (dict): Dictionary, original is modified.
+        item (list): Item to add.
+        key (any): Item to add to.
+    """ 
+    if key not in dictionary:
+        dictionary[key] = item
+    else:
+        dictionary[key] = dictionary[key] + item
+    return

@@ -12,8 +12,13 @@ import warnings
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from matplotlib.ticker import FuncFormatter
 
 from matplotlib.backends.backend_pdf import PdfPages
+
+def isinteger(x : np.ndarray) -> np.ndarray:
+    return np.equal(np.mod(x, 1), 0)
+
 
 def set_plot_style():
     """ Set the plotting style for performance tests.
@@ -47,6 +52,36 @@ def figure_dimensions(x : int, orientation : str = "horizontal") -> tuple[int]:
     return dim
 
 
+def hline(v, label : str = None, color = "k", linestyle = "-", autofmt : str = None):
+    if autofmt:
+        formatter, units = autoscale(v, autofmt, "2f")
+        if label:
+            label += f" ({formatter(v)} {units})"
+    plt.axhline(v, label = label, color = color, linestyle = linestyle)
+    return
+
+
+def autoscale(data : float, units : str, style : str = "2g") -> tuple[FuncFormatter, str]:
+    """ Create a formatter to automatically scale units based on provided sample data.
+
+    Args:
+        data (float): Sample data.
+        units (str): Unit of measure.
+
+    Returns:
+        tuple[FuncFormatter, str]: Formatter function for matplotlib and the modified unit of measure.
+    """
+    scales = ["", "k","M","G","T"]
+    scale = int(np.floor(np.log10(data)))//3
+    new_units = scales[scale] + units
+    if units[0] in scales:
+        new_units = scales[scales.index(units[0])] + units[1:]
+
+    def formatter(x, pos):
+        return f"{x/(10**(3*scale)):.{style}}"
+    return FuncFormatter(formatter), new_units
+
+
 class PlotBook:
     """ Object to manage saving plots to a pdf file.
     """
@@ -67,6 +102,7 @@ class PlotBook:
         if hasattr(self, "pdf"):
             try:
                 self.pdf.savefig(bbox_inches='tight')
+                plt.close()
             except AttributeError:
                 pass
 
@@ -93,7 +129,7 @@ class PlotBook:
         return cls(name = "", open = False)
 
 
-def plot(x, y, label : str, xlabel : str, ylabel : str, newFigure : bool = True, book : PlotBook = None):
+def plot(x, y, label : str, xlabel : str, ylabel : str, newFigure : bool = True, book : PlotBook = None, autofmt : str = None):
     """ Create a line plot.
 
     Args:
@@ -104,9 +140,16 @@ def plot(x, y, label : str, xlabel : str, ylabel : str, newFigure : bool = True,
         ylabel (str): y label.
         newFigure (bool, optional): Option to create a new figure. Defaults to True.
         book (PlotBook, optional): PlotBook to save the plot to. Defaults to None.
+        autofmt (str, optional): automatically scale y axis if a unit of measure is given. Defaults to None.
     """
     if newFigure: plt.figure()
     plt.plot(x, y, label = label)
+
+    if autofmt:
+        formatter, units = autoscale(max(plt.gca().get_ylim()), autofmt, "0f")
+        plt.gca().yaxis.set_major_formatter(formatter)
+        ylabel += f" ({units})"
+
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
     if label is not None: plt.legend()
@@ -131,11 +174,12 @@ def bar(x, y, xlabel : str, ylabel : str, title : str = None, rotation : int = 0
     plt.title(title)
 
     bl = []
-    for i in rect.datavalues:
-        if i > 10:
-            bl.append(f"{i:,.1f}")
-        else:
-            bl.append(f"{i:,.3f}")
+    if not all(isinteger(rect.datavalues)):
+        for i in rect.datavalues:
+            if i > 10:
+                bl.append(f"{i:,.1f}")
+            else:
+                bl.append(f"{i:,.3f}")
 
     if bar_label: plt.bar_label(rect, label_type = "edge", labels = bl)
     plt.xticks(rotation = rotation)
@@ -148,7 +192,7 @@ def bar(x, y, xlabel : str, ylabel : str, title : str = None, rotation : int = 0
 
 
 def relative_time(df : pd.DataFrame) -> pd.Series:
-    """ Convert absolute time from the performance matric into relative time.
+    """ Convert absolute time from the performance metric into relative time.
 
     Args:
         df (pd.DataFrame): Performance metric.

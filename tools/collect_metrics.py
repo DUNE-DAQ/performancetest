@@ -71,7 +71,7 @@ def collect_metrics(args : argparse.Namespace | dict) -> None | dict:
     # extract grafana data
     harvester.extract_grafana_data(dashboard_info, test_args["run_number"], test_args["host"], test_args["session"], test_args["dunedaq_version"], output_file = name, out_dir = out_dir)
 
-    harvester.extract_node_exporter_data(dashboard_info, test_args["run_number"], test_args["host"], test_args["session"], test_args["dunedaq_version"], output_file = name, out_dir = out_dir)
+    # harvester.extract_node_exporter_data(dashboard_info, test_args["run_number"], test_args["host"], test_args["session"], test_args["dunedaq_version"], output_file = name, out_dir = out_dir)
 
 
     if type(args) == argparse.Namespace:

@@ -169,8 +169,6 @@ def get_info(path : str, out : str) -> dict[str]:
 
     workarea_info["configuration"] = check_configs(path, out = out)
 
-    exit()
-
     files.save_json(out + "workarea_info.json", workarea_info)
 
     return
