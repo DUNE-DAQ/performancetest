@@ -52,7 +52,7 @@ which should create a configuration which looks like:
     "test_name": "short test name",
     "run_number": "run number of the test",
     "session": "grafana partition name for the given test",
-    "workarea" : "path to dunedaq directory, can be left as null",
+    "workarea": "path to dunedaq directory, can be left as null",
     "out_path": "/nfs/rscratch/sbhuller/perftest/",
     "data_path": null,
     "plot_path": null,
@@ -111,9 +111,10 @@ collect_metrics.py -f <path of your json file>
 frontend_ethernet.py -f <path of your json file>
 resource_utlization.py -f <path of your json file>
 tp_metrics.py -f <path of your json file>
+analyze_data.py -f <path of your json file>
 ```
 
-The first command retrives data from the grafana dashboards (daq_overview, frontent_ethernet, trigger_primitives, intel PCM) and stores the data to hdf5 files. In addition, the a new entry is added to the json file called the `data_path` that is the path all files produced are kept. The last three generate relavent plots from the stored data and writes them to file (in `data_path`). Finally, to generate the report:
+The first command retrives data from the grafana dashboards (daq_overview, frontent_ethernet, trigger_primitives, intel PCM) and stores the data to hdf5 files. In addition, the a new entry is added to the json file called the `data_path` that is the path all files produced are kept. The others generate relavent plots from the stored data and writes them to file (in `data_path`). Finally, to generate the report:
 
 ```[bash]
 performance_report.py -f <path of your json file>
