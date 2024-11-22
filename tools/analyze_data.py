@@ -460,10 +460,8 @@ def process_frontend_info(data : dict[pd.DataFrame], out : str):
         book.save()
     return
 
-
-def main(args : argparse.Namespace):
+def analyse_data(test_args : dict):
     plotting.set_plot_style()
-    test_args = files.load_json(args.file)
 
     pinning_file = shell.search_data_file("cpupin-all-running", test_args["data_path"])
     if len(pinning_file) == 0:
@@ -479,7 +477,7 @@ def main(args : argparse.Namespace):
     tp_data = files.read_hdf5(search_file(data_files, "trigger_primitives"))
     fe_data = files.read_hdf5(search_file(data_files, "frontend_ethernet"))
 
-    out = test_args["data_path"] + "analysis/"
+    out = test_args["plot_path"] + "analysis/"
     os.makedirs(out, exist_ok = True)
 
     # ru = search_file(data_files, "A_CvwTCWk")
@@ -492,6 +490,11 @@ def main(args : argparse.Namespace):
 
     process_tp_info(tp_data, out)
     process_frontend_info(fe_data, out)
+    return
+
+def main(args : argparse.Namespace):
+    test_args = files.load_json(args.file)
+    analyse_data(test_args)
     return
 
 
