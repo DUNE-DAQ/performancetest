@@ -187,3 +187,18 @@ def search_dict(d : dict[str], regex : str) -> dict[str]:
         if re.search(regex, k):
             filtered_dict[k] = v
     return filtered_dict
+
+
+def add_to_dict(dictionary : dict, item : list, key : any):
+    """ Add an item to another item in a dictionary. The item must be an object that suports the addition operator.
+
+    Args:
+        dictionary (dict): Dictionary, original is modified.
+        item (list): Item to add.
+        key (any): Item to add to.
+    """ 
+    if key not in dictionary:
+        dictionary[key] = item
+    else:
+        dictionary[key] = dictionary[key] + item
+    return

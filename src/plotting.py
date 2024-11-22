@@ -102,6 +102,7 @@ class PlotBook:
         if hasattr(self, "pdf"):
             try:
                 self.pdf.savefig(bbox_inches='tight')
+                plt.close()
             except AttributeError:
                 pass
 
@@ -145,7 +146,7 @@ def plot(x, y, label : str, xlabel : str, ylabel : str, newFigure : bool = True,
     plt.plot(x, y, label = label)
 
     if autofmt:
-        formatter, units = autoscale(max(plt.gca().get_ylim()), autofmt)
+        formatter, units = autoscale(max(plt.gca().get_ylim()), autofmt, "0f")
         plt.gca().yaxis.set_major_formatter(formatter)
         ylabel += f" ({units})"
 
