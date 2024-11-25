@@ -174,45 +174,46 @@ def process_cpu_info(data : dict[pd.DataFrame], out : str, max_util : float = 80
     cpu_metrics.index = cpu_metrics.index.astype(int)
 
     # metrics per thread
-    thread_usage = {}
-    for name, num in pinning_file.items():
-        mask = total_time_per_core.columns[np.array(num).flatten()]
-        thread_total_time = total_time_per_core[mask].sum(axis=1)
-        thread_idle_time = data["CPU idle (s)"][mask].sum(axis=1)
-        thread_usage[name] = cpu_usage_rate(thread_idle_time, thread_total_time)
-    thread_usage = pd.DataFrame(thread_usage)
+    if pinning_file:
+        thread_usage = {}
+        for name, num in pinning_file.items():
+            mask = total_time_per_core.columns[np.array(num).flatten()]
+            thread_total_time = total_time_per_core[mask].sum(axis=1)
+            thread_idle_time = data["CPU idle (s)"][mask].sum(axis=1)
+            thread_usage[name] = cpu_usage_rate(thread_idle_time, thread_total_time)
+        thread_usage = pd.DataFrame(thread_usage)
 
-    thread_metric = pd.concat(
-        [
-            thread_usage.quantile(q = 50/100),
-            thread_usage.quantile(q = 99/100),
-            thread_usage.quantile(q = 99.9/100),
-            thread_usage.max(),
-            thread_usage.min()
-        ], axis = 1, keys = ["50% percentile", "99% percentile", "99.9% percentile", "Maximum", "Minimum"])
+        thread_metric = pd.concat(
+            [
+                thread_usage.quantile(q = 50/100),
+                thread_usage.quantile(q = 99/100),
+                thread_usage.quantile(q = 99.9/100),
+                thread_usage.max(),
+                thread_usage.min()
+            ], axis = 1, keys = ["50% percentile", "99% percentile", "99.9% percentile", "Maximum", "Minimum"])
 
-    # plotting
-    with plotting.PlotBook(out + "cpu_plots.pdf") as book:
-        for c in cpu_metrics:
-            plotting.bar(cpu_metrics[c].index, cpu_metrics[c], "Core", "Utilization (%)", c)
-            if max(cpu_metrics[c]) > 50:
-                plotting.plt.axhline(max_util, color  = "k", linestyle = "--")
+        # plotting
+        with plotting.PlotBook(out + "cpu_plots.pdf") as book:
+            for c in cpu_metrics:
+                plotting.bar(cpu_metrics[c].index, cpu_metrics[c], "Core", "Utilization (%)", c)
+                if max(cpu_metrics[c]) > 50:
+                    plotting.plt.axhline(max_util, color  = "k", linestyle = "--")
+                book.save()
+
+            for c in thread_metric:
+                plotting.plt.figure(figsize=(6.4, 1.5 * 6))
+                plotting.bar(thread_metric[c].index, thread_metric[c].values, "Utilization (%)", "Thread", horizontal = True, newFigure = False, title = c)
+                if max(cpu_metrics[c]) > 50:
+                    plotting.plt.axvline(max_util, color  = "k", linestyle = "--")
+
+                plotting.plt.xlim(0, 100)
+                plotting.plt.tight_layout()
+                book.save()
+
+            plotting.bar(total_metrics.index, total_metrics.values.flatten(), None, "Total CPU Utilization (%)", None, 30, True)
+            plotting.plt.axhline(max_util, color  = "k", linestyle = "--")
+            plotting.plt.ylim(0, 100)
             book.save()
-
-        for c in thread_metric:
-            plotting.plt.figure(figsize=(6.4, 1.5 * 6))
-            plotting.bar(thread_metric[c].index, thread_metric[c].values, "Utilization (%)", "Thread", horizontal = True, newFigure = False, title = c)
-            if max(cpu_metrics[c]) > 50:
-                plotting.plt.axvline(max_util, color  = "k", linestyle = "--")
-
-            plotting.plt.xlim(0, 100)
-            plotting.plt.tight_layout()
-            book.save()
-
-        plotting.bar(total_metrics.index, total_metrics.values.flatten(), None, "Total CPU Utilization (%)", None, 30, True)
-        plotting.plt.axhline(max_util, color  = "k", linestyle = "--")
-        plotting.plt.ylim(0, 100)
-        book.save()
 
     return
 
@@ -336,8 +337,16 @@ def process_tp_info(data : dict[pd.DataFrame], out : str, expected_hit_rate : fl
     total_tp_drop_rates = list(utils.search_dict(data, "dropped").values())[0]
     total_tp_drop_rates = total_tp_drop_rates.sum(axis = 0)
 
+    print(hit_rates)
+
     #* 8 nics * 5 wibs = 40 DLHs
     n_apa = len(hit_rates.columns.values)//n_dlh
+
+    if n_apa == 0: n_apa += 1 # if we have less dlhs than expected, assume one apa was used for now
+
+    print(expected_hit_rate)
+    print(n_ch)
+    print(n_apa)
 
     total_hit_rate = hit_rates.sum(axis = 1) # hit rate across entire detector
     total_hit_sent = hits_sent.sum(axis = 1) # hits sent by the DLH to the trigger?
@@ -469,7 +478,8 @@ def analyse_data(test_args : dict):
     else:
         pinning_file = files.load_json(pinning_file[0])
 
-    pinning_file = parse_pinning_file(pinning_file, test_args["host"])
+    if pinning_file:
+        pinning_file = parse_pinning_file(pinning_file, test_args["host"])
 
     data_files = shell.search_data_file("hdf5", test_args["data_path"])
 
@@ -477,7 +487,11 @@ def analyse_data(test_args : dict):
     tp_data = files.read_hdf5(search_file(data_files, "trigger_primitives"))
     fe_data = files.read_hdf5(search_file(data_files, "frontend_ethernet"))
 
-    out = test_args["plot_path"] + "analysis/"
+    utils.make_plot_dir(test_args)
+    if test_args["plot_path"]:
+        out = test_args["plot_path"] + "analysis/"
+    else:
+        out = utils.make_plot_dir(args) + "analysis/"
     os.makedirs(out, exist_ok = True)
 
     # ru = search_file(data_files, "A_CvwTCWk")
