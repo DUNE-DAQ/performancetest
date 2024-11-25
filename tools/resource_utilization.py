@@ -97,7 +97,7 @@ def resource_utilization(args : dict, display : bool = False):
     if "ru" in data:
         memory_info = []
         for k in data["ru"].keys():
-            if "Memory Bandwidth (MByte/sec)" in k:
+            if "Memory Bandwidth (MByte per sec)" in k:
                 memory_info.append(k)
 
         cache_info, cache_ratio = process_ru(data["ru"])

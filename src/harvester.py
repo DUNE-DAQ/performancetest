@@ -478,6 +478,22 @@ def extract_node_exporter_data(dashboard_info : dict[str], run_number : int, hos
     return
 
 
+def format_hdf_keys(dashboard_data : dict[pd.DataFrame]):
+    """ Format keys so they do not break the file structure in hdf5.
+
+    Args:
+        dashboard_data (dict[pd.DataFrame]): dashboard data to be written to hdf5.
+    """
+    for k in list(dashboard_data):
+        if "/" in k: # / is used to break items in to subdirectories in hdf5.
+            if k.split("/")[0].find("(") > 0:
+                rep = " per "
+            else:
+                rep = " "
+            dashboard_data[k.replace("/", rep)] = dashboard_data.pop(k)
+    return
+
+
 def extract_grafana_data(dashboard_info : dict[str], run_number : int, host : str, test_session : str, dunedaq_version : str, output_file : str, out_dir : str) -> list[str]:
     """ Extract data from Grafana dashboards.
 
@@ -584,6 +600,8 @@ def extract_grafana_data(dashboard_info : dict[str], run_number : int, host : st
                 break
             else:
                 warnings.warn("no data was extracted from the dashboard. Check the data has not expired!")
+
+        format_hdf_keys(dashboard_data)
 
         # Save the dataframes
         output = str(out_dir) + f"grafana-{dashboard}-{output_file}.hdf5"

@@ -12,14 +12,15 @@ import tables
 import pandas as pd
 
 
-def write_dict_hdf5(dictionary : dict, file : str):
+def write_dict_hdf5(dictionary : dict, file : str, mode : str = "a"):
     """ Write dictionary to a HDF5 file.
 
     Args:
         dictionary (dict): dictionary to save
         file (str): file
+        mode (str): mode to open file in
     """
-    with pd.HDFStore(file) as hdf:
+    with pd.HDFStore(file, mode) as hdf:
         for k, v in dictionary.items():
             try:
                 hdf.put(k, v)
