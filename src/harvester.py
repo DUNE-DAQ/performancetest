@@ -585,6 +585,14 @@ def extract_grafana_data(dashboard_info : dict[str], run_number : int, host : st
             else:
                 warnings.warn("no data was extracted from the dashboard. Check the data has not expired!")
 
+        for k in list(dashboard_data):
+            if "/" in k: # assumeing this is for units per something, so replace with p
+                if k.split("/")[0].find("(") > 0:
+                    rep = " per "
+                else:
+                    rep = " "
+                dashboard_data[k.replace("/", rep)] = dashboard_data.pop(k)
+
         # Save the dataframes
         output = str(out_dir) + f"grafana-{dashboard}-{output_file}.hdf5"
         try:
