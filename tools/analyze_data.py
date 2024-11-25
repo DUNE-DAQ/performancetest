@@ -487,7 +487,11 @@ def analyse_data(test_args : dict):
     tp_data = files.read_hdf5(search_file(data_files, "trigger_primitives"))
     fe_data = files.read_hdf5(search_file(data_files, "frontend_ethernet"))
 
-    out = test_args["plot_path"] + "analysis/"
+    utils.make_plot_dir(test_args)
+    if test_args["plot_path"]:
+        out = test_args["plot_path"] + "analysis/"
+    else:
+        out = utils.make_plot_dir(args) + "analysis/"
     os.makedirs(out, exist_ok = True)
 
     # ru = search_file(data_files, "A_CvwTCWk")
