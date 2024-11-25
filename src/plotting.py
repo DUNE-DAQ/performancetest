@@ -78,7 +78,10 @@ def autoscale(data : float, units : str, style : str = "2g") -> tuple[FuncFormat
         new_units = scales[scales.index(units[0])] + units[1:]
 
     def formatter(x, pos):
-        return f"{x/(10**(3*scale)):.{style}}"
+        if style is None:
+            return f"{x/(10**(3*scale))}"
+        else:
+            return f"{x/(10**(3*scale)):.{style}}"
     return FuncFormatter(formatter), new_units
 
 
@@ -146,7 +149,7 @@ def plot(x, y, label : str, xlabel : str, ylabel : str, newFigure : bool = True,
     plt.plot(x, y, label = label)
 
     if autofmt:
-        formatter, units = autoscale(max(plt.gca().get_ylim()), autofmt, "0f")
+        formatter, units = autoscale(max(plt.gca().get_ylim()), autofmt, None)
         plt.gca().yaxis.set_major_formatter(formatter)
         ylabel += f" ({units})"
 
