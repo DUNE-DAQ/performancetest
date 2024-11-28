@@ -252,7 +252,7 @@ def parse_result_influx(response_data : dict, name : str) -> pd.DataFrame:
         else:
             entry = pd.DataFrame({"time" : utils.dt_to_unix_array(v[:, 0]), k : v[:, 1]})
             entry = entry.set_index("time")
-
+            entry.set_index(entry.index.astype(int), inplace = True)
         if df is None:
             df = entry
         else:
@@ -287,7 +287,9 @@ def parse_result_prometheus(response_data : dict, name : str) -> pd.DataFrame:
             v = np.array(result["values"])
             parsed["time"] = v[:, 0]
             parsed[key] = v[:, 1]
-        return pd.DataFrame(parsed).set_index("time").astype(float)
+        df = pd.DataFrame(parsed).set_index("time").astype(float)
+        df.set_index(df.index.astype(int), inplace = True)
+        return df
 
 
 def format_panels(panels: list[dict], var_map : dict) -> tuple[list[dict], list[str]]:
@@ -464,6 +466,7 @@ def extract_node_exporter_data(dashboard_info : dict[str], run_number : int, hos
 
         if len(parsed) != 0:
             dfs[query] = pd.DataFrame(parsed).set_index("time").astype(float)
+            dfs[query].set_index(dfs[query].index.astype(int), inplace = True)
         else:
             warnings.warn(f"no data found for {query}")
             dfs[query] = pd.DataFrame()
@@ -589,9 +592,9 @@ def extract_grafana_data(dashboard_info : dict[str], run_number : int, host : st
                 dashboard_data[panel_title] = pd.DataFrame({})
             else:
                 try:
-                    dashboard_data[panel_title] = merged_df.astype(float)
+                    dashboard_data[panel_title] = merged_df.astype(float).sort_index() # make sure data is kept in time order
                 except ValueError:
-                    dashboard_data[panel_title] = merged_df
+                    dashboard_data[panel_title] = merged_df.sort_index()
         print(dashboard_data)
 
         for data in dashboard_data.values():
@@ -599,10 +602,10 @@ def extract_grafana_data(dashboard_info : dict[str], run_number : int, host : st
                 for v in data.values():
                     if not v.empty:
                         break
-            elif type(data) == pd.DataFrame and (not data.empty):
+            elif (type(data) == pd.DataFrame) and (not data.empty):
                 break
             else:
-                warnings.warn("no data was extracted from the dashboard. Check the data has not expired!")
+                warnings.warn(f"no data was extracted from the dashboard {dashboard}. Check the data has not expired!")
 
         format_hdf_keys(dashboard_data)
 
