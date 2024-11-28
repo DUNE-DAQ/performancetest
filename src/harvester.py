@@ -466,6 +466,7 @@ def extract_node_exporter_data(dashboard_info : dict[str], run_number : int, hos
 
         if len(parsed) != 0:
             dfs[query] = pd.DataFrame(parsed).set_index("time").astype(float)
+            dfs[query].set_index(dfs[query].index.astype(int), inplace = True)
         else:
             warnings.warn(f"no data found for {query}")
             dfs[query] = pd.DataFrame()
