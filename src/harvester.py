@@ -588,7 +588,10 @@ def extract_grafana_data(dashboard_info : dict[str], run_number : int, host : st
             if merged_df is None:
                 dashboard_data[panel_title] = pd.DataFrame({})
             else:
-                dashboard_data[panel_title] = merged_df.astype(float)
+                try:
+                    dashboard_data[panel_title] = merged_df.astype(float)
+                except ValueError:
+                    dashboard_data[panel_title] = merged_df
         print(dashboard_data)
 
         for data in dashboard_data.values():

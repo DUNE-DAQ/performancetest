@@ -16,12 +16,16 @@ from rich import print
 def create_urls(args : dict) -> dict:
     paths = {"data" : args["data_path"], "plots" : args["plot_path"]}
 
+    for head_name in paths["data"].split("/"):
+        if args["test_name"] in head_name:
+            break
+
     urls = {"data" : {}, "plots" : {}}
     for k, v in paths.items():
         print(v)
         for p in pathlib.Path(v).glob("**/*"):
             print(p)
-            link = utils.make_public_link(p.parents[1].stem + f"/{k}/" + p.name)
+            link = utils.make_public_link(head_name + f"/{k}/" + str(p).split(args["plot_path"])[-1])
             urls[k][p.name] = link
 
     print(urls)

@@ -42,7 +42,7 @@ def main(args : argparse.Namespace):
     else:
         print("configuration has no workarea and it was not supplied. Software and DAQ config information cannot be calculated.")
 
-    for i in [frontend_ethernet, resource_utilization, tp_metrics, performance_report, analyse_data]:
+    for i in [frontend_ethernet, resource_utilization, tp_metrics, analyse_data, performance_report]:
         i(test_args)
 
     return

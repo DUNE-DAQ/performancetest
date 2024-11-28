@@ -469,6 +469,77 @@ def process_frontend_info(data : dict[pd.DataFrame], out : str):
         book.save()
     return
 
+def process_readout_info(data : dict[pd.DataFrame], out : str):
+    """ Process frontend readout information and make plots.
+
+    Args:
+        data (dict[pd.DataFrame]): node exporter data.
+        out (str): output file diretory.
+    """
+    request_rates_total = list(utils.search_dict(data, "(?=.*Request rates)(?!.*for)").values())[0]
+
+    request_rates_dlh = utils.search_dict(data, "(?=.*Request rates)(?=.*for)")
+
+    mean_request_rate_dlh = pd.DataFrame({k : v.mean(axis=0) for k,v in request_rates_dlh.items()})
+    mean_request_rate_dlh.rename(columns = {k : k.split(" ")[-1] for k in request_rates_dlh}, inplace = True)
+
+    with plotting.PlotBook(out + "re_plots") as book:
+        plotting.plot(plotting.relative_time(request_rates_total), request_rates_total, request_rates_total.columns, "Time (s)", "request rate (Hz)")
+        book.save()
+
+        plotting.bar(request_rates_total.columns, request_rates_total.sum(axis=0), "", "Total requests", rotation = 30)
+        book.save()
+
+        plotting.bar(request_rates_total.columns, request_rates_total.mean(axis=0), "", "Average request rate (Hz)", rotation = 30)
+        book.save()
+
+        plotting.bar(request_rates_total.columns, request_rates_total.mean(axis=0) // len(mean_request_rate_dlh.columns), "", "Average request rate (Hz)", rotation = 30)
+        book.save()
+
+    return
+
+def process_daq_overview_info(data : dict[pd.DataFrame], out : str):
+    """ Process daq overview information and make plots.
+
+    Args:
+        data (dict[pd.DataFrame]): node exporter data.
+        out (str): output file diretory.
+    """
+    global_trigger_rate = data["Global Trigger Rate"]
+    dataflow_written_rate = data["Data Writers Information"].sort_index() # not sure what happened here
+
+    with plotting.PlotBook(out + "ov_plots") as book:
+        total_count = global_trigger_rate.pop("Total count")
+        plotting.plot(plotting.relative_time(global_trigger_rate), global_trigger_rate, global_trigger_rate.columns, "Time (s)", "Global Trigger Rate", autofmt = "Hz")
+        plotting.plt.legend(ncols = 2, loc = "upper left")
+        plotting.plt.gca().grid(False)
+        lim = plotting.plt.gca().get_ylim()
+        plotting.plt.ylim(min(lim), 1.2 * max(lim))
+
+        ax_total = plotting.plt.gca().twinx()
+        ax_total.plot(plotting.relative_time(global_trigger_rate), total_count, linestyle = "--", color = f"C{len(global_trigger_rate.columns)}", label = "Total triggers", zorder = -1)
+        ax_total.set_ylabel("Total count")
+        ax_total.grid(False)
+        plotting.plt.legend(loc = "upper right")
+
+        lim = plotting.plt.gca().get_ylim()
+        plotting.plt.ylim(min(lim), 1.2 * max(lim))
+        book.save()
+
+        plotting.plot(plotting.relative_time(global_trigger_rate), global_trigger_rate, global_trigger_rate.columns, "Time (s)", "Global Trigger Rate", autofmt = "Hz")
+        lim = plotting.plt.gca().get_ylim()
+        plotting.plt.ylim(min(lim), 1.2 * max(lim))
+        book.save()
+
+
+        plotting.plot(plotting.relative_time(dataflow_written_rate), dataflow_written_rate, dataflow_written_rate.columns, "Time (s)", "Data written by Dataflow", autofmt = "B/s")
+        plotting.plt.legend(ncols = 2)
+        lim = plotting.plt.gca().get_ylim()
+        plotting.plt.ylim(min(lim), 1.2 * max(lim))
+        book.save()
+    return
+
+
 def analyse_data(test_args : dict):
     plotting.set_plot_style()
 
@@ -486,17 +557,18 @@ def analyse_data(test_args : dict):
     ne_data = files.read_hdf5(search_file(data_files, "node-exporter"))
     tp_data = files.read_hdf5(search_file(data_files, "trigger_primitives"))
     fe_data = files.read_hdf5(search_file(data_files, "frontend_ethernet"))
+    re_data = files.read_hdf5(search_file(data_files, "readout"))
+    ov_data = files.read_hdf5(search_file(data_files, "overview"))
 
     utils.make_plot_dir(test_args)
     if test_args["plot_path"]:
         out = test_args["plot_path"] + "analysis/"
     else:
-        out = utils.make_plot_dir(args) + "analysis/"
+        out = utils.make_plot_dir(test_args) + "analysis/"
     os.makedirs(out, exist_ok = True)
 
     # ru = search_file(data_files, "A_CvwTCWk")
     # data = files.read_hdf5(ru)
-
     process_disk_info(ne_data, out)
     process_cpu_info(ne_data, out, pinning_file = pinning_file)
     process_memory_info(ne_data, out)
@@ -504,6 +576,8 @@ def analyse_data(test_args : dict):
 
     process_tp_info(tp_data, out)
     process_frontend_info(fe_data, out)
+    process_readout_info(re_data, out)
+    process_daq_overview_info(ov_data, out)
     return
 
 def main(args : argparse.Namespace):
