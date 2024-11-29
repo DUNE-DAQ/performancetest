@@ -9,14 +9,8 @@ import argparse
 import os
 import re
 
-from datetime import datetime as dt
-
-import numpy as np
-import pandas as pd
-
 import requests
 import pathlib
-
 
 class ApplicationArguments(argparse.ArgumentParser):
     """ Class for managing application arguments for the performance report tools.
@@ -94,19 +88,6 @@ def make_public_link(fp : pathlib.Path | str) -> str:
     return cernbox_url + fp
 
 
-def dt_to_unix_array(times : np.array) -> pd.Series:
-    """ Convert an array of times from numpy into unix time in units of seconds.
-
-    Args:
-        times (np.array): Times, should be timezone compliant.
-
-    Returns:
-        pd.Series: Pandas series of times
-    """
-    s = pd.to_datetime(pd.Series(times).str.replace("T", " ").str.replace("Z", " "))
-    return (s - pd.Timestamp("1970-01-01")) // pd.Timedelta('1s')
-
-
 def is_collection(x : any) -> bool:
     """ Check if object is iterable but not a string.
 
@@ -117,28 +98,6 @@ def is_collection(x : any) -> bool:
         bool: True if iterable and not string, False otherwise.
     """
     return (type(x) != str) and hasattr(x, "__iter__")
-
-
-def get_unix_timestamp(time : str) -> int:
-    """ Convert date time into unix timestamp.
-
-    Args:
-        time (str): Time in yyyy/mm/dd hh/mm/ss.
-
-    Raises:
-        ValueError: Time is not in the correct format.
-
-    Returns:
-        int: Unix time.
-    """
-    formats = ['%Y-%m-%d %H:%M:%S.%f', '%Y-%m-%d %H:%M:%S']
-    for fmt in formats:
-        try:
-            timestamp = dt.strptime(time, fmt).timestamp()
-            return int(timestamp * 1000) if '.' in time else int(timestamp)
-        except ValueError:
-            pass
-    raise ValueError(f'Invalid time format: {time}')
 
 
 def create_filename(test_args : dict) -> str:

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import argparse
 
-import files, plotting, shell, utils
+import files, plotting, shell, utils, times
 
 import pandas as pd
 
@@ -27,7 +27,7 @@ class ru_plotter(plotting.PlotEngine):
 
         make_labels = (len(df.columns) < 20) and (len(df.columns) > 1)
         for c in df.columns:
-            plotting.plot(plotting.relative_time(df), df[c].astype(float), c if make_labels else None, tlabel, metric, False)
+            plotting.plot(times.relative_time(df), df[c].astype(float), c if make_labels else None, tlabel, metric, False)
         plotting.plt.ylim(0)
 
         if "(%)" in metric:

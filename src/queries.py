@@ -8,8 +8,6 @@ Description: Module to handle queries to the grafana dahsboards through the graf
 import json
 from warnings import warn
 
-from collections import namedtuple
-
 from urllib.parse import urljoin, urlencode
 from urllib.request import urlopen
 from urllib.error import URLError, HTTPError
@@ -17,9 +15,9 @@ from http.client import HTTPResponse
 
 import utils
 
-from rich import print
+from times import time_range
 
-time_range = namedtuple("time_range", ["start", "end"])
+from rich import print
 
 
 def request(url : str, extension : str, data : dict = None) -> dict | None:
