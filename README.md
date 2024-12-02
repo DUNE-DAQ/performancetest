@@ -46,6 +46,10 @@ which should create a configuration which looks like:
 ```[json]
 {
     "dunedaq_version": "version of DUNEDAQ used to perform tests e.g. v4.4.8",
+    "time_range": [
+        0,
+        -1
+    ],
     "host": "server being tested e.g. np02-srv-003",
     "data_source": "source of the data, crp, apa or emu",
     "socket_num": "socket number tested on the host machine, 0, 1 or 01 for both",
@@ -67,31 +71,35 @@ which should create a configuration which looks like:
     }
 }
 ```
-Each key has a description of what it is and what value can be added. Note that the `plot_path` and `data_path` are values which you can override, otherwise they are automaically filled so they can be left as is. In addition, the `out_path` is the location where the directory for the test report is created. This should not be changed unless you want to keep the data and reports locally (note the urls in the report will not work in this case). Also, the workarea value is the absolute path to the dunedaq directory, if provided the reports will contain information about the software and configuration, otherwise it can be left as null Finally, note that for `documentation`, the values can be set to `null` and boilerplate text is inserted into the report instead. Also note that `out_path` can be removed if you are saving reports to the shared cernbox.
+Each key has a description of what it is and what value can be added. Note that the `plot_path` and `data_path` are values which you can override, otherwise they are automaically filled so they can be left as is. In addition, the `out_path` is the location where the directory for the test report is created. This should not be changed unless you want to keep the data and reports locally (note the urls in the report will not work in this case). Also, the workarea value is the absolute path to the dunedaq directory, if provided the reports will contain information about the software and configuration, otherwise it can be left as null Finally, note that for `documentation`, the values can be set to `null` and boilerplate text is inserted into the report instead. Also note that `out_path` can be removed if you are saving reports to the shared cernbox. The time range specifies the range plots are made for the reports.
 
 Below is an example configuration file with the minimal information required:
 ```[json]
 {
-    "dunedaq_version": "v5.2.0",
-    "host": "np02-srv-003",
-    "data_source": "2xCRP",
+    "dunedaq_version": "v5.3.0",
+    "time_range": [
+        0,
+        60
+    ],
+    "host": "np04-srv-031",
+    "data_source": "4xAPA",
     "socket_num": "01",
-    "test_name": "example",
-    "run_number": 29641,
-    "session": "np02-session",
-    "workarea" : null,
-    "out_path": "/nfs/rscratch/sbhuller/perftest/",
-    "data_path": null,
-    "plot_path": null,
+    "test_name": "test_fixes",
+    "run_number": 32852,
+    "session": "np04-session",
+    "workarea": "/nfs/home/sbhuller/NFD_DEV_241126_A9",
+    "out_path": ".",
+    "data_path": "perftest-run32852-v5_3_0-np04srv031-test_fixes/data/",
+    "plot_path": "plots/",
     "documentation": {
-        "purpose": null,
-        "goals": null,
-        "method": null,
-        "control_plane": null,
-        "configuration": null,
-        "concurrancy": null,
-        "summary": null
-    },
+        "purpose": "High trigger rate at 132us readout window",
+        "goals": "readout data requested in a 132us readout window at the highest Trigger rate posible.",
+        "method": "change the trigger rate using the set_rate command during the run",
+        "control plane": "how was the system controlled during the test i.e. proceess manager configuration",
+        "configuration": "path to configuration or git commit hash from ehn1configs",
+        "concurrancy": "active users on the readout machine during the time of the run, what applications were run in parallel on the machine",
+        "summary": "DAQ Fails at trigger rate of 20 Hz (trigger inhibited)."
+    }
 }
 ```
 
