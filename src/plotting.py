@@ -194,19 +194,6 @@ def bar(x, y, xlabel : str, ylabel : str, title : str = None, rotation : int = 0
     return
 
 
-def relative_time(df : pd.DataFrame) -> pd.Series:
-    """ Convert absolute time from the performance metric into relative time.
-
-    Args:
-        df (pd.DataFrame): Performance metric.
-
-    Returns:
-        pd.Series: Relative time.
-    """
-    time = df.index.astype(int)
-    return time - time[0]
-
-
 class PlotEngine(ABC):
     def __init__(self, metrics : list[str], data : dict[pd.DataFrame]) -> None:
         self.metrics = metrics

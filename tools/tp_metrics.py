@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import argparse
 
-import files, plotting, shell, utils
+import files, plotting, shell, utils, times
 
 from rich import print
 
@@ -21,7 +21,7 @@ class tp_plotter(plotting.PlotEngine):
         show_label = len(df.columns) <= 20
 
         for c in df.columns:
-            plotting.plot(plotting.relative_time(df), df[c].astype(float), c if show_label else None, tlabel, metric + f" {get_units(metric)}", False)
+            plotting.plot(times.relative_time(df), df[c].astype(float), c if show_label else None, tlabel, metric + f" {get_units(metric)}", False)
         plotting.plt.ylim(0) # data should never be < 0
         return
 

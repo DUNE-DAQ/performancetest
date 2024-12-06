@@ -6,7 +6,6 @@ Author: Shyam Bhuller
 Description: Collect and parse data from the Grafana dashboards (The spice must flow) 
 """
 import copy
-import pathlib
 import re
 import tables
 import warnings
@@ -18,9 +17,10 @@ from rich import print
 
 import files
 import queries
+import times
 import utils
 
-from queries import time_range
+from times import time_range
 
 warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning) # cause screw pandas
 warnings.simplefilter(action='ignore', category=tables.NaturalNameWarning) # cause screw pandas
@@ -69,8 +69,8 @@ def get_run_time(url : str, datasource : dict, run_number : int, partition : str
 
     response = queries.query_var_influx(url, datasource, query_str)
     values = np.array(response["results"][0]["series"][0]["values"])
-    times = values[values[:, 1].astype(int) == run_number][:, 0] # select times for the given run number
-    utimes = utils.dt_to_unix_array([times[0], times[-1]]).values # get the unix time for start and end times
+    t = values[values[:, 1].astype(int) == run_number][:, 0] # select times for the given run number
+    utimes = times.dt_to_unix_array([t[0], t[-1]]).values # get the unix time for start and end times
 
     return time_range(start = min(utimes), end =max(utimes))
 
@@ -250,7 +250,7 @@ def parse_result_influx(response_data : dict, name : str) -> pd.DataFrame:
         if v is None:
             entry = pd.DataFrame({"time" : [None], k : [None]})
         else:
-            entry = pd.DataFrame({"time" : utils.dt_to_unix_array(v[:, 0]), k : v[:, 1]})
+            entry = pd.DataFrame({"time" : times.dt_to_unix_array(v[:, 0]), k : v[:, 1]})
             entry = entry.set_index("time")
             entry.set_index(entry.index.astype(int), inplace = True)
         if df is None:

@@ -6,7 +6,8 @@ import pathlib
 
 from collections import namedtuple
 
-import files, shell, plotting, utils
+import files, shell, plotting, utils, times
+from times import time_range
 
 import numpy as np
 import pandas as pd
@@ -93,7 +94,7 @@ def fill_zeros_with_last(arr : np.ndarray, axis : int) -> np.ndarray:
 
 
 def search_file(data_files : list, signature : str) -> pathlib.Path | None:
-    """ Return first file in a list which contains the signrature.
+    """ Return first file in a list which contains the signature.
 
     Args:
         data_files (list): list of files.
@@ -161,7 +162,6 @@ def process_cpu_info(data : dict[pd.DataFrame], out : str, max_util : float = 80
             total_usage.min()
         ]), axis=1), index = ["50% percentile", "99% percentile", "99.9% percentile", "Maximum", "Minimum"])
 
-
     # metrics per CPU core
     cpu_metrics = pd.concat(
         [
@@ -192,14 +192,15 @@ def process_cpu_info(data : dict[pd.DataFrame], out : str, max_util : float = 80
                 thread_usage.min()
             ], axis = 1, keys = ["50% percentile", "99% percentile", "99.9% percentile", "Maximum", "Minimum"])
 
-        # plotting
-        with plotting.PlotBook(out + "cpu_plots.pdf") as book:
-            for c in cpu_metrics:
-                plotting.bar(cpu_metrics[c].index, cpu_metrics[c], "Core", "Utilization (%)", c)
-                if max(cpu_metrics[c]) > 50:
-                    plotting.plt.axhline(max_util, color  = "k", linestyle = "--")
-                book.save()
+    # plotting
+    with plotting.PlotBook(out + "cpu_plots.pdf") as book:
+        for c in cpu_metrics:
+            plotting.bar(cpu_metrics[c].index, cpu_metrics[c], "Core", "Utilization (%)", c)
+            if max(cpu_metrics[c]) > 50:
+                plotting.plt.axhline(max_util, color  = "k", linestyle = "--")
+            book.save()
 
+        if pinning_file:
             for c in thread_metric:
                 plotting.plt.figure(figsize=(6.4, 1.5 * 6))
                 plotting.bar(thread_metric[c].index, thread_metric[c].values, "Utilization (%)", "Thread", horizontal = True, newFigure = False, title = c)
@@ -210,11 +211,10 @@ def process_cpu_info(data : dict[pd.DataFrame], out : str, max_util : float = 80
                 plotting.plt.tight_layout()
                 book.save()
 
-            plotting.bar(total_metrics.index, total_metrics.values.flatten(), None, "Total CPU Utilization (%)", None, 30, True)
-            plotting.plt.axhline(max_util, color  = "k", linestyle = "--")
-            plotting.plt.ylim(0, 100)
-            book.save()
-
+        plotting.bar(total_metrics.index, total_metrics.values.flatten(), None, "Total CPU Utilization (%)", None, 30, True)
+        plotting.plt.axhline(max_util, color  = "k", linestyle = "--")
+        plotting.plt.ylim(0, 100)
+        book.save()
     return
 
 
@@ -271,10 +271,7 @@ def process_disk_info(data : dict[pd.DataFrame], out : str, max_write_time : flo
         plotting.plt.axhline(max_write_APA, color = "k", linestyle = "--", label = "Expected data written\nper APA (876.25 GB)")
         plotting.plt.legend()
         book.save()
-
     return
-
-
 
 
 def process_network_info(data : dict[pd.DataFrame], out : str):
@@ -288,7 +285,7 @@ def process_network_info(data : dict[pd.DataFrame], out : str):
 
     with plotting.PlotBook(out + "network_plots") as book:
         for k, v in network_rt.items():
-            plotting.plot(plotting.relative_time(v), v.values, v.columns, "Time (s)", k.split(" (")[0], autofmt = "B/s", book = book)
+            plotting.plot(times.relative_time(v), v.values, v.columns, "Time (s)", k.split(" (")[0], autofmt = "B/s", book = book)
             total_net = v.sum(axis=0)
             plotting.bar(total_net.index, total_net/1E6, "", "Total " + k.split(" (")[0] + " (MB)", rotation=30, bar_label = True)
             plotting.plt.yscale("log")
@@ -337,16 +334,14 @@ def process_tp_info(data : dict[pd.DataFrame], out : str, expected_hit_rate : fl
     total_tp_drop_rates = list(utils.search_dict(data, "dropped").values())[0]
     total_tp_drop_rates = total_tp_drop_rates.sum(axis = 0)
 
-    print(hit_rates)
-
     #* 8 nics * 5 wibs = 40 DLHs
     n_apa = len(hit_rates.columns.values)//n_dlh
 
     if n_apa == 0: n_apa += 1 # if we have less dlhs than expected, assume one apa was used for now
 
-    print(expected_hit_rate)
-    print(n_ch)
-    print(n_apa)
+    # print(expected_hit_rate)
+    # print(n_ch)
+    # print(n_apa)
 
     total_hit_rate = hit_rates.sum(axis = 1) # hit rate across entire detector
     total_hit_sent = hits_sent.sum(axis = 1) # hits sent by the DLH to the trigger?
@@ -355,8 +350,8 @@ def process_tp_info(data : dict[pd.DataFrame], out : str, expected_hit_rate : fl
     hit_rate_apa = pd.DataFrame({f"APA {i}" : np.sum(hit_rates.values[:, i * n_dlh:(i+1)*n_dlh], axis=1) for i in range(n_apa)})
 
     with plotting.PlotBook(out + "tp_plots") as book:
-        plotting.plot(plotting.relative_time(total_hit_rate), total_hit_rate.values, "np04 hits produced", "Time (s)", "TP rate")
-        plotting.plot(plotting.relative_time(total_hit_sent), total_hit_sent.values, "np04 hits sent", "Time (s)", "TP rate", newFigure = False, autofmt = "Hz")
+        plotting.plot(times.relative_time(total_hit_rate), total_hit_rate.values, "np04 hits produced", "Time (s)", "TP rate")
+        plotting.plot(times.relative_time(total_hit_sent), total_hit_sent.values, "np04 hits sent", "Time (s)", "TP rate", newFigure = False, autofmt = "Hz")
         
         plotting.hline(expected_hit_rate * n_ch * n_apa, "expected hit rate", "red", "--", "Hz")
         plotting.hline(acceptance_hit_rate * n_ch * n_apa, "acceptence hit rate", "k", "--", "Hz")
@@ -365,20 +360,20 @@ def process_tp_info(data : dict[pd.DataFrame], out : str, expected_hit_rate : fl
 
         plotting.plt.figure()
         for c in hit_rate_apa:
-            plotting.plot(plotting.relative_time(hit_rate_apa[c]), hit_rate_apa[c].values, c, "Time (s)", "TP rate", newFigure = False, autofmt = "Hz")
+            plotting.plot(times.relative_time(hit_rate_apa[c]), hit_rate_apa[c].values, c, "Time (s)", "TP rate", newFigure = False, autofmt = "Hz")
         plotting.hline(expected_hit_rate * n_ch, "expected hit rate per APA", "red", "--", "Hz")
         plotting.hline(acceptance_hit_rate * n_ch, "acceptence hit rate per APA", "k", "--", "Hz")
         plotting.plt.legend()
         book.save()
 
-        plotting.plot(plotting.relative_time(tp_writer_info), tp_writer_info[["TP Received", "TP written"]], ["received", "written"], "Time (s)", "TP rate", autofmt = "Hz")
+        plotting.plot(times.relative_time(tp_writer_info), tp_writer_info[["TP Received", "TP written"]], ["received", "written"], "Time (s)", "TP rate", autofmt = "Hz")
         plotting.plt.title("TPWriter receieve/write rates")
         plotting.hline(expected_hit_rate * n_ch * n_apa, "expected hit rate", "red", "--", "Hz")
         plotting.hline(acceptance_hit_rate * n_ch * n_apa, "acceptence hit rate", "k", "--", "Hz")
         plotting.plt.legend()
         book.save()
 
-        plotting.plot(plotting.relative_time(tp_writer_info), tp_size * tp_writer_info[["TP Received", "TP written"]], ["received", "written"], "Time (s)", "Rate", autofmt = "b/s")
+        plotting.plot(times.relative_time(tp_writer_info), tp_size * tp_writer_info[["TP Received", "TP written"]], ["received", "written"], "Time (s)", "Rate", autofmt = "b/s")
         plotting.plt.title("TPWriter receieve/write rates")
         plotting.hline(expected_hit_rate * n_ch * n_apa * tp_size, "expected hit rate", "red", "--", "b/s")
         plotting.hline(acceptance_hit_rate * n_ch * n_apa * tp_size, "acceptence hit rate", "k", "--", "b/s")
@@ -389,7 +384,7 @@ def process_tp_info(data : dict[pd.DataFrame], out : str, expected_hit_rate : fl
         plotting.plt.ylim(0)
         book.save()
 
-        plotting.plot(plotting.relative_time(tph_request_rates), tph_request_rates.values, tph_request_rates.columns, "Time (s)", "Request Rates", autofmt = "Hz")
+        plotting.plot(times.relative_time(tph_request_rates), tph_request_rates.values, tph_request_rates.columns, "Time (s)", "Request Rates", autofmt = "Hz")
         book.save()
 
         request_rate_percent = tph_request_rates.sum(axis=0)
@@ -441,12 +436,12 @@ def process_frontend_info(data : dict[pd.DataFrame], out : str):
     total_errors_dlh = utils.search_dict(data, "Total errors")
 
     with plotting.PlotBook(out + "fe_plots") as book:
-        plotting.plot(plotting.relative_time(rx_throughput_apps), rx_throughput_apps, rx_throughput_apps.columns, "Time (s)", "RX throughput", autofmt = "B/s")
+        plotting.plot(times.relative_time(rx_throughput_apps), rx_throughput_apps, rx_throughput_apps.columns, "Time (s)", "RX throughput", autofmt = "B/s")
         plotting.hline(max_rate_per_stream * n_queues_per_app, "Acceptance data input", autofmt = "B/s", linestyle = "--")
         plotting.plt.legend()
         book.save()
 
-        plotting.plot(plotting.relative_time(rx_throughput), rx_throughput, None, "Time (s)", "RX throughput", autofmt = "B/s")
+        plotting.plot(times.relative_time(rx_throughput), rx_throughput, None, "Time (s)", "RX throughput", autofmt = "B/s")
         plotting.hline(max_rate_per_stream, "Acceptance data input", autofmt = "B/s", linestyle = "--")
         plotting.plt.legend()
         book.save()
@@ -469,6 +464,7 @@ def process_frontend_info(data : dict[pd.DataFrame], out : str):
         book.save()
     return
 
+
 def process_readout_info(data : dict[pd.DataFrame], out : str):
     """ Process frontend readout information and make plots.
 
@@ -484,7 +480,7 @@ def process_readout_info(data : dict[pd.DataFrame], out : str):
     mean_request_rate_dlh.rename(columns = {k : k.split(" ")[-1] for k in request_rates_dlh}, inplace = True)
 
     with plotting.PlotBook(out + "re_plots") as book:
-        plotting.plot(plotting.relative_time(request_rates_total), request_rates_total, request_rates_total.columns, "Time (s)", "request rate (Hz)")
+        plotting.plot(times.relative_time(request_rates_total), request_rates_total, request_rates_total.columns, "Time (s)", "request rate (Hz)")
         book.save()
 
         plotting.bar(request_rates_total.columns, request_rates_total.sum(axis=0), "", "Total requests", rotation = 30)
@@ -510,14 +506,14 @@ def process_daq_overview_info(data : dict[pd.DataFrame], out : str):
 
     with plotting.PlotBook(out + "ov_plots") as book:
         total_count = global_trigger_rate.pop("Total count")
-        plotting.plot(plotting.relative_time(global_trigger_rate), global_trigger_rate, global_trigger_rate.columns, "Time (s)", "Global Trigger Rate", autofmt = "Hz")
+        plotting.plot(times.relative_time(global_trigger_rate), global_trigger_rate, global_trigger_rate.columns, "Time (s)", "Global Trigger Rate", autofmt = "Hz")
         plotting.plt.legend(ncols = 2, loc = "upper left")
         plotting.plt.gca().grid(False)
         lim = plotting.plt.gca().get_ylim()
         plotting.plt.ylim(min(lim), 1.2 * max(lim))
 
         ax_total = plotting.plt.gca().twinx()
-        ax_total.plot(plotting.relative_time(global_trigger_rate), total_count, linestyle = "--", color = f"C{len(global_trigger_rate.columns)}", label = "Total triggers", zorder = -1)
+        ax_total.plot(times.relative_time(global_trigger_rate), total_count, linestyle = "--", color = f"C{len(global_trigger_rate.columns)}", label = "Total triggers", zorder = -1)
         ax_total.set_ylabel("Total count")
         ax_total.grid(False)
         plotting.plt.legend(loc = "upper right")
@@ -526,13 +522,13 @@ def process_daq_overview_info(data : dict[pd.DataFrame], out : str):
         plotting.plt.ylim(min(lim), 1.2 * max(lim))
         book.save()
 
-        plotting.plot(plotting.relative_time(global_trigger_rate), global_trigger_rate, global_trigger_rate.columns, "Time (s)", "Global Trigger Rate", autofmt = "Hz")
+        plotting.plot(times.relative_time(global_trigger_rate), global_trigger_rate, global_trigger_rate.columns, "Time (s)", "Global Trigger Rate", autofmt = "Hz")
         lim = plotting.plt.gca().get_ylim()
         plotting.plt.ylim(min(lim), 1.2 * max(lim))
         book.save()
 
 
-        plotting.plot(plotting.relative_time(dataflow_written_rate), dataflow_written_rate, dataflow_written_rate.columns, "Time (s)", "Data written by Dataflow", autofmt = "B/s")
+        plotting.plot(times.relative_time(dataflow_written_rate), dataflow_written_rate, dataflow_written_rate.columns, "Time (s)", "Data written by Dataflow", autofmt = "B/s")
         plotting.plt.legend(ncols = 2)
         lim = plotting.plt.gca().get_ylim()
         plotting.plt.ylim(min(lim), 1.2 * max(lim))
@@ -553,14 +549,12 @@ def analyse_data(test_args : dict):
         pinning_file = parse_pinning_file(pinning_file, test_args["host"])
 
     data_files = shell.search_data_file("hdf5", test_args["data_path"])
+    tr = time_range(*test_args["time_range"])
 
-    ne_data = files.read_hdf5(search_file(data_files, "node-exporter"))
-    tp_data = files.read_hdf5(search_file(data_files, "trigger_primitives"))
-    fe_data = files.read_hdf5(search_file(data_files, "frontend_ethernet"))
-    re_data = files.read_hdf5(search_file(data_files, "readout"))
-    ov_data = files.read_hdf5(search_file(data_files, "overview"))
+    data = {}
+    for d in ["node-exporter", "trigger_primitives", "frontend_ethernet", "readout", "overview"]:
+        data[d] = times.slice_time_range(files.read_hdf5(search_file(data_files, d)), tr)
 
-    utils.make_plot_dir(test_args)
     if test_args["plot_path"]:
         out = test_args["plot_path"] + "analysis/"
     else:
@@ -569,16 +563,14 @@ def analyse_data(test_args : dict):
 
     # ru = search_file(data_files, "A_CvwTCWk")
     # data = files.read_hdf5(ru)
-    process_disk_info(ne_data, out)
-    process_cpu_info(ne_data, out, pinning_file = pinning_file)
-    process_memory_info(ne_data, out)
-    process_network_info(ne_data, out)
+    process_cpu_info(data["node-exporter"], out, pinning_file = pinning_file)
+    for func in [process_disk_info, process_memory_info, process_network_info]:
+        func(data["node-exporter"], out)
 
-    process_tp_info(tp_data, out)
-    process_frontend_info(fe_data, out)
-    process_readout_info(re_data, out)
-    process_daq_overview_info(ov_data, out)
+    for d, func in zip(["trigger_primitives", "frontend_ethernet", "readout", "overview"], [process_tp_info, process_frontend_info, process_readout_info, process_daq_overview_info]):
+        func(data[d], out)
     return
+
 
 def main(args : argparse.Namespace):
     test_args = files.load_json(args.file)
