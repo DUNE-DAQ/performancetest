@@ -77,6 +77,74 @@ table, th, td {
 
     </tr>
     <tr>
+        <td><b>Acceptance Criteria:</b></td>
+        <td>
+        <p>
+            Various criteria can be met for a performance test based upon the requirements for the FD-HD and FD-VD detectors. Each metric has an acceptance criteria, and where applicable, a benchmark value that exceeds the requirements of the FD concept but are achievable with the given hardware and software.
+        </p>
+        <table>
+        <thead>
+        <tr>
+        <th>Name</th>
+        <th>Description</th>
+        <th>APA requirement</th>
+        <th>CRP requirement</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+        <td>Data Input (48 streams on 12x10G links)</td>
+        <td>The amount of data that should be received by the readout host machine from the front end electronics per second. Calculated as:
+            <p> <i>size of single ADC data value</i> x <i>ADC TPC sampling rate </i> x <i>channels per anode plane </i>.</p>
+        </td>
+        <td>8.75 GB/s</td>
+        <td>10.5 GB/s</td>
+        </tr>
+        <tr>
+        <td>Hit rate</td>
+        <td>Number of TPs that should be produced per second per channel</td>
+        <td><b>Acceptance:</b> 100 Hz/ch, <b>Benchmark:</b> 500 Hz/ch</td>
+        <td><b>Acceptance:</b> 100 Hz/ch, <b>Benchmark:</b> 500 Hz/ch</td>
+        </tr>
+        <tr>
+        <td>Hit rate (transmission)</td>
+        <td>amount of data transmitted from the TPG per second. Calculated as:
+            <p> <i>hit rate per channel</i> x <i>size of TP packet </i> x <i>channels per anode plane</i></p>
+        </td>
+        <td><b>Acceptance:</b> 12.288 MB/s,  <b>Benchmark:</b> 61.44 MB/s</td>
+        <td><b>Acceptance:</b> 14.7456 MB/s, <b>Benchmark:</b> 73.728 MB/s</td>
+        </tr>
+        <tr>
+        <td>Request handling</td>
+        <td>Number of requests handled by readout when writing data to files per second</td>
+        <td><b>Acceptance:</b> for 5 ms readout window, 15 Hz,  <b>Benchmark:</b> for 32 us readout window, 5 kHz</td>
+        <td><b>Acceptance:</b> for 5 ms readout window, 15 Hz , <b>Benchmark:</b> for 32 us readout window, 5 kHz</td>
+        </tr>
+        <tr>
+        <td>SNB Recording time</td>
+        <td>Time a SNB is written</td>
+        <td>100 s</td>
+        <td>100 s</td>
+        </tr>
+        <tr>
+        <td>RAID array write rate</td>
+        <td>Amount of data written to disk per second for a single RAID array, amount is determined by the NVMe’s used</td>
+        <td>~96 Gb/s</td>
+        <td>~96 Gb/s</td>
+        </tr>
+        <tr>
+        <td>RAID array total written to disk</td>
+        <td>Total amount of Data written to disk after SNB. Calculated as
+            <p> <i>Data rate </i> x <i> SNB recording time </i>.</p>
+            Data rate is at minimum the Data input or at most the RAID array write rate.</td>
+        <td><b>Acceptance:</b> 875 GB,  <b>Benchmark:</b> 1.2 TB</td>
+        <td><b>Acceptance:</b> 1.05 TB, <b>Benchmark:</b> 1.2 TB</td>
+        </tr>
+        </tbody>
+        </table>
+        </td>
+    </tr>
+    <tr>
         <td><b>Failure Criteria:</b></td>
         <td>
             <p>A test run will be considered “failed” if any of the following conditions are met:</p>
