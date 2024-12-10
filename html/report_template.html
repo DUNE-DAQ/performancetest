@@ -103,22 +103,22 @@ table, th, td {
         <tr>
         <td>Hit rate</td>
         <td>Number of TPs that should be produced per second per channel</td>
-        <td><b>Acceptance:</b> 100 Hz/ch, <b>Benchmark:</b> 500 Hz/ch</td>
-        <td><b>Acceptance:</b> 100 Hz/ch, <b>Benchmark:</b> 500 Hz/ch</td>
+        <td><b>Acceptance:</b> 100 Hz/ch, <p><b>Benchmark:</b> 500 Hz/ch</p></td>
+        <td><b>Acceptance:</b> 100 Hz/ch, <p><b>Benchmark:</b> 500 Hz/ch</p></td>
         </tr>
         <tr>
         <td>Hit rate (transmission)</td>
         <td>amount of data transmitted from the TPG per second. Calculated as:
             <p> <i>hit rate per channel</i> x <i>size of TP packet </i> x <i>channels per anode plane</i></p>
         </td>
-        <td><b>Acceptance:</b> 12.288 MB/s,  <b>Benchmark:</b> 61.44 MB/s</td>
-        <td><b>Acceptance:</b> 14.7456 MB/s, <b>Benchmark:</b> 73.728 MB/s</td>
+        <td><b>Acceptance:</b> 12.288 MB/s,  <p><b>Benchmark:</b> 61.44 MB/s </p></td>
+        <td><b>Acceptance:</b> 14.7456 MB/s, <p><b>Benchmark:</b> 73.728 MB/s</p></td>
         </tr>
         <tr>
         <td>Request handling</td>
         <td>Number of requests handled by readout when writing data to files per second</td>
-        <td><b>Acceptance:</b> for 5 ms readout window, 15 Hz,  <b>Benchmark:</b> for 32 us readout window, 5 kHz</td>
-        <td><b>Acceptance:</b> for 5 ms readout window, 15 Hz , <b>Benchmark:</b> for 32 us readout window, 5 kHz</td>
+        <td><b>Acceptance:</b> for 5 ms readout window, 15 Hz,  <p><b>Benchmark:</b> for 32 us readout window, 5 kHz<p></td>
+        <td><b>Acceptance:</b> for 5 ms readout window, 15 Hz , <p><b>Benchmark:</b> for 32 us readout window, 5 kHz<p></td>
         </tr>
         <tr>
         <td>SNB Recording time</td>
@@ -137,8 +137,8 @@ table, th, td {
         <td>Total amount of Data written to disk after SNB. Calculated as
             <p> <i>Data rate </i> x <i> SNB recording time </i>.</p>
             Data rate is at minimum the Data input or at most the RAID array write rate.</td>
-        <td><b>Acceptance:</b> 875 GB,  <b>Benchmark:</b> 1.2 TB</td>
-        <td><b>Acceptance:</b> 1.05 TB, <b>Benchmark:</b> 1.2 TB</td>
+        <td><b>Acceptance:</b> 875 GB,  <p><b>Benchmark:</b> 1.2 TB</p></td>
+        <td><b>Acceptance:</b> 1.05 TB, <p><b>Benchmark:</b> 1.2 TB</p></td>
         </tr>
         </tbody>
         </table>
@@ -166,8 +166,8 @@ table, th, td {
                 <ul>
                     <li><b>At the end of the 100s recording test, if the recorded data size on the fast storage doesn't match the expected value</b></li>
                     <ul>
-                        <li>For a single APA for 100 seconds: ~876.25 GB</li>
-                        <li>For a single CRP for 100 seconds: ~1024 GB</li>
+                        <li>For a single APA for 100 seconds.</li>
+                        <li>For a single CRP for 100 seconds.</li>
                     </ul>
                     <li><b>Recorded file sizes are zero</b></li>
                     <li><b>Recorded file sizes are not matching in size</b></li>
@@ -267,6 +267,37 @@ table, th, td {
     <tr>
         <td><b>Reporting:</b></td>
         <td>
+            <p> The raw data collected is shown in plots as shown in the grafana monitoring page: </p>
+            <ul>
+                <li>trigger_primitive.pdf : Information regarding the TPG. This information is processed to create the key parameters of interest:</li>
+                <ul>
+                    <li> Hit rate (transmition)</li>
+                </ul>
+                <li>resource_utlization.pdf: Information from the node exporter dashboard and intel PCM dashboard. The data is performance metrics of the readout host machine, the key parameters of interest created from this information are:</li>
+                <ul>
+                    <li> CPU utilization (total, per core and per thread if the CPU pinning file is documented).</li>
+                    <li> Total memory bandwidth, and memory bandwidth per NUMA (for Intel machines only).</li>
+                    <li> Network transmission, receiving rates.</li>
+                    <li> SNB Recording time.</li>
+                    <li> RAID array write rate.</li>
+                    <li> RAID array total written to disk.</li>
+                </ul>
+                <li>frontend_ethernet.pdf: Informatio from the frontend readout, regarding data received from the NICs and data transmitted. The key parameters of interest calculated with this data are</li>
+                <ul>
+                    <li>Data Input from the 12x10G links.</li>
+                </ul>
+            </ul>
+            <p> The key parameters of interest calculated from the raw data are shown in the following documents:</p>
+            <ul>
+                <li> cpu_plots.pdf     : Shows the CPU utilization overall, per core, and per thread. This allows one to assess the overall CPU utilization for the duration of the test, as well as which processes used the most CPU time. This information is used to check the failure criteria that the total CPU usage on average should be below or at 80%. This is indicated by the 50% percentile CPU usage and the 90% and 99% percentiles shown alongside this to highlight fluctuations in the CPU usage for the duration of the test.</li>
+                <li> memory_plots.pdf  : Shows the total system memory usage, which should be below 80% for the duration of the test.</li>
+                <li> disk plots.pdf    : Shows the key parameters of interest for the SNB tests. Specifically, this is the disk IO time, disk write rate, and total data written to disk for each RAID array and specific NVMe. The disk IO time should be equal to the acceptance value (100s), while the disk rate should at minimum be the data input rate for the specific anode plane or the RAID array write rate. The total data written to disk for a single RAID should exceed the acceptance criteria and be at or below the benchmark value for the specific wire plane. For each key parameter mentioned, the rate over time as well as the total value across the whole test is shown in the plots.</li>
+                <li> tp_plots.pdf      : Shows the rate of TPs generated by the TPG, as well as the rate of TPs received and written by the TP writer, both per APA/CRP and detector. This is compared to the hit rate defined in the acceptance criteria, where the expectation is that the TP rate should be above the baseline TP rate and, if possible, exceed the benchmark hit rate. In addition, the number of requests handled and the number of TPs dropped during transmission are shown to ensure there are no errors with transmitting the TPs. The total number of TPs dropped should be zero. In addition, the number of "bad", "old window" and "timing out" requests should be kept to a minimum (<1%). </li>
+                <li> fe_plots.pdf      : Shows the data input as the data received by the readout machine across the whole detector and per anode plane. These are compared to the data input rate as calculated in the acceptance criteria. In addition, the number of packets with various error types is also shown to check that no errors occurred while the ADC data was received. These should all be kept to a minimum (<1%).</li>
+                <li> re_plots.pdf      : Shows the request handling rate and the total requests for the ADC readout, such that the "bad", "old window" and "timing out" requests can be assessed. These should be kept to a minimum (<1%).</li>
+                <li> ov_plots.pdf      : Shows the global trigger rate and the amount of rate data written by Dataflow during the test.</li>
+                <li> network_plots.pdf : Shows the data rate received and transmitted by the readout server for each device, as well as the total amount received and transmitted during the test. The data received indicates how much data is being received from external sources, while the data transmitted shows how much and how fast data is being transmitted from the readout machine to Dataflow. </li>
+            </ul>
             <!-- <p>An overall main KPI report should be done that summarizes the test details described above in terms of each component involved during the tests.</p>
 
             <p>Reports should also include:</p>
