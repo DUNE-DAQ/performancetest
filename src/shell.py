@@ -9,6 +9,7 @@ Description: Functions to help perform shell script actions, directory managemen
 import contextlib
 import pathlib
 import os
+import re
 import subprocess
 
 @contextlib.contextmanager
@@ -52,7 +53,8 @@ def search_data_file(s : str, path : str | pathlib.Path) -> list[pathlib.Path]:
     """
     matches = []
     for p in pathlib.Path(path).glob("**/*"):
-        if s in p.name: matches.append(p)
+        if re.search(s, p.name): matches.append(p)
+        # if s in p.name: matches.append(p)
     return matches
 
 
