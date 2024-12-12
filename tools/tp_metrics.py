@@ -1,4 +1,11 @@
 #!/usr/bin/env python
+"""
+Created on: 12/12/2024 12:03
+
+Authors: Shyam Bhuller (University of Oxford)
+
+Description: 
+"""
 import argparse
 
 import files, plotting, shell, utils, times
@@ -6,7 +13,15 @@ import files, plotting, shell, utils, times
 from rich import print
 
 
-def get_units(name : str):
+def get_units(name : str) -> str:
+    """ From the metric name, try to infer the units of measurement.
+
+    Args:
+        x (str): metric name.
+
+    Returns:
+        str: units of measurement.
+    """
     if "rate" in name.lower():
         return "(Hz)"
     else:
@@ -14,6 +29,8 @@ def get_units(name : str):
 
 
 class tp_plotter(plotting.PlotEngine):
+    """ Class for handling resource utilization plotting.
+    """
     def plot_metric(self, metric: str):
         tlabel = "Relative time (s)"
         df = self.data[metric]
@@ -27,6 +44,12 @@ class tp_plotter(plotting.PlotEngine):
 
 
 def tp_metrics(args : dict, display : bool = False):
+    """ Main function that plots metrics from the trigger primitive dashboard.
+
+    Args:
+        args (dict): performance test configuration.
+        display (bool, optional): display the plot in an external window in grid form. Used for the notebook service. Defaults to False.
+    """
     plotting.set_plot_style()
 
     for file in shell.search_data_file("trigger_primitive", args["data_path"]):

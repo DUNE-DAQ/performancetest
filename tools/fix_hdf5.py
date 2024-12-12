@@ -2,7 +2,7 @@
 """
 Created on: 25/11/2024 16:33
 
-Author: Shyam Bhuller
+Author: Shyam Bhuller (University of Oxford)
 
 Description: Check potential issues with the hdf5 files and fix them.
 """

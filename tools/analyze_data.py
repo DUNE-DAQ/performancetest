@@ -1,4 +1,11 @@
 #!/usr/bin/env python
+"""
+Created on: 12/12/2024 11:04
+
+Author: Shyam Bhuller (University of Oxford)
+
+Description: Calculate key value metrics for the performance tests and create plots showing them.
+"""
 import argparse
 import ast
 import os
@@ -491,7 +498,6 @@ def process_readout_info(data : dict[pd.DataFrame], out : str):
 
         plotting.bar(request_rates_total.columns, request_rates_total.mean(axis=0) // len(mean_request_rate_dlh.columns), "", "Average request rate (Hz)", rotation = 30)
         book.save()
-
     return
 
 def process_daq_overview_info(data : dict[pd.DataFrame], out : str):

@@ -1,7 +1,7 @@
 """
 Created on: 12/10/2024 22:57
 
-Author: Shyam Bhuller
+Authors: Shyam Bhuller (University of Oxford), Matthew Man (University of Toronto), Danaisis Vargas Oliva (University of Toronto)
 
 Description: general utility functions.
 """
@@ -15,6 +15,8 @@ import pathlib
 class ApplicationArguments(argparse.ArgumentParser):
     """ Class for managing application arguments for the performance report tools.
         Inherits from application.ArgumentParser and modifies class to reduce boilerplate when defining application args.
+        Authors: Shyam Bhuller (University of Oxford)
+
     """
     def __init__(self, description : str) -> None:
         super().__init__(description =description)
@@ -41,7 +43,16 @@ class ApplicationArguments(argparse.ArgumentParser):
         return args
 
 
-def make_plot_dir(args : dict):
+def make_plot_dir(args : dict) -> str:
+    """ Make directory to keep performance report plots in.
+        Authors: Shyam Bhuller (University of Oxford), Matthew Man (University of Toronto), Danaisis Vargas Oliva (University of Toronto)
+
+    Args:
+        args (dict): performance test config.
+
+    Returns:
+        str: name of created plot path.
+    """
     make_outdir = False
     if "plot_path" in args:
         if args["plot_path"] is None:
@@ -60,6 +71,15 @@ def make_plot_dir(args : dict):
 
 
 def test_path(test_args : dict) -> pathlib.Path:
+    """ Create outpput test directory path.
+        Authors: Shyam Bhuller (University of Oxford), Matthew Man (University of Toronto), Danaisis Vargas Oliva (University of Toronto)
+
+    Args:
+        test_args (dict): performance test configuration.
+
+    Returns:
+        pathlib.Path: created directory.
+    """
     path = f"perftest-run{test_args['run_number']}-{test_args['dunedaq_version'].replace('.', '_')}-{test_args['host'].replace('-', '')}-{test_args['test_name']}"
 
     path = pathlib.Path(test_args["out_path"] + "/" + path + "/")
@@ -68,14 +88,9 @@ def test_path(test_args : dict) -> pathlib.Path:
     return path
 
 
-def transfer(url : str, files : dict[pathlib.Path]):    
-    for k, v in files.items():
-        response = requests.put(url + k, files = {k : pathlib.Path(v).open("rb")})
-    return response
-
-
 def make_public_link(fp : pathlib.Path | str) -> str:
     """ Create cernbox link for file using the public url and file path (only works if the file path has been uploaded).
+        Authors: Shyam Bhuller (University of Oxford)
 
     Args:
         fp (pathlib.Path | str): file path in cernbox
@@ -90,6 +105,7 @@ def make_public_link(fp : pathlib.Path | str) -> str:
 
 def is_collection(x : any) -> bool:
     """ Check if object is iterable but not a string.
+        Authors: Shyam Bhuller (University of Oxford)
 
     Args:
         x (any): Object.
@@ -101,7 +117,8 @@ def is_collection(x : any) -> bool:
 
 
 def create_filename(test_args : dict) -> str:
-    """Create filename based on the test report information.
+    """ Create filename based on the test report information.
+        Authors: Shyam Bhuller (University of Oxford), Matthew Man (University of Toronto), Danaisis Vargas Oliva (University of Toronto)
 
     Args:
         test_args (dict): test report information.
@@ -121,6 +138,7 @@ def create_filename(test_args : dict) -> str:
 
 def dunedaq_major_version(version : str) -> int:
     """ Get the major version of the dunedaq verison.
+        Authors: Shyam Bhuller (University of Oxford)
 
     Args:
         version (str): version string (format is vX.Y.Z).
@@ -133,6 +151,7 @@ def dunedaq_major_version(version : str) -> int:
 
 def search_dict(d : dict[str], regex : str) -> dict[str]:
     """ Search for string keys in a dictionary using regex.
+        Authors: Shyam Bhuller (University of Oxford)
 
     Args:
         d (dict[str]): Dictionary, keys must be string type
@@ -150,6 +169,7 @@ def search_dict(d : dict[str], regex : str) -> dict[str]:
 
 def add_to_dict(dictionary : dict, item : list, key : any):
     """ Add an item to another item in a dictionary. The item must be an object that suports the addition operator.
+        Authors: Shyam Bhuller (University of Oxford)
 
     Args:
         dictionary (dict): Dictionary, original is modified.

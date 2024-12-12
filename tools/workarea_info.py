@@ -2,7 +2,7 @@
 """
 Created on: 06/11/2024 11:57
 
-Author: Shyam Bhuller
+Author: Shyam Bhuller (University of Oxford)
 
 Description: Information about the workarea used to perform the test.
 """

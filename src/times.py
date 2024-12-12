@@ -1,7 +1,7 @@
 """
 Created on: 29/11/2024 13:53
 
-Author: Shyam Bhuller
+Authors: Shyam Bhuller (University of Oxford), Matthew Man (University of Toronto), Danaisis Vargas Oliva (University of Toronto)
 
 Description: Module to handle functions to do with maniputating times.
 """
@@ -15,6 +15,7 @@ time_range = namedtuple("time_range", ["start", "end"])
 
 def get_unix_timestamp(time : str) -> int:
     """ Convert date time into unix timestamp.
+        Matthew Man (University of Toronto), Danaisis Vargas Oliva (University of Toronto)
 
     Args:
         time (str): Time in yyyy/mm/dd hh/mm/ss.
@@ -37,6 +38,7 @@ def get_unix_timestamp(time : str) -> int:
 
 def dt_to_unix_array(times : np.array) -> pd.Series:
     """ Convert an array of times from numpy into unix time in units of seconds.
+        Authors: Shyam Bhuller (University of Oxford), Matthew Man (University of Toronto), Danaisis Vargas Oliva (University of Toronto)
 
     Args:
         times (np.array): Times, should be timezone compliant.
@@ -50,6 +52,7 @@ def dt_to_unix_array(times : np.array) -> pd.Series:
 
 def relative_time(df : pd.DataFrame) -> pd.Series:
     """ Convert absolute time from the performance metric into relative time.
+        Authors: Shyam Bhuller (University of Oxford)
 
     Args:
         df (pd.DataFrame): Performance metric.
@@ -62,6 +65,18 @@ def relative_time(df : pd.DataFrame) -> pd.Series:
 
 
 def parse_time_range(times : time_range) -> time_range:
+    """ Take a time range from a configuration and correctly format it.
+        Authors: Shyam Bhuller (University of Oxford), Matthew Man (University of Toronto), Danaisis Vargas Oliva (University of Toronto)
+
+    Args:
+        times (time_range): times from a configuration.
+
+    Raises:
+        Exception: type of start and end time (relative or absolute) are not the same.
+
+    Returns:
+        time_range: formatted time range.
+    """
     if type(times.start) != type(times.end):
         raise Exception("Time start and time end must be the same type")
     fmt_times = time_range(*[get_unix_timestamp(i) if (type(i) == str) else i for i in times])
@@ -69,13 +84,23 @@ def parse_time_range(times : time_range) -> time_range:
 
 
 def slice_time_range(data : dict[pd.DataFrame], times : time_range) -> dict[pd.DataFrame]:
-    """
-    allowed input
-    [0, x] # first x seconds
-    [0, -1] # whole time range
-    [x, -1] # from x to end time
-    [x, y] # from x to y in seconds
-    """
+    """ Slice perfomance metric Dataframes using a time range.
+        Authors: Shyam Bhuller (University of Oxford), Matthew Man (University of Toronto), Danaisis Vargas Oliva (University of Toronto)
+
+    Args:
+        data (dict[pd.DataFrame]): performance metric data.
+        times (time_range): time range to slice in. Allowed input:
+        [0, x] # first x seconds
+        [0, -1] # whole time range
+        [x, -1] # from x to end time
+        [x, y] # from x to y in seconds
+
+    Raises:
+        Exception: requested time range is out of bounds of the data.
+
+    Returns:
+        dict[pd.DataFrame]: performance metric Dataframes in the specified time range.
+    """    
     fmt_times = parse_time_range(times)
     for k, df in data.items():
         if len(df.index) < 2: continue

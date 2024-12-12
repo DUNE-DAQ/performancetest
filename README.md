@@ -7,7 +7,14 @@ path to performance test work area: `/nfs/sw/dunedaq_performance_test/`. Use a l
 In `performancetest` users can find all the resources to conduct benchmark and performance tests. Moreover, to process and present the results. In the `docs` folder users will find detailed test explanations, comprehensive instructions on how to execute these tests, and a comprehensive guide on how to effectively process the gathered data. In the `tools` folder the user can find the python3 notebooks and Python file with the basic functions needed for creating the reports.   
 
 ## Installation
-For the performance reports to work with dunedaq v5, you must add conffwk and confmodel in the sourcecode. From the main dunedaq directory:
+For the performance reports to work with dunedaq v5, you must add conffwk and confmodel in the sourcecode.
+
+Once the dunedaq directory is created, or each time you login, from the main dunedaq directory run
+```[bash]
+source env.sh
+```
+
+then
 
 ```[bash]
 cd sourcecode

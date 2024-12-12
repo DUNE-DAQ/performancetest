@@ -1,3 +1,11 @@
+"""
+Created on: 12/12/2024 10:06
+
+Authors: Shyam Bhuller (University of Oxford), Matthew Man (University of Toronto), Danaisis Vargas Oliva (University of Toronto)
+Unlesss specified in the docstring, credit goes to Matthew Man and Danaisis Vargas Oliva.
+
+Description: Legacy code for collecting data for performance tests, deprecated.
+"""
 import os
 import pathlib
 import re
@@ -92,7 +100,8 @@ def create_var_list(file_list, var_list):
 
 
 def reformat_cpu_util(file : str | pathlib.Path) -> pd.DataFrame:
-    """Converts the output from the core utilisation into a pandas friendly format (and drops the average report).
+    """ Converts the output from the core utilisation into a pandas friendly format.
+        Shyam Bhuller (University of Oxford), Matthew Man (University of Toronto), Danaisis Vargas Oliva (University of Toronto)
 
     Args:
         file (str | pathlib.Path): core utilisation output file.

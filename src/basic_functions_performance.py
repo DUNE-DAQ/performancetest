@@ -1,3 +1,11 @@
+"""
+Created on: 12/12/2024 10:06
+
+Authors: Shyam Bhuller (University of Oxford), Matthew Man (University of Toronto), Danaisis Vargas Oliva (University of Toronto)
+Unlesss specified in the docstring, credit goes to Matthew Man and Danaisis Vargas Oliva.
+
+Description: Legacy code for collecting data for performance test reports, deprecated.
+"""
 import os
 import re
 
@@ -24,6 +32,7 @@ marker_list = ['s','o','.','p','P','^','<','>','*','+','x','X','d','D','h','H']
 
 def pcm_columns_list(socket : int) -> dict:
     """ Map of metric name (y axes label) to the column name in the grafana dataframe for the pcm metrics.
+        Authors: Shyam Bhuller (University of Oxford), Matthew Man (University of Toronto), Danaisis Vargas Oliva (University of Toronto)
 
     Args:
         socket (int): Socket number (0 or 1)
@@ -45,6 +54,7 @@ def pcm_columns_list(socket : int) -> dict:
 
 def uprof_columns_list(socket : int) -> dict:
     """ Map of metric name (y axes label) to the column name in the grafana dataframe for the uprof metrics.
+        Authors: Shyam Bhuller (University of Oxford), Matthew Man (University of Toronto), Danaisis Vargas Oliva (University of Toronto)
 
     Args:
         socket (int): Socket number (0 or 1)
@@ -121,7 +131,8 @@ def plot(ax : plt.Axes, x : list, y : list, x_label : str, y_label : str, colour
 
 
 def find_attribute(dal_obj : any, targets : list) -> dict:
-    """Iterates through all attributes in a dal object, returning those which were targeted.
+    """ Iterates through all attributes in a dal object, returning those which were targeted.
+        Authors: Shyam Bhuller (University of Oxford)
 
     Args:
         dal_obj (any): dal representation of an ocject in the configuration.
@@ -139,7 +150,8 @@ def find_attribute(dal_obj : any, targets : list) -> dict:
 
 
 def find_relation(dal_obj : any, targets : list, found : dict = {}) -> dict:
-    """Search a dal object, retrieving information about any relations or attributes which were targeted. Search is recursive.
+    """ Search a dal object, retrieving information about any relations or attributes which were targeted. Search is recursive.
+        Authors: Shyam Bhuller (University of Oxford)
 
     Args:
         dal_obj (any): dal representation of an ocject in the configuration.
@@ -166,7 +178,8 @@ def find_relation(dal_obj : any, targets : list, found : dict = {}) -> dict:
 
 
 def prune_attrs(found_targets : dict):
-    """Remove any empty dictionaries in the found targets produced from find_relations.
+    """ Remove any empty dictionaries in the found targets produced from find_relations.
+        Authors: Shyam Bhuller (University of Oxford)
 
     Args:
         attrs (dict): found targets.
@@ -359,6 +372,16 @@ def create_report_performance(all_files, times : list[list], readout_name, daqco
 
 
 def oks_cpu_pin(xml_file : str, readout_name : str) -> dict:
+    """ Get CPU pinning file from OKS config.
+        Authors: Shyam Bhuller (University of Oxford)
+
+    Args:
+        xml_file (str): oks data xml file.
+        readout_name (str): readout server name.
+
+    Returns:
+        dict: CPU pinning dictionary.
+    """
     conf = conffwk.Configuration(f"oksconflibs:{xml_file}") # load OKS data file
 
     variables = conf.get_dals("Variable")
@@ -382,7 +405,9 @@ def write_core_utilisation_table(file_core : str, pinning : dict, emu_mode : boo
 
 
 def oks_info(xml_file : str, pdf : FPDF):
-    """Get important information from the OKS configuration and write it to the pdf.
+    """ Get important information from the OKS configuration and write it to the pdf.
+        Authors: Shyam Bhuller (University of Oxford)
+
 
     Args:
         xml_file (str): OKS data file for configuration.
@@ -422,7 +447,8 @@ def oks_info(xml_file : str, pdf : FPDF):
 
 
 def write_oks_info(info : dict, pdf : FPDF, indent : str = ""):
-    """Write contents of the found oks info into the pdf.
+    """ Write contents of the found oks info into the pdf.
+        Authors: Shyam Bhuller (University of Oxford)
 
     Args:
         info (dict): Information from the configuration.
@@ -442,6 +468,8 @@ def write_oks_info(info : dict, pdf : FPDF, indent : str = ""):
 
 def daqconf_info(file_daqconf : str, file_core : str, readout_apps : str, pdf : FPDF, repin_threads_file : bool = False):
     """ Write information from an old configuration file. Retained to analyse old test results.
+        Authors: Shyam Bhuller (University of Oxford), Matthew Man (University of Toronto), Danaisis Vargas Oliva (University of Toronto)
+
 
     Args:
         file_daqconf (str): daqconf json file
@@ -486,7 +514,17 @@ def daqconf_info(file_daqconf : str, file_core : str, readout_apps : str, pdf : 
     return
 
 
-def cpupining_info(file : str, ru : str):
+def cpupining_info(file : str, ru : str) -> dict:
+    """ Extract CPU pinning file from json file.
+        Authors: Shyam Bhuller (University of Oxford), Matthew Man (University of Toronto), Danaisis Vargas Oliva (University of Toronto)
+
+    Args:
+        file (str): json file
+        ru (str): readout server name
+
+    Returns:
+        dict: cpu pinning dictionary.
+    """
     return  load_json(file)['daq_application'][f'--name {ru}']
  
 

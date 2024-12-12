@@ -1,4 +1,11 @@
 #!/usr/bin/env python
+"""
+Created on: 12/12/2024 11:09
+
+Author: Shyam Bhuller (University of Oxford)
+
+Description: Create a template performance test configuration. Required to run all performance test tools.
+"""
 import argparse
 import pathlib
 

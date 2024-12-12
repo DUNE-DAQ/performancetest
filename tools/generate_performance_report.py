@@ -2,7 +2,7 @@
 """
 Created on: 13/10/2024 00:10
 
-Author: Shyam Bhuller
+Author: Shyam Bhuller (University of Oxford)
 
 Description: Deprecated, likely does not work with current data files.
 """
