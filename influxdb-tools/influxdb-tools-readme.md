@@ -1,3 +1,4 @@
+
 # InfluxDB Tools 
 
 We are using InfluxDB for archiving our performance testing of the np04 servers. The database is set up so that each run is a separate bucket which so far have been named *run-RUN_NUMBER* all of these are intended to be retained forever so that we can retrieve the data at any future time for analysis. This will be documentation on setting up an InfluxDB and using the tools which I have made to process the hdf5 files from the output of the performance test tools. 
@@ -18,5 +19,5 @@ Which will run the python script over all of the hdf5 files in the directory and
 
 ## Uploading to the InfluxDB
 
-Once the files are created you can use the the InfluxDB GUI to upload the csv files to the database. Make sure to create the bucket corresponding to the run. I will add pictures later showing 
-the process with the GUI. Additionally I will make a bash script similar to the script for processing the hdf5 files for uploading all of the csv files to the InfluxDB.
+Once the files are created you can use the the InfluxDB GUI to upload the csv files to the database. Make sure to create the bucket corresponding to the run. I will add pictures later showing the process with the GUI. Additionally there is a bash script for uploading all csv files in a directory to the influx db. This is `upload_all_csvs.sh` and will automatically create a bucket with the same name as the directory and upload the data in the csvs to the database in that bucket. Note that this will produce a lot of errors and warnings since we don't do anything to remove empty parts of the csvs or NaNs but this hasn't caused us problems. 
+
