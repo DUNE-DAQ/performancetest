@@ -71,7 +71,9 @@ def autoscale(data : float, units : str, style : str = "2g") -> tuple[FuncFormat
     Returns:
         tuple[FuncFormatter, str]: Formatter function for matplotlib and the modified unit of measure.
     """
-    scales = ["", "k","M","G","T"]
+
+    scales = {-3 : "n", -2 : "u", -1 : "m", 0 : "", 1 : "k", 2 : "M", 3 : "G", 4 : "T"}
+    # scales = ["", "k","M","G","T"]
     scale = int(np.floor(np.log10(data)))//3
     new_units = scales[scale] + units
     if units[0] in scales:
@@ -184,7 +186,7 @@ def bar(x, y, xlabel : str, ylabel : str, title : str = None, rotation : int = 0
             else:
                 bl.append(f"{i:,.3f}")
 
-    if bar_label: plt.bar_label(rect, label_type = "edge", labels = bl)
+    if bar_label: plt.bar_label(rect, label_type = "edge", labels = bl, fontsize="small")
     plt.xticks(rotation = rotation)
     plt.tight_layout()
 

@@ -38,7 +38,7 @@ def main(args : argparse.Namespace):
     test_args = files.load_json(args.file) # reload the config because collect metrics modifies the config
 
     if test_args["workarea"] is not None:
-        get_info(test_args["workarea"], test_args["data_path"])
+        get_info(test_args["workarea"], test_args["data_path"], test_args["config_repo"])
     else:
         print("configuration has no workarea and it was not supplied. Software and DAQ config information cannot be calculated.")
 
