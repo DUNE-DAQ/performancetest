@@ -14,18 +14,6 @@ Once the dunedaq directory is created, or each time you login, from the main dun
 source env.sh
 ```
 
-then
-
-```[bash]
-cd sourcecode
-git clone https://github.com/DUNE-DAQ/conffwk.git
-git clone https://github.com/DUNE-DAQ/confmodel.git
-cd ..
-dbt-workarea-env
-dbt-build
-```
-
-
 In order to setup your environment, run
 
 ```[bash]
@@ -78,12 +66,12 @@ which should create a configuration which looks like:
     }
 }
 ```
-Each key has a description of what it is and what value can be added. Note that the `plot_path` and `data_path` are values which you can override, otherwise they are automaically filled so they can be left as is. In addition, the `out_path` is the location where the directory for the test report is created. This should not be changed unless you want to keep the data and reports locally (note the urls in the report will not work in this case). Also, the workarea value is the absolute path to the dunedaq directory, if provided the reports will contain information about the software and configuration, otherwise it can be left as null Finally, note that for `documentation`, the values can be set to `null` and boilerplate text is inserted into the report instead. Also note that `out_path` can be removed if you are saving reports to the shared cernbox. The time range specifies the range plots are made for the reports.
+Each key has a description of what it is and what value can be added. Note that the `plot_path` and `data_path` are values which you can override, otherwise they are automaically filled so they can be left as is. In addition, the `out_path` is the location where the directory for the test report is created. This should not be changed unless you want to keep the data and reports locally (note the urls in the report will not work in this case). Also, the workarea value is the absolute path to the dunedaq directory, if provided the reports will contain information about the software and configuration, otherwise it can be left as `null` Finally, note that for `documentation`, the values can be set to `null` and boilerplate text is inserted into the report instead. Also note that `out_path` can be removed if you are saving reports to the shared cernbox. The time range specifies the range plots are made for the reports.
 
 Below is an example configuration file with the minimal information required:
 ```[json]
 {
-    "dunedaq_version": "v5.3.0",
+    "dunedaq_version": "v5.2.0",
     "time_range": [
         0,
         60
@@ -94,10 +82,11 @@ Below is an example configuration file with the minimal information required:
     "test_name": "test_fixes",
     "run_number": 32852,
     "session": "np04-session",
-    "workarea": "/nfs/home/sbhuller/NFD_DEV_241126_A9",
+    "workarea": "/nfs/home/sbhuller/fddaq-v5.2.0-a9-1/",
+    "config_repo": "ehn1-daqconfigs",
     "out_path": ".",
-    "data_path": "perftest-run32852-v5_3_0-np04srv031-test_fixes/data/",
-    "plot_path": "plots/",
+    "data_path": null,
+    "plot_path": null,
     "documentation": {
         "purpose": "High trigger rate at 132us readout window",
         "goals": "readout data requested in a 132us readout window at the highest Trigger rate posible.",
@@ -141,7 +130,7 @@ Note that when you are done you shold also move the json file to the `data_path`
 
 ### Micro Service
 
-**Note that this should only be run on np0x machines which are seldom used, for example np04-srv-013.**
+**Note that this should only be run on np0x machines which are seldom used, for example np04-srv-017.**
 
 The shared work area is setup on `/nfs/sw/dunedaq_performance_test/`. To setup, simply run
 ```[bash]

@@ -166,6 +166,10 @@ def process_cpu_info(data : dict[pd.DataFrame], out : str, max_util : float = 80
 
     total_time_per_core = sum(utils.search_dict(data, "(?=.*CPU)(?!.*Usage)").values()) # total time per core
 
+    if total_time_per_core.empty:
+        print("Warning: no CPU information was found.")
+        return
+
     cpu_time_total = total_time_per_core.sum(axis=1) # total time across all cores
     cpu_time_idle = data["CPU idle (s)"].sum(axis=1) # total idle time across all cores
 
@@ -254,6 +258,10 @@ def process_disk_info(data : dict[pd.DataFrame], out : str, readout_plane : Read
 
     nvme_sample = data["Disk IO time (s)"].filter(regex=("nvme|md")).columns
 
+    if nvme_sample.empty:
+        print("Warning: no NVMe data was found")
+        return
+
     time = data["Disk IO time (s)"].index.astype(int)
     time = time - time[0]
     tlabel = "Relative time (s)"
@@ -317,6 +325,10 @@ def process_network_info(data : dict[pd.DataFrame], out : str):
     """
     network_rt = utils.search_dict(data, "Network.*\(Bps\)")
 
+    if all([v.empty for v in network_rt.values()]):
+        print("Warning: no network data found.")
+        return
+
     with plotting.PlotBook(out + "network_plots") as book:
         for k, v in network_rt.items():
             plotting.plot(times.relative_time(v), v.values, v.columns, "Time (s)", k.split(" (")[0], autofmt = "B/s", book = book)
@@ -335,6 +347,9 @@ def process_memory_info(data : dict[pd.DataFrame], out : str):
         out (str): output file diretory.
     """
     time = data["Memory Usage (%)"].index.astype(int)
+    if time.empty:
+        print("Warning : no system memory information was found.")
+        return
     time = time - time[0]
     tlabel = "Relative time (s)"
     with plotting.PlotBook(out + "memory_plots.pdf") as book:

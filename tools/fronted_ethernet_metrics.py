@@ -55,7 +55,8 @@ class feplotter(plotting.PlotEngine):
             plotting.plot(times.relative_time(df), df[c]/scale, c if len(df.columns) <= 20 else None, tlabel, metric + f" {get_units(metric)}", False)
         plotting.plt.ylim(0) # data should never be < 0
         if len(df.columns) <= 20:
-            plotting.plt.legend(ncols = 1 + (len(df.columns)**0.5 / 2), fontsize = "small")
+            plotting.plt.legend(ncols = 1, fontsize = "small")
+        
         plotting.plt.tight_layout()
         return
 

@@ -27,6 +27,7 @@ def generate_config_template(name : str | pathlib.Path):
         "run_number" : "run number of the test",
         "session" : "grafana partition name for the given test",
         "workarea" : "path to dunedaq directory, can be left as null",
+        "config_repo" : "v5 configuration repo used in this test e.g. ehn1-daqconfigs",
         "out_path" : "/nfs/rscratch/sbhuller/perftest/",
         "data_path" : None,
         "plot_path" : None,

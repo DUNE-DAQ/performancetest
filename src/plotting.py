@@ -213,10 +213,13 @@ class PlotEngine(ABC):
         valid_metrics = [m for m in self.metrics if not self.data[m].empty]
         dims = figure_dimensions(len(valid_metrics), "vertical")
 
+        dims = [(len(valid_metrics)//2) + (len(valid_metrics)%2), 2]
+
         fig_size = (8 * dims[1], 6 * dims[0])
 
         plt.figure(figsize = fig_size)
         for i, m in enumerate(valid_metrics):
+            print(i, m)
             plt.subplot(*dims, i + 1)
             self.plot_metric(m)
         return
