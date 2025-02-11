@@ -1,3 +1,12 @@
+"""
+Created on: 2024
+
+Author: Danaisis Vargas
+Affiliation: University of Toronto
+
+Description: Functions for plotting and creating perftest reports
+"""
+
 import os
 import re
 
