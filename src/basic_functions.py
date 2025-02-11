@@ -4,7 +4,7 @@ Created on: 2024
 Author: Danaisis Vargas, Matthew Man
 Affiliation: University of Toronto
 
-Description: Functions 
+Description: Functions for processing data for perftest reports
 """
 
 import os
