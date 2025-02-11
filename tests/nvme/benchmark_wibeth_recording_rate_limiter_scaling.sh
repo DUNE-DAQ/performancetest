@@ -1,4 +1,12 @@
 #!/bin/bash
+###
+# Created on: 2023
+#
+# Author: Matthew Man
+# Affiliation: University of Toronto
+#
+# Description: Benchmark RAIDs on a specific server
+###
 
 if [ $# -ne 1 ]; then
   echo "Usage: ./benchmark_wibeth_recording_rate_limiter_scaling.sh <output_folder>"
