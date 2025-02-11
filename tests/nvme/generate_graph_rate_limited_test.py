@@ -1,3 +1,10 @@
+"""
+Created on: 2024
+
+Author: Leo Joly, Matthew Man (University of Toronto)
+
+Description: Plot the RAID benchmark data
+"""
 import numpy as np
 import os
 import matplotlib.pyplot as plt
