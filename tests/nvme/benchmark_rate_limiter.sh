@@ -2,8 +2,7 @@
 ###
 # Created on: 2023
 #
-# Author: Matthew Man
-# Affiliation: University of Toronto
+# Author: Leo Joly, Matthew Man (University of Toronto)
 #
 # Description: Benchmarking RAIDs with DUNE DAQ data rates
 ###
