@@ -1,3 +1,12 @@
+"""
+Created on: 2024
+
+Author: Danaisis Vargas, Matthew Man
+Affiliation: University of Toronto
+
+Description: Functions 
+"""
+
 import os
 import pathlib
 import re
