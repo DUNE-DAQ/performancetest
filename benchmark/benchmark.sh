@@ -1,4 +1,12 @@
 #!/bin/sh
+###
+# Created on: 2023
+#
+# Author: Matthew Man
+# Affiliation: University of Toronto
+#
+# Description: Run the full benchmarking test suite
+###
 
 if [ $# -ne 3 ]; then
   echo "Usage: ./benchmark.sh <path> <output_path> <test_name>"
