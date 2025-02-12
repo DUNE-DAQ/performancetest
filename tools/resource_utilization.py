@@ -1,4 +1,11 @@
 #!/usr/bin/env python
+"""
+Created on: 12/12/2024 11:25
+
+Authors: Shyam Bhuller (University of Oxford), Matthew Man (University of Toronto), Danaisis Vargas Oliva (University of Toronto)
+
+Description: Create plots for resource utilization metrics.
+"""
 import argparse
 
 import files, plotting, shell, utils, times
@@ -9,6 +16,9 @@ from rich import print
 
 
 class ru_plotter(plotting.PlotEngine):
+    """ Class for handling resource utilization plotting.
+        Authors: Shyam Bhuller (University of Oxford)
+    """
     def plot_metric(self, metric: str):
         tlabel = "Relative time (s)"
  
@@ -37,6 +47,7 @@ class ru_plotter(plotting.PlotEngine):
 
 def search_hdf5(search_term : str, path : str) -> str | None:
     """ Search for hdf5 files with a specific term in a directory.
+        Authors: Shyam Bhuller (University of Oxford)
 
     Args:
         search_term (str): Term to search for.
@@ -52,6 +63,7 @@ def search_hdf5(search_term : str, path : str) -> str | None:
 
 def process_ru(ru_data : dict) -> tuple[list[str], dict[pd.DataFrame]]:
     """ Process resource utilisation metrics to calculate cache information.
+        Authors: Matthew Man (University of Toronto), Danaisis Vargas Oliva (University of Toronto)
 
     Args:
         ru_data (dict): Resource utilisation data.
@@ -79,6 +91,13 @@ def process_ru(ru_data : dict) -> tuple[list[str], dict[pd.DataFrame]]:
 
 
 def resource_utilization(args : dict, display : bool = False):
+    """ Main function that plots resource utilization metrics from the intel pcm dashboard and the node exporter.
+        Authors: Shyam Bhuller (University of Oxford)
+
+    Args:
+        args (dict): performance test configuration.
+        display (bool, optional): display the plot in an external window in grid form. Used for the notebook service. Defaults to False.
+    """
     plotting.set_plot_style()
 
     fp = {

@@ -1,7 +1,7 @@
 """
 Created on: 12/10/2024 18:42
 
-Author: Shyam Bhuller
+Author: Shyam Bhuller (University of Oxford)
 
 Description: Module to handle file input/output.
 """

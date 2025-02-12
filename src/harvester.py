@@ -1,9 +1,9 @@
 """
 Created on: 12/10/2024 22:35
 
-Author: Shyam Bhuller
+Authors: Shyam Bhuller (University of Oxford), Matthew Man (University of Toronto), Danaisis Vargas Oliva (University of Toronto)
 
-Description: Collect and parse data from the Grafana dashboards (The spice must flow) 
+Description: Collect and parse data from the Grafana dashboards (The spice must flow).
 """
 import copy
 import re
@@ -27,7 +27,8 @@ warnings.simplefilter(action='ignore', category=tables.NaturalNameWarning) # cau
 
 
 def get_influx_db_id(dunedaq_version : str) -> int:
-    """ Get the correct influx database id, databse is dependant on if the dunedaq version for the test is v4 or v5.
+    """ Get the correct influx database id, datbase is dependant on if the dunedaq version for the test is v4 or v5.
+        Authors: Shyam Bhuller (University of Oxford)
 
     Args:
         dunedaq_version (str): version string (format is vX.Y.Z).
@@ -50,6 +51,7 @@ def get_influx_db_id(dunedaq_version : str) -> int:
 
 def get_run_time(url : str, datasource : dict, run_number : int, partition : str, dunedaq_version : str) -> time_range:
     """ Get the start time and end time of the run.
+        Authors: Shyam Bhuller (University of Oxford)
 
     Args:
         url (str): Grafana url.
@@ -78,6 +80,7 @@ def get_run_time(url : str, datasource : dict, run_number : int, partition : str
 def collect_vars(url : str, datasource : dict, run_number : int, time : time_range, partition : str, host : str) -> dict:
     """ Collect relavent variables from the grafana dashboards. This is very specific to the DUNEDAQ,
         so this would be a likely failure point if operational monitoring changes.
+        Authors: Shyam Bhuller (University of Oxford)
 
     Args:
         url (str): Grafana url.
@@ -121,6 +124,7 @@ def collect_vars(url : str, datasource : dict, run_number : int, time : time_ran
 
 def get_dpdk_vars(url : str, datasource : dict, time : time_range, partition : str) -> dict[str]:
     """ Get the different variables and values specific to dpdklibs.
+        Authors: Shyam Bhuller (University of Oxford)
 
     Args:
         url (str): Grafana url.
@@ -157,6 +161,7 @@ def get_dpdk_vars(url : str, datasource : dict, time : time_range, partition : s
 
 def get_fe_eth_vars(url : str, datasource : dict, time : time_range, partition : str) -> dict[str]:
     """ Get the different variables and values specific to front end ethernet readout.
+        Authors: Shyam Bhuller (University of Oxford)
 
     Args:
         url (str): Grafana url.
@@ -186,6 +191,7 @@ def get_fe_eth_vars(url : str, datasource : dict, time : time_range, partition :
 
 def get_dhs(url : str, datasource : dict, time : time_range, partition : str) -> dict[str]:
     """ Get the different variables and values specific to the datahandlers.
+        Authors: Shyam Bhuller (University of Oxford)
 
     Args:
         url (str): Grafana url.
@@ -221,6 +227,7 @@ def parse_result_postgres(response_data : dict, name : str) -> pd.DataFrame:
 
 def parse_result_influx(response_data : dict, name : str) -> pd.DataFrame:
     """ Parse the Grafana api reponse from the prometheus database and write the data into dataframes.
+        Authors: Shyam Bhuller (University of Oxford)
 
     Args:
         response_data (dict): API response in json format.
@@ -263,6 +270,7 @@ def parse_result_influx(response_data : dict, name : str) -> pd.DataFrame:
 
 def parse_result_prometheus(response_data : dict, name : str) -> pd.DataFrame:
     """ Parse the Grafana api reponse from the prometheus database and write the data into dataframes.
+        Authors: Shyam Bhuller (University of Oxford), Matthew Man (University of Toronto), Danaisis Vargas Oliva (University of Toronto)
 
     Args:
         response_data (dict): API response in json format.
@@ -294,6 +302,7 @@ def parse_result_prometheus(response_data : dict, name : str) -> pd.DataFrame:
 
 def format_panels(panels: list[dict], var_map : dict) -> tuple[list[dict], list[str]]:
     """ Replace all the variables with their respective values. If the variable is in the title, the panel is reproduced for each possible value.
+        Authors: Shyam Bhuller (University of Oxford)
 
     Args:
         panels (list[dict]): Grafana panels
@@ -332,6 +341,7 @@ def format_panels(panels: list[dict], var_map : dict) -> tuple[list[dict], list[
 
 def get_valid_datasources(datasources : list[dict], dunedaq_version : str) -> dict[dict]:
     """ Get the valid datasources that can be queried for the given dunedaq version.
+        Authors: Shyam Bhuller (University of Oxford)
 
     Args:
         datasources (list[dict]): list of all datasources.
@@ -350,6 +360,7 @@ def get_valid_datasources(datasources : list[dict], dunedaq_version : str) -> di
 
 def extract_node_exporter_data(dashboard_info : dict[str], run_number : int, host : str, test_session : str, dunedaq_version : str, output_file : str, out_dir : str):
     """ Extract node exporter data form the prometheus database directly i.e. not through the Grafana api.
+        Authors: Shyam Bhuller (University of Oxford)
 
     Args:
         dashboard_info (dict[str]): url, uid and sesssion names for the grafana page.
@@ -483,6 +494,7 @@ def extract_node_exporter_data(dashboard_info : dict[str], run_number : int, hos
 
 def format_hdf_keys(dashboard_data : dict[pd.DataFrame]):
     """ Format keys so they do not break the file structure in hdf5.
+        Authors: Shyam Bhuller (University of Oxford)
 
     Args:
         dashboard_data (dict[pd.DataFrame]): dashboard data to be written to hdf5.
@@ -499,6 +511,7 @@ def format_hdf_keys(dashboard_data : dict[pd.DataFrame]):
 
 def extract_grafana_data(dashboard_info : dict[str], run_number : int, host : str, test_session : str, dunedaq_version : str, output_file : str, out_dir : str) -> list[str]:
     """ Extract data from Grafana dashboards.
+        Authors: Shyam Bhuller (University of Oxford), Matthew Man (University of Toronto), Danaisis Vargas Oliva (University of Toronto)
 
     Args:
         dashboard_info (dict[str]): url, uid and sesssion names for the grafana page.

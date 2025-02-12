@@ -2,7 +2,7 @@
 """
 Created on: 06/11/2024 11:57
 
-Author: Shyam Bhuller
+Author: Shyam Bhuller (University of Oxford)
 
 Description: Information about the workarea used to perform the test.
 """
@@ -60,7 +60,7 @@ def check_repos(dire : str) -> dict[list]:
     return repo_info
 
 
-def check_configs(dire : str, out : str) -> dict | None:
+def check_configs(dire : str, out : str, repo : str = "ehn1-daqconfigs") -> dict | None:
     """ Check workarea for ehn1-configurations, and return information about the repo.
 
     Args:
@@ -69,20 +69,20 @@ def check_configs(dire : str, out : str) -> dict | None:
     Returns:
         tabulate.JupyterHTMLStr | None: HTML table of repo info.
     """
-    ehn1_daqconf_path = shell.search_data_file("ehn1-daqconfigs", dire)
+    db_path = shell.search_data_file(repo, dire)
 
-    if len(ehn1_daqconf_path) > 0:
-        info = get_repo_info(ehn1_daqconf_path[0]) # should only have one
+    if len(db_path) > 0:
+        info = get_repo_info(db_path[0]) # should only have one
 
         # clone ehn1 repo in tmp and copy the pinning files to the output path.
         with shell.chdir("/tmp/"):
-            shell.run(shell.clone("ssh://git@gitlab.cern.ch:7999/dune-daq/online/ehn1-daqconfigs.git", info[1]))
-            shell.run(f"cp ehn1-daqconfigs/hw/cpupin-all* {out}")
-            shell.run(f"rm -rf ehn1-daqconfigs/")
+            shell.run(shell.clone(f"ssh://git@gitlab.cern.ch:7999/dune-daq/online/{repo}.git", info[1]))
+            shell.run(f"cp {repo}/hw/cpupin-all* {out}")
+            shell.run(f"rm -rf {repo}/")
 
         return {"ehn1-daqconfigs" : info}
     else:
-        verbprint("no ehn1-daqconfig area was found.")
+        verbprint(f"config area {repo} was not found.")
         return
 
 
@@ -108,13 +108,14 @@ def make_repo_table(repos : dict) -> tabulate.JupyterHTMLStr:
     Returns:
         tabulate.JupyterHTMLStr: HTML table of repo infos.
     """
+    if repos is None: return ""
     table_headers = ["repo", "branch name", "commit"]
     tab_info = [[k,] + v for k,v in repos.items()]
     verbprint(tabulate.tabulate(tab_info, tablefmt = "fancy", headers = table_headers))
     return tabulate.tabulate(tab_info, tablefmt = "html", headers = table_headers)
 
 
-def get_info(path : str, out : str) -> dict[str]:
+def get_info(path : str, out : str, repo : str = "ehn1-daqconfigs") -> dict[str]:
     """ Get information about a dunedaq repository and return html formatted tables.
 
     Args:
@@ -167,7 +168,7 @@ def get_info(path : str, out : str) -> dict[str]:
         verbprint(f"{t} repositories:")
         make_repo_table(repos)
 
-    workarea_info["configuration"] = check_configs(path, out = out)
+    workarea_info["configuration"] = check_configs(path, out = out, repo = repo)
 
     files.save_json(out + "workarea_info.json", workarea_info)
 
@@ -189,7 +190,7 @@ def main(args : argparse.Namespace):
     else:
         pass
 
-    get_info(path, test_args["data_path"])
+    get_info(path, test_args["data_path"], test_args["config_repo"])
     return
 
 

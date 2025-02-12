@@ -101,7 +101,8 @@ def create_var_list(file_list, var_list):
 
 
 def reformat_cpu_util(file : str | pathlib.Path) -> pd.DataFrame:
-    """Converts the output from the core utilisation into a pandas friendly format (and drops the average report).
+    """ Converts the output from the core utilisation into a pandas friendly format.
+        Shyam Bhuller (University of Oxford), Matthew Man (University of Toronto), Danaisis Vargas Oliva (University of Toronto)
 
     Args:
         file (str | pathlib.Path): core utilisation output file.

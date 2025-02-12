@@ -1,4 +1,11 @@
 #!/usr/bin/env python
+"""
+Created on: 12/12/2024 11:09
+
+Author: Shyam Bhuller (University of Oxford)
+
+Description: Plot data collected from the frontend ethernet dashboard.
+"""
 import argparse
 import os
 
@@ -9,7 +16,15 @@ import pandas as pd
 from rich import print
 
 
-def get_units(x : str):
+def get_units(x : str) -> str:
+    """ From the metric name, try to infer the units of measurement.
+
+    Args:
+        x (str): metric name.
+
+    Returns:
+        str: units of measurement.
+    """
     label = x.lower()
     if "packet" in label:
         return "(p/s)"
@@ -22,6 +37,8 @@ def get_units(x : str):
 
 
 class feplotter(plotting.PlotEngine):
+    """ Class for handling resource utilization plotting.
+    """
     def plot_metric(self, metric : str):
         tlabel = "Relative time (s)"
 
@@ -38,12 +55,19 @@ class feplotter(plotting.PlotEngine):
             plotting.plot(times.relative_time(df), df[c]/scale, c if len(df.columns) <= 20 else None, tlabel, metric + f" {get_units(metric)}", False)
         plotting.plt.ylim(0) # data should never be < 0
         if len(df.columns) <= 20:
-            plotting.plt.legend(ncols = 1 + (len(df.columns)**0.5 / 2), fontsize = "small")
+            plotting.plt.legend(ncols = 1, fontsize = "small")
+        
         plotting.plt.tight_layout()
         return
 
 
 def frontend_ethernet(args : dict, display : bool = False):
+    """ Main function that plots metrics from the frontend ethernet dashboard.
+
+    Args:
+        args (dict): performance test configuration.
+        display (bool, optional): display the plot in an external window in grid form. Used for the notebook service. Defaults to False.
+    """
     plotting.set_plot_style()
 
     for file in shell.search_data_file("frontend_ethernet", args["data_path"]):

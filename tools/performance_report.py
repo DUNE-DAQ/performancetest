@@ -1,4 +1,11 @@
 #!/usr/bin/env python
+"""
+Created on: 12/12/2024 11:12
+
+Author: Shyam Bhuller (University of Oxford)
+
+Description: Creates performance reports from existing plots and provided documentation in the configuration.
+"""
 import os
 
 import pathlib
@@ -14,11 +21,20 @@ from rich import print
 
 
 def create_urls(args : dict) -> dict:
+    """ Create cernbox urls for the files in the performance report directory.
+
+    Args:
+        args (dict): performance test configuration.
+
+    Returns:
+        dict: created urls.
+    """
     paths = {"data" : args["data_path"], "plots" : args["plot_path"]}
 
-    for head_name in paths["data"].split("/"):
-        if args["test_name"] in head_name:
-            break
+    # for head_name in paths["data"].split("/"):
+    #     if args["test_name"] in head_name:
+    #         break
+    head_name = str(utils.test_path(args)).split(args["out_path"])[-1]
 
     urls = {"data" : {}, "plots" : {}}
     for k, v in paths.items():
@@ -34,11 +50,24 @@ def create_urls(args : dict) -> dict:
 
 
 def html_to_str(path : pathlib.Path | str) -> str:
+    """ Open html file as a string.
+
+    Args:
+        path (pathlib.Path | str): html file path.
+
+    Returns:
+        str: html string.
+    """
     with pathlib.Path(path).open("r") as f:
         return f.read()
 
 
 def get_defaults() -> dict:
+    """ Get html files that contain defualt text for certain entries in the performance report.
+
+    Returns:
+        dict: default text read as html strings.
+    """
     defs = {}
     for p in pathlib.Path(os.environ["PERFORMANCE_TEST_PATH"] + "/html/defaults/").glob("**/*"):
         defs[p.stem] = html_to_str(p)
@@ -46,10 +75,27 @@ def get_defaults() -> dict:
 
 
 def write_url(url : str, link_text : str) -> str:
+    """ Write a url in html.
+
+    Args:
+        url (str): url string.
+        link_text (str): text the url appears as.
+
+    Returns:
+        str: html formatted url string.
+    """
     return f'<a href="{url}">{link_text}</a>'
 
 
-def create_url_list(urls : dict):
+def create_url_list(urls : dict) -> str:
+    """ Create a bullet point list of urls in html.
+
+    Args:
+        urls (dict): dictionary of urls, where the key is the link text.
+
+    Returns:
+        str: html string of the url list.
+    """
     l = "<ul>\n"
     for k, v in urls.items():
         l += f"<li> {write_url(v, k)} </li>\n"
@@ -58,6 +104,11 @@ def create_url_list(urls : dict):
 
 
 def performance_report(test_args : dict):
+    """ Create the performance report.
+
+    Args:
+        test_args (dict): performance test configuration.
+    """
     defaults = get_defaults()
 
     host = test_args["host"]

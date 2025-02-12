@@ -2,7 +2,7 @@
 """
 Created on: 09/12/2024 10:43
 
-Author: Shyam Bhuller
+Author: Shyam Bhuller (University of Oxford)
 
 Description: Run certain performance test tools in batch.
 #? add multiprocessing?

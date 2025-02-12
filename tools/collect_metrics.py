@@ -2,7 +2,7 @@
 """
 Created on: 13/10/2024 00:06
 
-Author: Shyam Bhuller
+Authors: Shyam Bhuller (University of Oxford), Matthew Man (University of Toronto), Danaisis Vargas Oliva (University of Toronto)
 
 Description: Collect metrics from the grafana dashboards.
 """

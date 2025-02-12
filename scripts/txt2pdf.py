@@ -1,4 +1,11 @@
 #!/usr/bin/env python
+"""
+Created on: 12/12/2024 11:01
+
+Author: Shyam Bhuller (University of Oxford)
+
+Description: Convert a text file to pdf using weasyprint as a middle-man.
+"""
 import weasyprint
 import pathlib
 import argparse

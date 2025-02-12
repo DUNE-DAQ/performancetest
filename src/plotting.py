@@ -1,7 +1,7 @@
 """
 Created on: 12/10/2024 18:35
 
-Author: Shyam Bhuller
+Author: Shyam Bhuller (University of Oxford)
 
 Description: Module for making plots.
 """
@@ -71,7 +71,9 @@ def autoscale(data : float, units : str, style : str = "2g") -> tuple[FuncFormat
     Returns:
         tuple[FuncFormatter, str]: Formatter function for matplotlib and the modified unit of measure.
     """
-    scales = ["", "k","M","G","T"]
+
+    scales = {-3 : "n", -2 : "u", -1 : "m", 0 : "", 1 : "k", 2 : "M", 3 : "G", 4 : "T"}
+    # scales = ["", "k","M","G","T"]
     scale = int(np.floor(np.log10(data)))//3
     new_units = scales[scale] + units
     if units[0] in scales:
@@ -184,7 +186,7 @@ def bar(x, y, xlabel : str, ylabel : str, title : str = None, rotation : int = 0
             else:
                 bl.append(f"{i:,.3f}")
 
-    if bar_label: plt.bar_label(rect, label_type = "edge", labels = bl)
+    if bar_label: plt.bar_label(rect, label_type = "edge", labels = bl, fontsize="small")
     plt.xticks(rotation = rotation)
     plt.tight_layout()
 
@@ -211,10 +213,13 @@ class PlotEngine(ABC):
         valid_metrics = [m for m in self.metrics if not self.data[m].empty]
         dims = figure_dimensions(len(valid_metrics), "vertical")
 
+        dims = [(len(valid_metrics)//2) + (len(valid_metrics)%2), 2]
+
         fig_size = (8 * dims[1], 6 * dims[0])
 
         plt.figure(figsize = fig_size)
         for i, m in enumerate(valid_metrics):
+            print(i, m)
             plt.subplot(*dims, i + 1)
             self.plot_metric(m)
         return

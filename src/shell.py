@@ -1,7 +1,7 @@
 """
 Created on: 13/11/2024 11:23
 
-Author: Shyam Bhuller
+Author: Shyam Bhuller (University of Oxford)
 
 Description: Functions to help perform shell script actions, directory management and some common commands.
 """

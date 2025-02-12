@@ -2,7 +2,7 @@
 """
 Created on: 11/11/2024 14:15
 
-Author: Shyam Bhuller
+Author: Shyam Bhuller (University of Oxford)
 
 Description: Re-create a workarea provided the software and configuration information from a given performance report. 
 """
