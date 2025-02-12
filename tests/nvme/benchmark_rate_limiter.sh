@@ -1,4 +1,12 @@
 #!/bin/sh
+###
+# Created on: 2023
+#
+# Author: Leo Joly, Matthew Man (University of Toronto)
+#
+# Description: Benchmarking RAIDs with DUNE DAQ data rates
+###
+
 # need to source the environment file first
 
 if [ $# -ne 6 ]; then

@@ -1,4 +1,12 @@
 #!/bin/bash
+###
+# Created on: 2023
+#
+# Author: Matthew Man
+# Affiliation: University of Toronto
+#
+# Description: Run AMD uProf monitoring
+###
 
 if [ $# -ne 3 ]; then
   echo "Usage: ./start_uprof.sh <output_directory> <test_name> <duration in seconds>"

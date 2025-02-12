@@ -1,11 +1,12 @@
 """
-Created on: 12/12/2024 10:06
+Created on: 2024
 
-Authors: Shyam Bhuller (University of Oxford), Matthew Man (University of Toronto), Danaisis Vargas Oliva (University of Toronto)
-Unlesss specified in the docstring, credit goes to Matthew Man and Danaisis Vargas Oliva.
+Author: Danaisis Vargas
+Affiliation: University of Toronto
 
-Description: Legacy code for collecting data for performance test reports, deprecated.
+Description: Functions for plotting and creating perftest reports
 """
+
 import os
 import re
 
