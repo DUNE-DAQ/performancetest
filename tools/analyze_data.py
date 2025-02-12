@@ -394,48 +394,53 @@ def process_tp_info(data : dict[pd.DataFrame], out : str, readout_plane : Readou
     hit_rate_apa = pd.DataFrame({f"{readout_plane.name} {i}" : np.sum(hit_rates.values[:, i * n_rp:(i+1)*n_rp], axis=1) for i in range(n_rp)})
 
     with plotting.PlotBook(out + "tp_plots") as book:
-        plotting.plot(times.relative_time(total_hit_rate), total_hit_rate.values, f"np0{readout_plane.value} hits produced", "Time (s)", "TP rate")
-        plotting.plot(times.relative_time(total_hit_sent), total_hit_sent.values, f"np0{readout_plane.value} hits sent", "Time (s)", "TP rate", newFigure = False, autofmt = "Hz")
+        if not total_hit_rate.empty:
+            plotting.plot(times.relative_time(total_hit_rate), total_hit_rate.values, f"np0{readout_plane.value} hits produced", "Time (s)", "TP rate")
+            plotting.plot(times.relative_time(total_hit_sent), total_hit_sent.values, f"np0{readout_plane.value} hits sent", "Time (s)", "TP rate", newFigure = False, autofmt = "Hz")
         
-        plotting.hline(expected_hit_rate * n_rp, "expected hit rate", "red", "--", "Hz")
-        plotting.hline(acceptance_hit_rate * n_rp, "acceptence hit rate", "k", "--", "Hz")
-        plotting.plt.legend()
-        book.save()
+            plotting.hline(expected_hit_rate * n_rp, "expected hit rate", "red", "--", "Hz")
+            plotting.hline(acceptance_hit_rate * n_rp, "acceptence hit rate", "k", "--", "Hz")
+            plotting.plt.legend()
+            book.save()
 
-        plotting.plt.figure()
-        for c in hit_rate_apa:
-            plotting.plot(times.relative_time(hit_rate_apa[c]), hit_rate_apa[c].values, c, "Time (s)", "TP rate", newFigure = False, autofmt = "Hz")
-        plotting.hline(expected_hit_rate, f"expected hit rate per {readout_plane.name}", "red", "--", "Hz")
-        plotting.hline(acceptance_hit_rate, f"acceptence hit rate per {readout_plane.name}", "k", "--", "Hz")
-        plotting.plt.legend()
-        book.save()
+        if not hit_rate_apa.empty:
+            plotting.plt.figure()
+            for c in hit_rate_apa:
+                plotting.plot(times.relative_time(hit_rate_apa[c]), hit_rate_apa[c].values, c, "Time (s)", "TP rate", newFigure = False, autofmt = "Hz")
+            plotting.hline(expected_hit_rate, f"expected hit rate per {readout_plane.name}", "red", "--", "Hz")
+            plotting.hline(acceptance_hit_rate, f"acceptence hit rate per {readout_plane.name}", "k", "--", "Hz")
+            plotting.plt.legend()
+            book.save()
 
-        plotting.plot(times.relative_time(tp_writer_info), tp_writer_info[["TP Received", "TP written"]], ["received", "written"], "Time (s)", "TP rate", autofmt = "Hz")
-        plotting.plt.title("TPWriter receieve/write rates")
-        plotting.hline(expected_hit_rate * n_rp, "expected hit rate", "red", "--", "Hz")
-        plotting.hline(acceptance_hit_rate * n_rp, "acceptence hit rate", "k", "--", "Hz")
-        plotting.plt.legend()
-        book.save()
+        if not tp_writer_info.empty:
+            plotting.plot(times.relative_time(tp_writer_info), tp_writer_info[["TP Received", "TP written"]], ["received", "written"], "Time (s)", "TP rate", autofmt = "Hz")
+            plotting.plt.title("TPWriter receieve/write rates")
+            plotting.hline(expected_hit_rate * n_rp, "expected hit rate", "red", "--", "Hz")
+            plotting.hline(acceptance_hit_rate * n_rp, "acceptence hit rate", "k", "--", "Hz")
+            plotting.plt.legend()
+            book.save()
 
-        plotting.plot(times.relative_time(tp_writer_info), rp.tp_size * tp_writer_info[["TP Received", "TP written"]], ["received", "written"], "Time (s)", "Rate", autofmt = "b/s")
-        plotting.plt.title("TPWriter receieve/write rates")
-        plotting.hline(expected_hit_rate * n_rp * rp.tp_size, "expected hit rate", "red", "--", "b/s")
-        plotting.hline(acceptance_hit_rate * n_rp * rp.tp_size, "acceptence hit rate", "k", "--", "b/s")
-        plotting.plt.legend()
-        book.save()
+            plotting.plot(times.relative_time(tp_writer_info), rp.tp_size * tp_writer_info[["TP Received", "TP written"]], ["received", "written"], "Time (s)", "Rate", autofmt = "b/s")
+            plotting.plt.title("TPWriter receieve/write rates")
+            plotting.hline(expected_hit_rate * n_rp * rp.tp_size, "expected hit rate", "red", "--", "b/s")
+            plotting.hline(acceptance_hit_rate * n_rp * rp.tp_size, "acceptence hit rate", "k", "--", "b/s")
+            plotting.plt.legend()
+            book.save()
 
         plotting.bar(total_tp_drop_rates.index, total_tp_drop_rates.values, "", "Number of TPs", "TPs dropped", bar_label = True)
         plotting.plt.ylim(0)
         book.save()
 
-        plotting.plot(times.relative_time(tph_request_rates), tph_request_rates.values, tph_request_rates.columns, "Time (s)", "Request Rates", autofmt = "Hz")
-        book.save()
+        if not tph_request_rates.empty:
+            plotting.plot(times.relative_time(tph_request_rates), tph_request_rates.values, tph_request_rates.columns, "Time (s)", "Request Rates", autofmt = "Hz")
+            book.save()
 
-        request_rate_percent = tph_request_rates.sum(axis=0)
-        request_rate_percent = request_rate_percent.div(request_rate_percent["Total "], axis = 0)
-        request_rate_percent.pop("Total ")
-        plotting.bar(request_rate_percent.index, request_rate_percent, "Requst type", "Requests (%)", "Total number of requests", bar_label = True)
-        book.save()
+        if not tph_request_rates.empty:
+            request_rate_percent = tph_request_rates.sum(axis=0)
+            request_rate_percent = request_rate_percent.div(request_rate_percent["Total "], axis = 0)
+            request_rate_percent.pop("Total ")
+            plotting.bar(request_rate_percent.index, request_rate_percent, "Requst type", "Requests (%)", "Total number of requests", bar_label = True)
+            book.save()
     return
 
 

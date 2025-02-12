@@ -31,9 +31,10 @@ def create_urls(args : dict) -> dict:
     """
     paths = {"data" : args["data_path"], "plots" : args["plot_path"]}
 
-    for head_name in paths["data"].split("/"):
-        if args["test_name"] in head_name:
-            break
+    # for head_name in paths["data"].split("/"):
+    #     if args["test_name"] in head_name:
+    #         break
+    head_name = str(utils.test_path(args)).split(args["out_path"])[-1]
 
     urls = {"data" : {}, "plots" : {}}
     for k, v in paths.items():
