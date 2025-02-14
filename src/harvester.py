@@ -667,7 +667,7 @@ def uprof_to_df(file : str) -> pd.DataFrame:
                 header_new = ['Timestamp']
                 for package,header in zip(header1,header2):
                     if (package=='\n') or (header=='\n'):
-                        header_new += ['CPU Utilization', '\n']
+                        header_new += ['CPU Utilization']
                         header_new_str = ','.join(header_new)
                         formatted.append(header_new_str)
                     if 'Package' in package:
@@ -698,18 +698,18 @@ def uprof_to_df(file : str) -> pd.DataFrame:
                 cpu_utiliz = float(line_list[1]) + float(line_list[22])
                 cpu_utiliz = str(round(cpu_utiliz, 2))
                 line_list[-1] = cpu_utiliz
-                line_list.append('\n')
+                # line_list.append('\n')
                 line_n = ','.join(line_list)
                 formatted.append(line_n)               
 
     df = []
     for f in formatted:
-        df.append(f.split("\n")[0].split(","))
+        df.append(f.split(","))
     df = pd.DataFrame(df[1:], columns = df[0])
     df.set_index("Timestamp", inplace = True)
     ut = times.dt_to_unix_array(df.index)
     df = df.set_index(ut)
-    return df
+    return df.astype("float")
 
 
 def extract_uprof_data(uprof_output : str, output_file : str, out_dir : str):
@@ -723,5 +723,5 @@ def extract_uprof_data(uprof_output : str, output_file : str, out_dir : str):
     df = uprof_to_df(uprof_output)
 
     output = str(out_dir) + f"uprof-{output_file}.hdf5"
-    df.to_hdf(output)
+    df.to_hdf(output, key = "df")
     return

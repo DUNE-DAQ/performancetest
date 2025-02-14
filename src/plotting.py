@@ -226,7 +226,7 @@ class PlotEngine(ABC):
 
 
     def plot_book(self, name : str):
-        """ Plot matrics to pdf file.
+        """ Plot metrics to pdf file.
 
         Args:
             name (str): file name.
