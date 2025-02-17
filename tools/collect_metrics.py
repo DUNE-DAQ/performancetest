@@ -73,6 +73,9 @@ def collect_metrics(args : argparse.Namespace | dict) -> None | dict:
 
     harvester.extract_node_exporter_data(dashboard_info, test_args["run_number"], test_args["host"], test_args["session"], test_args["dunedaq_version"], output_file = name, out_dir = out_dir)
 
+    # convert csv data to hdf5
+    if "uprof_file" in test_args:
+        harvester.extract_uprof_data(test_args["uprof_file"], name, out_dir)
 
     if type(args) == argparse.Namespace:
         new_args["data_path"] = out_dir
