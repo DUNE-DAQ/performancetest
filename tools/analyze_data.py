@@ -43,6 +43,94 @@ readout_plane_values = {
     ReadoutPlane.CRP : ReadoutPlaneValues(num_channels = 3072, adc_sampling_rate = 1.953125E6, adc_size = 14, num_rp_fd = 160, snb_readout_time = 100, readout_window = 4.25, tp_rate = [100, 500], tp_size = 384, max_disk_write = 12, num_wibs = 6, num_nics = 8),
 }
 
+def cache_info_Intel(df : pd.DataFrame):
+    access = {}
+    access_percent = {}
+
+    for i in [2, 3]:
+        cache_data = utils.search_dict(df, f"(?=L{i})")
+        acc = utils.search_dict(cache_data, f"(?=.*Million)")
+
+        for k, v in acc.items():
+            for t in ["Miss", "Hit"]:
+                if t in k:
+                    tmp = acc[k].filter(regex = "^(?!.*Total)")
+                    acc[k] = tmp.rename(columns = {c : f"{t} {c}" for c in v.columns})
+
+        acc = pd.concat(list(acc.values()), axis = 1) * 1E6
+
+        n_sockets = len(acc.columns)//2 # better way of doing this
+        acc_perc = []
+        for j in range(n_sockets):
+            socket_counts = acc.filter(regex=f"Socket{j}")
+            total = acc.filter(regex=f"Socket{j}").sum(axis=1)
+            acc_perc.append(100 * socket_counts.div(total, axis = 0))
+
+        acc_perc = pd.concat(acc_perc, axis = 1)
+        access[i] = acc.reindex(sorted(acc.columns), axis=1)
+        access_percent[i] = acc_perc.reindex(sorted(acc_perc.columns), axis=1)
+    return access, access_percent
+
+
+def cache_info_AMD(df : pd.DataFrame) -> list[pd.DataFrame]:
+    accesses = {}
+    accesses_percent = {}
+
+    def renamer(a,b): # way to replace column names in pandas without mapping
+        return lambda x: x.replace(a,b)
+
+    for i in [2, 3]:
+        cache_data = df.filter(regex = f"(?!.*from)(?=L{i})")
+
+        total = cache_data.filter(regex = "Access")
+        miss = cache_data.filter(regex = "(?!.*Latency)(?!.*%)(?=Miss)") # get the missed counts
+        hit = total.rename(columns = renamer("Access","Hit")) - miss.rename(columns = renamer("Miss", "Hit")) # calculate hits from total - miss
+        
+        accesses[i] = pd.concat([miss, hit], axis=1).rename(columns = renamer(f"L{i} ", "")) # keep hits and miss, rename columns to appropriate plot labels
+
+        if "(pti)" in accesses[i].columns[0]: # convert per thousand counts to just counts
+            accesses[i] *= 1000
+            accesses[i].rename(columns = renamer("(pti) ", ""), inplace = True)
+        accesses[i] = accesses[i].reindex(sorted(accesses[i].columns), axis=1)
+
+        miss_percent = cache_data.filter(regex = "Miss %") # get the miss percentage if exists
+        miss_percent = miss_percent.rename(columns = renamer("% ", ""))
+        if miss_percent.empty: # otherwise calculate it
+            miss_percent = 100 * miss/total.rename(columns = renamer("Access", "Miss"))
+            miss_percent.rename(columns = renamer("(pti) ", ""), inplace = True)
+
+        hit_percent = 100 - miss_percent.rename(columns = renamer("Miss", "Hit")) # get hit percent
+        accesses_percent[i] = pd.concat([miss_percent, hit_percent], axis=1).rename(columns = renamer(f"L{i} ", ""))
+        accesses_percent[i] = accesses_percent[i].reindex(sorted(accesses_percent[i].columns), axis=1)
+
+    return accesses, accesses_percent
+
+
+def process_cache_info(intel : pd.DataFrame, amd : pd.DataFrame):
+    intel_data = None
+    amd_data = None
+    if intel is not None:
+        if all([i.empty for i in utils.search_dict(intel, f"(?=L2|L3)").values()]):
+            print("no Intel PCM data captured")
+        else:
+            intel_data = cache_info_Intel(intel)
+    
+    if amd is not None: # does not need as much careful chekcing as uprof is optional in the metrics logging
+        amd_data = cache_info_AMD(amd)
+
+
+    with plotting.PlotBook("cache.pdf") as book:
+        for i in [intel_data, amd_data]:
+            if i is None: continue
+            acc = i[0]
+            acc_perc = i[1]
+            relative_time = times.relative_time(list(acc.values())[0])
+            for k in acc:# acc and acc_perc should have the same keys
+                plotting.plot(relative_time, acc[k], acc[k].columns, "Relative time (s)", f"L{k} cache access", book = book)
+                plotting.plot(relative_time, acc_perc[k], acc_perc[k].columns, "Relative time (s)", f"L{k} cache access (%)", book = book)
+    return
+
+
 def get_thread_nums(thread_str : str) -> list[int]:
     """ Get CPU numbers from the formatted strings used in a CPU pinning file. Example is "0,10-54".
 
@@ -541,6 +629,7 @@ def process_readout_info(data : dict[pd.DataFrame], out : str):
         book.save()
     return
 
+
 def process_daq_overview_info(data : dict[pd.DataFrame], out : str):
     """ Process daq overview information and make plots.
 
@@ -599,8 +688,12 @@ def analyse_data(test_args : dict):
     tr = time_range(*test_args["time_range"])
 
     data = {}
-    for d in ["node-exporter", "trigger_primitives", "frontend_ethernet", "readout", "overview"]:
-        data[d] = times.slice_time_range(files.read_hdf5(search_file(data_files, d)), tr)
+    for d in ["node-exporter", "trigger_primitives", "frontend_ethernet", "readout", "overview", "A_CvwTCWk", "uprof"]:
+        file = search_file(data_files,d)
+        if file:
+            data[d] = times.slice_time_range(files.read_hdf5(file), tr)
+        else:
+            data[d] = None
 
     if test_args["plot_path"]:
         out = test_args["plot_path"] + "analysis/"
@@ -617,8 +710,8 @@ def analyse_data(test_args : dict):
         print(f"cannot infer readout plane type based on data_source: {test_args['data_source']}, default to APA.")
         readout_plane = ReadoutPlane.APA
 
-    # ru = search_file(data_files, "A_CvwTCWk")
-    # data = files.read_hdf5(ru)
+    process_cache_info(data["A_CvwTCWk"], data["uprof"])
+
     process_cpu_info(data["node-exporter"], out, pinning_file = pinning_file)
 
     process_disk_info(data["node-exporter"], out, readout_plane)

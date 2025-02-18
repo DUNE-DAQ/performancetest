@@ -700,7 +700,7 @@ def uprof_to_df(file : str) -> pd.DataFrame:
                 line_list[-1] = cpu_utiliz
                 # line_list.append('\n')
                 line_n = ','.join(line_list)
-                formatted.append(line_n)               
+                formatted.append(line_n)
 
     df = []
     for f in formatted:
