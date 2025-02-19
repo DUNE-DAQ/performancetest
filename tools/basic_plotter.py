@@ -20,6 +20,10 @@ class plotter(plotting.PlotEngine):
     """ Class for handling resource utilization plotting.
         Authors: Shyam Bhuller (University of Oxford)
     """
+    def __init__(self, metrics, data, test_args):
+        self.test_args = test_args
+        super().__init__(metrics, data)
+
     def plot_metric(self, metric: str):
         tlabel = "Relative time (s)"
  
@@ -39,7 +43,8 @@ class plotter(plotting.PlotEngine):
         make_labels = (len(df.columns) < 20) and (len(df.columns) > 1)
         for c in df.columns:
             plotting.plot(times.relative_time(df), df[c].astype(float), c if make_labels else None, tlabel, metric, False)
-        plotting.plt.ylim(0)
+            plotting.add_metadata(self.test_args, int(df.index[0]))
+        plotting.plt.ylim(0, 1.1 * max(plotting.plt.gca().get_ylim()))
 
         if "(%)" in metric:
             plotting.plt.ylim(0, 100)
@@ -83,7 +88,7 @@ def plot(args : argparse.Namespace, display : bool = False):
                 values[k] = data[k].to_frame()
             else:
                 values[k] = data[k]
-        plt = plotter(keys, values)
+        plt = plotter(keys, values, args)
 
         if display is True:
             plt.plot_display()

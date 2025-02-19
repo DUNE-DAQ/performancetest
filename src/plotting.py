@@ -16,6 +16,8 @@ from matplotlib.ticker import FuncFormatter
 
 from matplotlib.backends.backend_pdf import PdfPages
 
+import times
+
 def isinteger(x : np.ndarray) -> np.ndarray:
     return np.equal(np.mod(x, 1), 0)
 
@@ -25,6 +27,22 @@ def set_plot_style():
     """
     plt.style.use('ggplot')
     plt.rcParams.update({"axes.prop_cycle" : plt.cycler("color", get_cmap("tab20").colors)})
+    return
+
+
+def add_metadata(test_args : dict, start_timestamp : int, suptitle : bool = False):
+    """ Add metadata from a performance test to the title of a plot.
+
+    Args:
+        test_args (dict): test args for a performance test.
+        start_timestamp (int): start time of the test, in unix timestamp.
+    """
+    start = times.dt.fromtimestamp(start_timestamp).strftime('%Y-%m-%d %H:%M:%S')
+    if suptitle:
+        func = plt.suptitle
+    else:
+        func = plt.title
+    func(f'run: {test_args["run_number"]} | start time: {start} | host: {test_args["host"]} | test: {test_args["test_name"].replace("_", " ")}', fontsize = "small")
     return
 
 
