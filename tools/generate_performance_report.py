@@ -6,16 +6,13 @@ Author: Shyam Bhuller (University of Oxford)
 
 Description: Deprecated, likely does not work with current data files.
 """
-import pathlib
 import argparse
 
 import files
 import utils
 
 from collect_metrics import collect_metrics
-from fronted_ethernet_metrics import frontend_ethernet
-from resource_utilization import resource_utilization
-from tp_metrics import tp_metrics
+from basic_plotter import plot
 from performance_report import performance_report
 from workarea_info import get_info
 from analyze_data import analyse_data
@@ -42,7 +39,7 @@ def main(args : argparse.Namespace):
     else:
         print("configuration has no workarea and it was not supplied. Software and DAQ config information cannot be calculated.")
 
-    for i in [frontend_ethernet, resource_utilization, tp_metrics, analyse_data, performance_report]:
+    for i in [plot, analyse_data, performance_report]:
         i(test_args)
 
     return

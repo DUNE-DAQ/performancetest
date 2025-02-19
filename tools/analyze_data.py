@@ -43,6 +43,251 @@ readout_plane_values = {
     ReadoutPlane.CRP : ReadoutPlaneValues(num_channels = 3072, adc_sampling_rate = 1.953125E6, adc_size = 14, num_rp_fd = 160, snb_readout_time = 100, readout_window = 4.25, tp_rate = [100, 500], tp_size = 384, max_disk_write = 12, num_wibs = 6, num_nics = 8),
 }
 
+def memory_bw_info_AMD(df : pd.DataFrame) -> pd.DataFrame:
+    """ Retreive and format memory bandwidth utilization for AMD servers.
+
+    Args:
+        df (pd.DataFrame): uProf data.
+
+    Returns:
+        pd.DataFrame: Memory bandwidth data.
+    """
+    mem_data = df.filter(regex = "(?=.*Total Mem)") * 1E9 # get memory per socket (exclude per DIMM)
+
+    new_columns = {}
+    for i in mem_data.columns:
+        new = i.replace("Total Mem ", "").replace("RdBw", "Read").replace("WrBw", "Write").replace("Bw", "Read + Write") # format column names
+        new = new.split(" (")[0] + new.split(")")[-1] # remove units (added in y label later)
+        new_columns[i] = new
+
+    mem_data = mem_data.rename(columns = new_columns)
+    return mem_data
+
+
+def memory_bw_info_Intel(df : pd.DataFrame) -> pd.DataFrame:
+    """ Retreive and format memory bandwidth utilization for Intel servers.
+
+    Args:
+        df (pd.DataFrame): pcm data.
+
+    Returns:
+        pd.DataFrame: Memory bandwidth data.
+    """
+    mem_data = utils.search_dict(df, "(?=.*Mem)(?=.*MByte)") # get bandwidth with known units
+    mem_data = {k : v.filter(regex = "^(?!.*Total)^(?!.*Persistent)") * 1E6 for k, v in mem_data.items()} # will not keep socket 0 + 1 bandwidth (provided by node exporter)
+
+    mem_data_rw = list(utils.search_dict(mem_data, "^(?!.*Current)").values())[0] # get read + write bandwidth per socket
+    mem_data_rw = mem_data_rw.rename(columns = lambda x: f"Read + Write {x}")
+    mem_data = utils.search_dict(mem_data, "(?=.*Current)") # get read and write bandwidth separately per socket
+
+    # restructure data into single dataframe
+    fmt_df = []
+    for k, v in mem_data.items():
+        socket = "Socket"+k.split("Socket")[-1].split(" ")[0]
+        fmt_df.append(v.rename(columns=lambda x: x.replace("DRAM Reads", f"Read {socket}")).rename(columns=lambda x: x.replace("DRAM Writes", f"Write {socket}")))
+    return pd.concat(fmt_df + [mem_data_rw], axis = 1)
+
+
+def calculate_maximum_memory_bw(host : str) -> float:
+    """ Calculate the maximum available memory bandwidth per socket.
+        Assumes that the DIMMs are all the same, there are an equal number of DIMMs per socket. 
+        #* memory speed(T/s)/2 * bytes of width * nchannels available / number of sockets (assuming uniform allocation)
+        https://www.intel.com/content/www/us/en/support/articles/000056722/processors/intel-core-processors.html
+
+    Args:
+        host (str): host machine.
+
+    Returns:
+        float: calculated maximum bandwidth.
+    """
+    #! This should use prestored hardware maps if possible
+    cmd = f'ssh {os.environ["USER"]}@{host} sudo dmidecode -t memory | grep -E "Data Width|Memory Speed"' # use dmidecode to get the memory information
+    out = str(shell.run(cmd, capture = True).stdout, "utf-8").replace("\\t", "").splitlines()
+
+    cmd = f'ssh {os.environ["USER"]}@{host} sudo dmidecode -t processor | grep "Socket Designation"' # also calculate the number of sockets on the machine
+    n_sockets = len(str(shell.run(cmd, capture = True).stdout, "utf-8").replace("\\t", "").splitlines())
+
+    n_channels = len([i for i in out if "Memory" in i])//2 # only installed DIMMs will have a memory speed registered
+
+    for i in out:
+        if "Width" in i and "Unknown" not in i:
+            width = int(utils.re.sub(r'[^\d]+', '', i))//8
+        if "Memory" in i:
+            speed = int(utils.re.sub(r'[^\d]+', '', i))/2
+
+    return 1E6 * width * speed * n_channels / n_sockets # in units of B/s
+
+
+def process_memory_info(ne : pd.DataFrame, intel : pd.DataFrame | None, amd : pd.DataFrame | None, out : str, host : str, test_args : dict):
+    """ Process metrics for system memory and plot them.
+
+    Args:
+        ne (pd.DataFrame): Node exporter data.
+        intel (pd.DataFrame | None): Intel pcm data.
+        amd (pd.DataFrame | None): AMD uProf data.
+        out (str): Output plot directory.
+        host (str): Host machine name.
+    """
+    intel_data = None
+    amd_data = None
+    if intel is not None:
+        if all([i.empty for i in utils.search_dict(intel, f"(?=Mem)").values()]):
+            print("no Intel PCM data captured")
+        else:
+            intel_data = memory_bw_info_Intel(intel)
+    
+    if amd is not None: # does not need as much careful chekcing as uprof is optional in the metrics logging
+        amd_data = memory_bw_info_AMD(amd)
+
+
+    with plotting.PlotBook(out + "memory_plots.pdf") as book:
+
+        mem_usg = ne["Memory Usage (%)"]
+        if mem_usg.empty:
+            print("Warning : no system memory information was found.")
+        else:
+            tlabel = "Relative time (s)"
+            plotting.plot(times.relative_time(mem_usg), mem_usg, None, tlabel, "Memory Usage (%)")
+            plotting.plt.axhline(80, color = "k", linestyle = "--")
+            plotting.plt.ylim(0, 100)
+            plotting.add_metadata(test_args, int(mem_usg.index[0]))
+            book.save()
+
+        for i in [intel_data, amd_data]:
+            if i is None: continue
+            bw = calculate_maximum_memory_bw(host)
+
+            plotting.plot(times.relative_time(i), i, i.columns, "Relative time (s)", "Memory bandwidth Usage", autofmt = "B/s")
+            plotting.hline(bw, label = "maximum bandwidth", autofmt = "B/s")
+            plotting.plt.legend(fontsize = "x-small")
+            plotting.add_metadata(test_args, int(i.index[0]))
+            book.save()
+
+            plotting.plot(times.relative_time(i), 100 * i/bw, i.columns, "Relative time (s)", "Memory bandwidth Usage (%)")
+            plotting.plt.legend(fontsize = "x-small")
+            plotting.add_metadata(test_args, int(i.index[0]))
+            book.save()
+    return
+
+
+def cache_info_Intel(df : pd.DataFrame) -> list[dict]:
+    """ Retrieve L2 and L3 accesses (hits and misses) and calculate percentages for Intel servers.
+
+    Args:
+        df (pd.DataFrame): pcm data.
+
+    Returns:
+        list[dict]: L2/3 access counts and access percentages.
+    """
+    access = {}
+    access_percent = {}
+
+    for i in [2, 3]:
+        cache_data = utils.search_dict(df, f"(?=L{i})") # get the cache data
+        acc = utils.search_dict(cache_data, f"(?=.*Million)") # get the access counts
+
+        for k, v in acc.items():
+            for t in ["Miss", "Hit"]:
+                if t in k:
+                    tmp = acc[k].filter(regex = "^(?!.*Total)") # dont keep total counts (sum of sockets) 
+                    acc[k] = tmp.rename(columns = {c : f"{t} {c}" for c in v.columns})
+
+        acc = pd.concat(list(acc.values()), axis = 1) * 1E6
+
+        # get access counts in percentages
+        n_sockets = len(acc.columns)//2 # better way of doing this
+        acc_perc = []
+        for j in range(n_sockets):
+            socket_counts = acc.filter(regex=f"Socket{j}")
+            total = acc.filter(regex=f"Socket{j}").sum(axis=1)
+            acc_perc.append(100 * socket_counts.div(total, axis = 0))
+
+        acc_perc = pd.concat(acc_perc, axis = 1)
+        access[i] = acc.reindex(sorted(acc.columns), axis=1)
+        access_percent[i] = acc_perc.reindex(sorted(acc_perc.columns), axis=1)
+    return access, access_percent
+
+
+def cache_info_AMD(df : pd.DataFrame) -> list[pd.DataFrame]:
+    """ Retrieve L2 and L3 accesses (hits and misses) and calculate percentages for AMD servers.
+
+    Args:
+        df (pd.DataFrame): uProf data.
+
+    Returns:
+        list[dict]: L2/3 access counts and access percentages.
+    """
+    access = {}
+    access_percent = {}
+
+    def renamer(a,b): # way to replace column names in pandas without mapping
+        return lambda x: x.replace(a,b)
+
+    for i in [2, 3]:
+        cache_data = df.filter(regex = f"(?!.*from)(?=L{i})")
+
+        total = cache_data.filter(regex = "Access")
+        miss = cache_data.filter(regex = "(?!.*Latency)(?!.*%)(?=Miss)") # get the missed counts
+        hit = total.rename(columns = renamer("Access","Hit")) - miss.rename(columns = renamer("Miss", "Hit")) # calculate hits from total - miss
+        
+        access[i] = pd.concat([miss, hit], axis=1).rename(columns = renamer(f"L{i} ", "")) # keep hits and miss, rename columns to appropriate plot labels
+
+        if "(pti)" in access[i].columns[0]: # convert per thousand counts to just counts
+            access[i] *= 1000
+            access[i].rename(columns = renamer("(pti) ", ""), inplace = True)
+        access[i] = access[i].reindex(sorted(access[i].columns), axis=1)
+
+        miss_percent = cache_data.filter(regex = "Miss %") # get the miss percentage if exists
+        miss_percent = miss_percent.rename(columns = renamer("% ", ""))
+        if miss_percent.empty: # otherwise calculate it
+            miss_percent = 100 * miss/total.rename(columns = renamer("Access", "Miss"))
+            miss_percent.rename(columns = renamer("(pti) ", ""), inplace = True)
+
+        hit_percent = 100 - miss_percent.rename(columns = renamer("Miss", "Hit")) # get hit percent
+        access_percent[i] = pd.concat([miss_percent, hit_percent], axis=1).rename(columns = renamer(f"L{i} ", ""))
+        access_percent[i] = access_percent[i].reindex(sorted(access_percent[i].columns), axis=1)
+
+    return access, access_percent
+
+
+def process_cache_info(intel : pd.DataFrame | None, amd : pd.DataFrame | None, out : str, test_args : dict):
+    """ Process L2 and L3 cache info for either AMD or Intel servers and plot them.
+
+    Args:
+        intel (pd.DataFrame | None): pcm data.
+        amd (pd.DataFrame | None): uProf data.
+        out (str): Output plot directory.
+    """
+    intel_data = None
+    amd_data = None
+    if intel is not None:
+        if all([i.empty for i in utils.search_dict(intel, f"(?=L2|L3)").values()]):
+            print("no Intel PCM data captured")
+        else:
+            intel_data = cache_info_Intel(intel)
+    
+    if amd is not None: # does not need as much careful chekcing as uprof is optional in the metrics logging
+        amd_data = cache_info_AMD(amd)
+
+
+    with plotting.PlotBook(out + "cache_plots.pdf") as book:
+        for i in [intel_data, amd_data]:
+            if i is None: continue
+            acc = i[0]
+            acc_perc = i[1]
+            t0 = int(list(acc.values())[0].index[0])
+            relative_time = times.relative_time(list(acc.values())[0])
+            for k in acc:# acc and acc_perc should have the same keys
+                plotting.plot(relative_time, acc[k], acc[k].columns, "Relative time (s)", f"L{k} cache access")
+                plotting.add_metadata(test_args, t0)
+                book.save()
+
+                plotting.plot(relative_time, acc_perc[k], acc_perc[k].columns, "Relative time (s)", f"L{k} cache access (%)")
+                plotting.add_metadata(test_args, t0)
+                book.save()
+    return
+
+
 def get_thread_nums(thread_str : str) -> list[int]:
     """ Get CPU numbers from the formatted strings used in a CPU pinning file. Example is "0,10-54".
 
@@ -154,7 +399,7 @@ def cpu_usage(idle : float | np.ndarray, total : float | np.ndarray) -> float | 
     return 100 * (1 - (idle/total))
 
 
-def process_cpu_info(data : dict[pd.DataFrame], out : str, max_util : float = 80, pinning_file : dict = None):
+def process_cpu_info(data : dict[pd.DataFrame], out : str, test_args : dict, max_util : float = 80, pinning_file : dict = None):
     """ Analyse CPU information and plot the results.
         Calculates maximum, minimum and various quantiles for each core and across all cores.
 
@@ -172,6 +417,7 @@ def process_cpu_info(data : dict[pd.DataFrame], out : str, max_util : float = 80
 
     cpu_time_total = total_time_per_core.sum(axis=1) # total time across all cores
     cpu_time_idle = data["CPU idle (s)"].sum(axis=1) # total idle time across all cores
+    time = total_time_per_core.sum(axis=1).index
 
     usage = pd.DataFrame(cpu_usage_rate(data["CPU idle (s)"], total_time_per_core), columns = total_time_per_core.columns) # usage per core
     total_usage = pd.Series(cpu_usage_rate(cpu_time_idle, cpu_time_total)) # usage of whole CPU
@@ -221,6 +467,9 @@ def process_cpu_info(data : dict[pd.DataFrame], out : str, max_util : float = 80
             plotting.bar(cpu_metrics[c].index, cpu_metrics[c], "Core", "Utilization (%)", c)
             if max(cpu_metrics[c]) > 50:
                 plotting.plt.axhline(max_util, color  = "k", linestyle = "--")
+            plotting.add_metadata(test_args, time[0], True)
+            plotting.plt.tight_layout()
+            plotting.plt.subplots_adjust(top=0.9)
             book.save()
 
         if pinning_file:
@@ -231,17 +480,22 @@ def process_cpu_info(data : dict[pd.DataFrame], out : str, max_util : float = 80
                     plotting.plt.axvline(max_util, color  = "k", linestyle = "--")
 
                 plotting.plt.xlim(0, 100)
+                plotting.add_metadata(test_args, time[0], True)
                 plotting.plt.tight_layout()
+                plotting.plt.subplots_adjust(top=0.9)
                 book.save()
 
         plotting.bar(total_metrics.index, total_metrics.values.flatten(), None, "Total CPU Utilization (%)", None, 30, True)
         plotting.plt.axhline(max_util, color  = "k", linestyle = "--")
         plotting.plt.ylim(0, 100)
+        plotting.plt.tight_layout()
+        plotting.add_metadata(test_args, time[0], False)
+        plotting.plt.subplots_adjust(top=1)
         book.save()
     return
 
 
-def process_disk_info(data : dict[pd.DataFrame], out : str, readout_plane : ReadoutPlane):
+def process_disk_info(data : dict[pd.DataFrame], out : str, readout_plane : ReadoutPlane, test_args : dict):
     """ Analyse disk information for the NVME and RAID devices and plots the results.
         Calculates total IO time, disk write rate during the test and total amount written to disk.
 
@@ -263,7 +517,8 @@ def process_disk_info(data : dict[pd.DataFrame], out : str, readout_plane : Read
         return
 
     time = data["Disk IO time (s)"].index.astype(int)
-    time = time - time[0]
+    t0 = time[0]
+    time = time - t0
     tlabel = "Relative time (s)"
 
     dt = data["Disk IO time (s)"] - data["Disk IO time (s)"].iloc[0]
@@ -282,41 +537,47 @@ def process_disk_info(data : dict[pd.DataFrame], out : str, readout_plane : Read
         plotting.plot(time, io_time, io_time.columns, tlabel, "Disk IO time (s)")
         plotting.plt.axhline(rp.snb_readout_time, color = "k", linestyle = "--", label = "Expected\nwrite time (100 s)")
         plotting.plt.legend()
+        plotting.add_metadata(test_args, t0)
         book.save()
 
         plotting.plot(time, write_rate, write_rate.columns, tlabel, "Disk write rate (Gb/s)")
         plotting.hline(data_input, "Data input rate", "k", "--", "Gb/s")
         plotting.hline(8 * rp.max_disk_write, "Maximum RAID write rate", "red", "--", "Gb/s")
         plotting.plt.legend()
+        plotting.add_metadata(test_args, t0)
         book.save()
         
         plotting.plot(time, total_written, total_written.columns, tlabel, "Total written to disk (GB)")
         plotting.plt.axhline(max_write_rp, color = "k", linestyle = "--", label = f"Expected data written\nper {readout_plane.name} ({max_write_rp} GB)")
         plotting.plt.axhline(max_write_disk, color = "red", linestyle = "--", label = f"Maximum data writable to disk ({max_write_disk/1000} TB)")
         plotting.plt.legend()
+        plotting.add_metadata(test_args, t0)
         book.save()
 
         # bar plots
         plotting.bar(max_io.index, max_io.values, "Device", ylabel = "Total IO time (s)", rotation = 30, bar_label = True)
         plotting.plt.axhline(rp.snb_readout_time, color = "k", linestyle = "--", label = "Expected\nwrite time (100 s)")
         plotting.plt.legend()
+        plotting.add_metadata(test_args, t0)
         book.save()
 
         plotting.bar(max_wr.index, max_wr.values, "Device", ylabel = "Maximum Disk write rate (Gb/s)", rotation = 30, bar_label = True)
         plotting.hline(data_input, "Data input rate", "k", "--", "Gb/s")
         plotting.hline(8 * rp.max_disk_write, "Maximum RAID write rate", "red", "--", "Gb/s")
         plotting.plt.legend()
+        plotting.add_metadata(test_args, t0)
         book.save()
 
         plotting.bar(max_tw.index, max_tw.values, "Device", ylabel = "Total written to disk (GB)", rotation = 30, bar_label = True)
         plotting.plt.axhline(max_write_rp, color = "k", linestyle = "--", label = f"Expected data written\nper {readout_plane.name} ({max_write_rp} GB)")
         plotting.plt.axhline(max_write_disk, color = "red", linestyle = "--", label = f"Maximum data writable to disk ({max_write_disk/1000} TB)")
         plotting.plt.legend()
+        plotting.add_metadata(test_args, t0)
         book.save()
     return
 
 
-def process_network_info(data : dict[pd.DataFrame], out : str):
+def process_network_info(data : dict[pd.DataFrame], out : str, test_args : dict):
     """ Process system network traffic information and make plots.
 
     Args:
@@ -331,36 +592,19 @@ def process_network_info(data : dict[pd.DataFrame], out : str):
 
     with plotting.PlotBook(out + "network_plots") as book:
         for k, v in network_rt.items():
-            plotting.plot(times.relative_time(v), v.values, v.columns, "Time (s)", k.split(" (")[0], autofmt = "B/s", book = book)
+            plotting.plot(times.relative_time(v), v.values, v.columns, "Time (s)", k.split(" (")[0], autofmt = "B/s")
+            plotting.add_metadata(test_args, int(v.index[0]))
+            book.save()
+
             total_net = v.sum(axis=0)
             plotting.bar(total_net.index, total_net/1E6, "", "Total " + k.split(" (")[0] + " (MB)", rotation=30, bar_label = True)
             plotting.plt.yscale("log")
+            plotting.add_metadata(test_args, int(v.index[0]))
             book.save()
     return
 
 
-def process_memory_info(data : dict[pd.DataFrame], out : str):
-    """ Process system memory information and make plots.
-
-    Args:
-        data (dict[pd.DataFrame]): node exporter data.
-        out (str): output file diretory.
-    """
-    time = data["Memory Usage (%)"].index.astype(int)
-    if time.empty:
-        print("Warning : no system memory information was found.")
-        return
-    time = time - time[0]
-    tlabel = "Relative time (s)"
-    with plotting.PlotBook(out + "memory_plots.pdf") as book:
-        plotting.plot(time, data["Memory Usage (%)"], None, tlabel, "Memory Usage (%)")
-        plotting.plt.axhline(80, color = "k", linestyle = "--")
-        plotting.plt.ylim(0, 100)
-        book.save()
-    return
-
-
-def process_tp_info(data : dict[pd.DataFrame], out : str, readout_plane : ReadoutPlane):
+def process_tp_info(data : dict[pd.DataFrame], out : str, readout_plane : ReadoutPlane, test_args : dict):
     """ Process TP information from a given run.
 
     Args:
@@ -401,6 +645,7 @@ def process_tp_info(data : dict[pd.DataFrame], out : str, readout_plane : Readou
             plotting.hline(expected_hit_rate * n_rp, "expected hit rate", "red", "--", "Hz")
             plotting.hline(acceptance_hit_rate * n_rp, "acceptence hit rate", "k", "--", "Hz")
             plotting.plt.legend()
+            plotting.add_metadata(test_args, int(total_hit_rate.index[0]))
             book.save()
 
         if not hit_rate_apa.empty:
@@ -410,6 +655,7 @@ def process_tp_info(data : dict[pd.DataFrame], out : str, readout_plane : Readou
             plotting.hline(expected_hit_rate, f"expected hit rate per {readout_plane.name}", "red", "--", "Hz")
             plotting.hline(acceptance_hit_rate, f"acceptence hit rate per {readout_plane.name}", "k", "--", "Hz")
             plotting.plt.legend()
+            plotting.add_metadata(test_args, int(hit_rate_apa[c].index[0]))
             book.save()
 
         if not tp_writer_info.empty:
@@ -418,6 +664,7 @@ def process_tp_info(data : dict[pd.DataFrame], out : str, readout_plane : Readou
             plotting.hline(expected_hit_rate * n_rp, "expected hit rate", "red", "--", "Hz")
             plotting.hline(acceptance_hit_rate * n_rp, "acceptence hit rate", "k", "--", "Hz")
             plotting.plt.legend()
+            plotting.add_metadata(test_args, int(tp_writer_info.index[0]))
             book.save()
 
             plotting.plot(times.relative_time(tp_writer_info), rp.tp_size * tp_writer_info[["TP Received", "TP written"]], ["received", "written"], "Time (s)", "Rate", autofmt = "b/s")
@@ -425,6 +672,7 @@ def process_tp_info(data : dict[pd.DataFrame], out : str, readout_plane : Readou
             plotting.hline(expected_hit_rate * n_rp * rp.tp_size, "expected hit rate", "red", "--", "b/s")
             plotting.hline(acceptance_hit_rate * n_rp * rp.tp_size, "acceptence hit rate", "k", "--", "b/s")
             plotting.plt.legend()
+            plotting.add_metadata(test_args, int(tp_writer_info.index[0]))
             book.save()
 
         plotting.bar(total_tp_drop_rates.index, total_tp_drop_rates.values, "", "Number of TPs", "TPs dropped", bar_label = True)
@@ -433,6 +681,7 @@ def process_tp_info(data : dict[pd.DataFrame], out : str, readout_plane : Readou
 
         if not tph_request_rates.empty:
             plotting.plot(times.relative_time(tph_request_rates), tph_request_rates.values, tph_request_rates.columns, "Time (s)", "Request Rates", autofmt = "Hz")
+            plotting.add_metadata(test_args, int(tph_request_rates.index[0]))
             book.save()
 
         if not tph_request_rates.empty:
@@ -440,11 +689,12 @@ def process_tp_info(data : dict[pd.DataFrame], out : str, readout_plane : Readou
             request_rate_percent = request_rate_percent.div(request_rate_percent["Total "], axis = 0)
             request_rate_percent.pop("Total ")
             plotting.bar(request_rate_percent.index, request_rate_percent, "Requst type", "Requests (%)", "Total number of requests", bar_label = True)
+            plotting.add_metadata(test_args, int(tph_request_rates.index[0]))
             book.save()
     return
 
 
-def process_frontend_info(data : dict[pd.DataFrame], out : str, readout_plane : ReadoutPlane):
+def process_frontend_info(data : dict[pd.DataFrame], out : str, readout_plane : ReadoutPlane, test_args : dict):
     """ Process frontend readout information and make plots.
 
     Args:
@@ -487,11 +737,13 @@ def process_frontend_info(data : dict[pd.DataFrame], out : str, readout_plane : 
         plotting.plot(times.relative_time(rx_throughput_apps), rx_throughput_apps, rx_throughput_apps.columns, "Time (s)", "RX throughput", autofmt = "B/s")
         plotting.hline(max_rate_per_stream * n_queues_per_app, "Acceptance data input", autofmt = "B/s", linestyle = "--")
         plotting.plt.legend()
+        plotting.add_metadata(test_args, int(rx_throughput_apps.index[0]))
         book.save()
 
         plotting.plot(times.relative_time(rx_throughput), rx_throughput, None, "Time (s)", "RX throughput", autofmt = "B/s")
         plotting.hline(max_rate_per_stream, "Acceptance data input", autofmt = "B/s", linestyle = "--")
         plotting.plt.legend()
+        plotting.add_metadata(test_args, int(rx_throughput_apps.index[0]))
         book.save()
 
         total_errors = {k : v.sum(axis=0) for k,v in rx_errors.items()}
@@ -499,21 +751,24 @@ def process_frontend_info(data : dict[pd.DataFrame], out : str, readout_plane : 
         for k, v in total_errors.items():
             plotting.bar(label, v.values, None, "Counts", k, bar_label = True)
             plotting.plt.ylim(0)
+            plotting.add_metadata(test_args, int(rx_throughput_apps.index[0]))
             book.save()
 
         total_dropped_frames = {f"{readout_plane.name} {i}" : v.sum().sum() for i, v in enumerate(rx_dropped_frames.values())}
         plotting.bar(list(total_dropped_frames.keys()), list(total_dropped_frames.values()), None, "Counts", "RX Dropped Frames", bar_label = True)
         plotting.plt.ylim(0)
+        plotting.add_metadata(test_args, int(rx_throughput_apps.index[0]))
         book.save()
 
         total_errors_dlh = {f"{readout_plane.name} {i}" : v.sum().sum() for i, v in enumerate(total_errors_dlh.values())}
         plotting.bar(list(total_errors_dlh.keys()), list(total_errors_dlh.values()), None, "Counts", "Errors from DLH", bar_label = True)
         plotting.plt.ylim(0)
+        plotting.add_metadata(test_args, int(rx_throughput_apps.index[0]))
         book.save()
     return
 
 
-def process_readout_info(data : dict[pd.DataFrame], out : str):
+def process_readout_info(data : dict[pd.DataFrame], out : str, test_args : dict):
     """ Process frontend readout information and make plots.
 
     Args:
@@ -529,19 +784,24 @@ def process_readout_info(data : dict[pd.DataFrame], out : str):
 
     with plotting.PlotBook(out + "re_plots") as book:
         plotting.plot(times.relative_time(request_rates_total), request_rates_total, request_rates_total.columns, "Time (s)", "request rate (Hz)")
+        plotting.add_metadata(test_args, int(request_rates_total.index[0]))
         book.save()
 
         plotting.bar(request_rates_total.columns, request_rates_total.sum(axis=0), "", "Total requests", rotation = 30)
+        plotting.add_metadata(test_args, int(request_rates_total.index[0]))
         book.save()
 
         plotting.bar(request_rates_total.columns, request_rates_total.mean(axis=0), "", "Average request rate (Hz)", rotation = 30)
+        plotting.add_metadata(test_args, int(request_rates_total.index[0]))
         book.save()
 
         plotting.bar(request_rates_total.columns, request_rates_total.mean(axis=0) // len(mean_request_rate_dlh.columns), "", "Average request rate (Hz)", rotation = 30)
+        plotting.add_metadata(test_args, int(request_rates_total.index[0]))
         book.save()
     return
 
-def process_daq_overview_info(data : dict[pd.DataFrame], out : str):
+
+def process_daq_overview_info(data : dict[pd.DataFrame], out : str, test_args : dict):
     """ Process daq overview information and make plots.
 
     Args:
@@ -554,7 +814,7 @@ def process_daq_overview_info(data : dict[pd.DataFrame], out : str):
     with plotting.PlotBook(out + "ov_plots") as book:
         total_count = global_trigger_rate.pop("Total count")
         plotting.plot(times.relative_time(global_trigger_rate), global_trigger_rate, global_trigger_rate.columns, "Time (s)", "Global Trigger Rate", autofmt = "Hz")
-        plotting.plt.legend(ncols = 2, loc = "upper left")
+        plotting.plt.legend(ncols = 2, loc = "upper left", fontsize="x-small")
         plotting.plt.gca().grid(False)
         lim = plotting.plt.gca().get_ylim()
         plotting.plt.ylim(min(lim), 1.2 * max(lim))
@@ -563,22 +823,24 @@ def process_daq_overview_info(data : dict[pd.DataFrame], out : str):
         ax_total.plot(times.relative_time(global_trigger_rate), total_count, linestyle = "--", color = f"C{len(global_trigger_rate.columns)}", label = "Total triggers", zorder = -1)
         ax_total.set_ylabel("Total count")
         ax_total.grid(False)
-        plotting.plt.legend(loc = "upper right")
+        plotting.plt.legend(loc = "upper right", fontsize="x-small")
 
         lim = plotting.plt.gca().get_ylim()
         plotting.plt.ylim(min(lim), 1.2 * max(lim))
+        plotting.add_metadata(test_args, int(global_trigger_rate.index[0]))
         book.save()
 
         plotting.plot(times.relative_time(global_trigger_rate), global_trigger_rate, global_trigger_rate.columns, "Time (s)", "Global Trigger Rate", autofmt = "Hz")
         lim = plotting.plt.gca().get_ylim()
         plotting.plt.ylim(min(lim), 1.2 * max(lim))
+        plotting.add_metadata(test_args, int(global_trigger_rate.index[0]))
         book.save()
 
-
         plotting.plot(times.relative_time(dataflow_written_rate), dataflow_written_rate, dataflow_written_rate.columns, "Time (s)", "Data written by Dataflow", autofmt = "B/s")
-        plotting.plt.legend(ncols = 2)
+        plotting.plt.legend(ncols = 2, fontsize="x-small")
         lim = plotting.plt.gca().get_ylim()
         plotting.plt.ylim(min(lim), 1.2 * max(lim))
+        plotting.add_metadata(test_args, int(global_trigger_rate.index[0]))
         book.save()
     return
 
@@ -599,8 +861,12 @@ def analyse_data(test_args : dict):
     tr = time_range(*test_args["time_range"])
 
     data = {}
-    for d in ["node-exporter", "trigger_primitives", "frontend_ethernet", "readout", "overview"]:
-        data[d] = times.slice_time_range(files.read_hdf5(search_file(data_files, d)), tr)
+    for d in ["node-exporter", "trigger_primitives", "frontend_ethernet", "readout", "overview", "A_CvwTCWk", "uprof-pcm"]:
+        file = search_file(data_files,d+"-")
+        if file:
+            data[d] = times.slice_time_range(files.read_hdf5(file), tr)
+        else:
+            data[d] = None
 
     if test_args["plot_path"]:
         out = test_args["plot_path"] + "analysis/"
@@ -617,20 +883,21 @@ def analyse_data(test_args : dict):
         print(f"cannot infer readout plane type based on data_source: {test_args['data_source']}, default to APA.")
         readout_plane = ReadoutPlane.APA
 
-    # ru = search_file(data_files, "A_CvwTCWk")
-    # data = files.read_hdf5(ru)
-    process_cpu_info(data["node-exporter"], out, pinning_file = pinning_file)
+    process_cache_info(data["A_CvwTCWk"], data["uprof-pcm"], out, test_args)
 
-    process_disk_info(data["node-exporter"], out, readout_plane)
+    process_cpu_info(data["node-exporter"], out, test_args, pinning_file = pinning_file)
 
-    for func in [process_memory_info, process_network_info]:
-        func(data["node-exporter"], out)
+    process_disk_info(data["node-exporter"], out, readout_plane, test_args)
+
+    process_memory_info(data["node-exporter"], data["A_CvwTCWk"], data["uprof-pcm"], out, test_args["host"], test_args)
+
+    process_network_info(data["node-exporter"], out, test_args)
 
     for d, func in zip(["trigger_primitives", "frontend_ethernet"], [process_tp_info, process_frontend_info]):
-        func(data[d], out, readout_plane)
+        func(data[d], out, readout_plane, test_args)
 
     for d, func in zip(["readout", "overview"], [process_readout_info, process_daq_overview_info]):
-        func(data[d], out)
+        func(data[d], out, test_args)
     return
 
 

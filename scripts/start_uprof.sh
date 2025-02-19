@@ -8,23 +8,30 @@
 # Description: Run AMD uProf monitoring
 ###
 
-if [ $# -ne 3 ]; then
-  echo "Usage: ./start_uprof.sh <output_directory> <test_name> <duration in seconds>"
+if [ $# -ne 2 ]; then
+  echo "Usage: ./start_uprof.sh <test_name> <duration in seconds>"
   exit 2
 fi
 
-output_dir=$1
-test_name=$2
-duration=$3
-
-# cpu core utilization monitoring at 60 second intervals
-sar -P ALL 60 75 >> $output_dir/$test_name/core_utilization-${test_name}.csv &
+test_name=$1
+duration=$2
 
 echo "start uprof monitoring"
-/opt/AMDuProf_*/bin/AMDuProfPcm -a -s -d $duration -t 2500 -m memory,ipc,l1,l2,l3 -A package -k -o $output_dir/$test_name/uprof-${test_name}.csv &
-/opt/AMDuProf_*/bin/AMDuProfCLI-bin timechart --event power --interval 15000 --duration $duration -o $output_dir/$test_name 
+/opt/AMDuProf_*/bin/AMDuProfPcm -a -s -d $duration -t 1000 -m memory,ipc,l1,l2,l3 -A package -k -q -o uprof-${test_name}.csv &
+PCM_ID=$(echo $!)
 
-cd $output_dir/$test_name/AMDuProf-SWP-Timechart_*/
-mv timechart.csv ../timechart-${test_name}.csv
+/opt/AMDuProf_*/bin/AMDuProfCLI-bin timechart --event power --interval 1000 --duration $duration -o /tmp/$test_name
+CLI_ID=$(echo $!)
 
-cd ../
+wait $PCM_ID
+wait $CLI_ID
+
+echo "done."
+
+cat uprof-${test_name}.csv /tmp/$test_name/AMDuProf-SWP-Timechart_*/timechart.csv > uprof-${test_name}-merged.csv
+
+# clean up files
+rm -rf uprof-${test_name}.csv
+rm -rf /tmp/$test_name
+
+echo "uprof outputs located in" uprof-${test_name}.csv

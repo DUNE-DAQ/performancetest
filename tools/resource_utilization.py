@@ -102,7 +102,8 @@ def resource_utilization(args : dict, display : bool = False):
 
     fp = {
         "ru" : search_hdf5("A_CvwTCWk", args["data_path"]),
-        "ne" : search_hdf5("node-exporter", args["data_path"])
+        "ne" : search_hdf5("node-exporter", args["data_path"]),
+        "amd" : search_hdf5("uprof", args["data_path"])
     }
 
     data = {}
@@ -115,7 +116,8 @@ def resource_utilization(args : dict, display : bool = False):
 
     if "ru" in data:
         memory_info = []
-        for k in data["ru"].keys():
+        for k in data["ru"]:
+            if data["ru"][k].empty: continue
             if "Memory Bandwidth (MByte per sec)" in k:
                 memory_info.append(k)
 
@@ -125,9 +127,16 @@ def resource_utilization(args : dict, display : bool = False):
 
     if "ne" in data:
         for k in data["ne"]:
+            if data["ne"][k].empty: continue
             if ("(%)" in k) or ("Network" in k) or ("Softnet" in k) or ("Disk") in k:
                 keys.append(k)
                 values[k] = data["ne"][k]
+
+    if "amd" in data:
+        for k in data["amd"]:
+            if data["amd"][k].empty: continue
+            keys.append(k)
+            values[k] = data["amd"][k].to_frame()
 
     plotter = ru_plotter(keys, values)
 

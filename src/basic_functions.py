@@ -14,6 +14,7 @@ import struct
 import pandas as pd
 
 from datetime import datetime as dt
+import times
 
 from rich import print
 
@@ -224,7 +225,7 @@ def uprof_timechart_formatter(input_dir, file):
         # get & reformat full date
         if 'Profile Start Time:' in line:
             full_date = line.split(',')[1]
-            month = month2num(full_date[0:3])
+            month = times.month2num(full_date[0:3])
             date = int(full_date[4:6])
             year = int(full_date[7:11])
             full_date_new = f'{year}-{month:02d}-{date:02d}'
@@ -248,11 +249,6 @@ def uprof_timechart_formatter(input_dir, file):
 
     f.close()
     f_new.close()
-
-
-def month2num(month_str):
-    months = {'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4, 'May': 5, 'Jun': 6, 'Jul': 7, 'Aug': 8, 'Sep': 9, 'Oct': 10, 'Nov': 11, 'Dec': 12}
-    return months[month_str] if month_str in months else print('Warning: invalid month')
 
 
 def combine_time_and_uprof_files(input_dir, time_file, uprof_file):
