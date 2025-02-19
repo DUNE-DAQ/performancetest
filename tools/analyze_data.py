@@ -43,22 +43,155 @@ readout_plane_values = {
     ReadoutPlane.CRP : ReadoutPlaneValues(num_channels = 3072, adc_sampling_rate = 1.953125E6, adc_size = 14, num_rp_fd = 160, snb_readout_time = 100, readout_window = 4.25, tp_rate = [100, 500], tp_size = 384, max_disk_write = 12, num_wibs = 6, num_nics = 8),
 }
 
-def cache_info_Intel(df : pd.DataFrame):
+def memory_bw_info_AMD(df : pd.DataFrame) -> pd.DataFrame:
+    """ Retreive and format memory bandwidth utilization for AMD servers.
+
+    Args:
+        df (pd.DataFrame): uProf data.
+
+    Returns:
+        pd.DataFrame: Memory bandwidth data.
+    """
+    mem_data = df.filter(regex = "(?=.*Total Mem)") * 1E9 # get memory per socket (exclude per DIMM)
+
+    new_columns = {}
+    for i in mem_data.columns:
+        new = i.replace("Total Mem ", "").replace("RdBw", "Read").replace("WrBw", "Write").replace("Bw", "Read + Write") # format column names
+        new = new.split(" (")[0] + new.split(")")[-1] # remove units (added in y label later)
+        new_columns[i] = new
+
+    mem_data = mem_data.rename(columns = new_columns)
+    return mem_data
+
+
+def memory_bw_info_Intel(df : pd.DataFrame) -> pd.DataFrame:
+    """ Retreive and format memory bandwidth utilization for Intel servers.
+
+    Args:
+        df (pd.DataFrame): pcm data.
+
+    Returns:
+        pd.DataFrame: Memory bandwidth data.
+    """
+    mem_data = utils.search_dict(df, "(?=.*Mem)(?=.*MByte)") # get bandwidth with known units
+    mem_data = {k : v.filter(regex = "^(?!.*Total)^(?!.*Persistent)") * 1E6 for k, v in mem_data.items()} # will not keep socket 0 + 1 bandwidth (provided by node exporter)
+
+    mem_data_rw = list(utils.search_dict(mem_data, "^(?!.*Current)").values())[0] # get read + write bandwidth per socket
+    mem_data_rw = mem_data_rw.rename(columns = lambda x: f"Read + Write {x}")
+    mem_data = utils.search_dict(mem_data, "(?=.*Current)") # get read and write bandwidth separately per socket
+
+    # restructure data into single dataframe
+    fmt_df = []
+    for k, v in mem_data.items():
+        socket = "Socket"+k.split("Socket")[-1].split(" ")[0]
+        fmt_df.append(v.rename(columns=lambda x: x.replace("DRAM Reads", f"Read {socket}")).rename(columns=lambda x: x.replace("DRAM Writes", f"Write {socket}")))
+    return pd.concat(fmt_df + [mem_data_rw], axis = 1)
+
+
+def calculate_maximum_memory_bw(host : str) -> float:
+    """ Calculate the maximum available memory bandwidth per socket.
+        Assumes that the DIMMs are all the same, there are an equal number of DIMMs per socket. 
+        #* memory speed(T/s)/2 * bytes of width * nchannels available / number of sockets (assuming uniform allocation)
+        https://www.intel.com/content/www/us/en/support/articles/000056722/processors/intel-core-processors.html
+
+    Args:
+        host (str): host machine.
+
+    Returns:
+        float: calculated maximum bandwidth.
+    """
+    #! This should use prestored hardware maps if possible
+    cmd = f'ssh {os.environ["USER"]}@{host} sudo dmidecode -t memory | grep -E "Data Width|Memory Speed"' # use dmidecode to get the memory information
+    out = str(shell.run(cmd, capture = True).stdout, "utf-8").replace("\\t", "").splitlines()
+
+    cmd = f'ssh {os.environ["USER"]}@{host} sudo dmidecode -t processor | grep "Socket Designation"' # also calculate the number of sockets on the machine
+    n_sockets = len(str(shell.run(cmd, capture = True).stdout, "utf-8").replace("\\t", "").splitlines())
+
+    n_channels = len([i for i in out if "Memory" in i])//2 # only installed DIMMs will have a memory speed registered
+
+    for i in out:
+        if "Width" in i and "Unknown" not in i:
+            width = int(utils.re.sub(r'[^\d]+', '', i))//8
+        if "Memory" in i:
+            speed = int(utils.re.sub(r'[^\d]+', '', i))/2
+
+    return 1E6 * width * speed * n_channels / n_sockets # in units of B/s
+
+
+def process_memory_info(ne : pd.DataFrame, intel : pd.DataFrame | None, amd : pd.DataFrame | None, out : str, host : str):
+    """ Process metrics for system memory and plot them.
+
+    Args:
+        ne (pd.DataFrame): Node exporter data.
+        intel (pd.DataFrame | None): Intel pcm data.
+        amd (pd.DataFrame | None): AMD uProf data.
+        out (str): Output plot directory.
+        host (str): Host machine name.
+    """
+    intel_data = None
+    amd_data = None
+    if intel is not None:
+        if all([i.empty for i in utils.search_dict(intel, f"(?=Mem)").values()]):
+            print("no Intel PCM data captured")
+        else:
+            intel_data = memory_bw_info_Intel(intel)
+    
+    if amd is not None: # does not need as much careful chekcing as uprof is optional in the metrics logging
+        amd_data = memory_bw_info_AMD(amd)
+
+
+    with plotting.PlotBook(out + "memory_plots.pdf") as book:
+
+        mem_usg = ne["Memory Usage (%)"]
+        if mem_usg.empty:
+            print("Warning : no system memory information was found.")
+        else:
+            tlabel = "Relative time (s)"
+            plotting.plot(times.relative_time(mem_usg), mem_usg, None, tlabel, "Memory Usage (%)")
+            plotting.plt.axhline(80, color = "k", linestyle = "--")
+            plotting.plt.ylim(0, 100)
+            book.save()
+
+        for i in [intel_data, amd_data]:
+            if i is None: continue
+            bw = calculate_maximum_memory_bw(host)
+
+            plotting.plot(times.relative_time(i), i, i.columns, "Relative time (s)", "Memory bandwidth Usage", autofmt = "B/s")
+            plotting.hline(bw, label = "maximum bandwidth", autofmt = "B/s")
+            plotting.plt.legend(fontsize = "x-small")
+            book.save()
+
+            plotting.plot(times.relative_time(i), 100 * i/bw, i.columns, "Relative time (s)", "Memory bandwidth Usage (%)")
+            plotting.plt.legend(fontsize = "x-small")
+            book.save()
+    return
+
+
+def cache_info_Intel(df : pd.DataFrame) -> list[dict]:
+    """ Retrieve L2 and L3 accesses (hits and misses) and calculate percentages for Intel servers.
+
+    Args:
+        df (pd.DataFrame): pcm data.
+
+    Returns:
+        list[dict]: L2/3 access counts and access percentages.
+    """
     access = {}
     access_percent = {}
 
     for i in [2, 3]:
-        cache_data = utils.search_dict(df, f"(?=L{i})")
-        acc = utils.search_dict(cache_data, f"(?=.*Million)")
+        cache_data = utils.search_dict(df, f"(?=L{i})") # get the cache data
+        acc = utils.search_dict(cache_data, f"(?=.*Million)") # get the access counts
 
         for k, v in acc.items():
             for t in ["Miss", "Hit"]:
                 if t in k:
-                    tmp = acc[k].filter(regex = "^(?!.*Total)")
+                    tmp = acc[k].filter(regex = "^(?!.*Total)") # dont keep total counts (sum of sockets) 
                     acc[k] = tmp.rename(columns = {c : f"{t} {c}" for c in v.columns})
 
         acc = pd.concat(list(acc.values()), axis = 1) * 1E6
 
+        # get access counts in percentages
         n_sockets = len(acc.columns)//2 # better way of doing this
         acc_perc = []
         for j in range(n_sockets):
@@ -73,8 +206,16 @@ def cache_info_Intel(df : pd.DataFrame):
 
 
 def cache_info_AMD(df : pd.DataFrame) -> list[pd.DataFrame]:
-    accesses = {}
-    accesses_percent = {}
+    """ Retrieve L2 and L3 accesses (hits and misses) and calculate percentages for AMD servers.
+
+    Args:
+        df (pd.DataFrame): uProf data.
+
+    Returns:
+        list[dict]: L2/3 access counts and access percentages.
+    """
+    access = {}
+    access_percent = {}
 
     def renamer(a,b): # way to replace column names in pandas without mapping
         return lambda x: x.replace(a,b)
@@ -86,12 +227,12 @@ def cache_info_AMD(df : pd.DataFrame) -> list[pd.DataFrame]:
         miss = cache_data.filter(regex = "(?!.*Latency)(?!.*%)(?=Miss)") # get the missed counts
         hit = total.rename(columns = renamer("Access","Hit")) - miss.rename(columns = renamer("Miss", "Hit")) # calculate hits from total - miss
         
-        accesses[i] = pd.concat([miss, hit], axis=1).rename(columns = renamer(f"L{i} ", "")) # keep hits and miss, rename columns to appropriate plot labels
+        access[i] = pd.concat([miss, hit], axis=1).rename(columns = renamer(f"L{i} ", "")) # keep hits and miss, rename columns to appropriate plot labels
 
-        if "(pti)" in accesses[i].columns[0]: # convert per thousand counts to just counts
-            accesses[i] *= 1000
-            accesses[i].rename(columns = renamer("(pti) ", ""), inplace = True)
-        accesses[i] = accesses[i].reindex(sorted(accesses[i].columns), axis=1)
+        if "(pti)" in access[i].columns[0]: # convert per thousand counts to just counts
+            access[i] *= 1000
+            access[i].rename(columns = renamer("(pti) ", ""), inplace = True)
+        access[i] = access[i].reindex(sorted(access[i].columns), axis=1)
 
         miss_percent = cache_data.filter(regex = "Miss %") # get the miss percentage if exists
         miss_percent = miss_percent.rename(columns = renamer("% ", ""))
@@ -100,13 +241,20 @@ def cache_info_AMD(df : pd.DataFrame) -> list[pd.DataFrame]:
             miss_percent.rename(columns = renamer("(pti) ", ""), inplace = True)
 
         hit_percent = 100 - miss_percent.rename(columns = renamer("Miss", "Hit")) # get hit percent
-        accesses_percent[i] = pd.concat([miss_percent, hit_percent], axis=1).rename(columns = renamer(f"L{i} ", ""))
-        accesses_percent[i] = accesses_percent[i].reindex(sorted(accesses_percent[i].columns), axis=1)
+        access_percent[i] = pd.concat([miss_percent, hit_percent], axis=1).rename(columns = renamer(f"L{i} ", ""))
+        access_percent[i] = access_percent[i].reindex(sorted(access_percent[i].columns), axis=1)
 
-    return accesses, accesses_percent
+    return access, access_percent
 
 
-def process_cache_info(intel : pd.DataFrame, amd : pd.DataFrame):
+def process_cache_info(intel : pd.DataFrame | None, amd : pd.DataFrame | None, out : str):
+    """ Process L2 and L3 cache info for either AMD or Intel servers and plot them.
+
+    Args:
+        intel (pd.DataFrame | None): pcm data.
+        amd (pd.DataFrame | None): uProf data.
+        out (str): Output plot directory.
+    """
     intel_data = None
     amd_data = None
     if intel is not None:
@@ -119,7 +267,7 @@ def process_cache_info(intel : pd.DataFrame, amd : pd.DataFrame):
         amd_data = cache_info_AMD(amd)
 
 
-    with plotting.PlotBook("cache.pdf") as book:
+    with plotting.PlotBook(out + "cache_plots.pdf") as book:
         for i in [intel_data, amd_data]:
             if i is None: continue
             acc = i[0]
@@ -427,27 +575,6 @@ def process_network_info(data : dict[pd.DataFrame], out : str):
     return
 
 
-def process_memory_info(data : dict[pd.DataFrame], out : str):
-    """ Process system memory information and make plots.
-
-    Args:
-        data (dict[pd.DataFrame]): node exporter data.
-        out (str): output file diretory.
-    """
-    time = data["Memory Usage (%)"].index.astype(int)
-    if time.empty:
-        print("Warning : no system memory information was found.")
-        return
-    time = time - time[0]
-    tlabel = "Relative time (s)"
-    with plotting.PlotBook(out + "memory_plots.pdf") as book:
-        plotting.plot(time, data["Memory Usage (%)"], None, tlabel, "Memory Usage (%)")
-        plotting.plt.axhline(80, color = "k", linestyle = "--")
-        plotting.plt.ylim(0, 100)
-        book.save()
-    return
-
-
 def process_tp_info(data : dict[pd.DataFrame], out : str, readout_plane : ReadoutPlane):
     """ Process TP information from a given run.
 
@@ -689,7 +816,7 @@ def analyse_data(test_args : dict):
 
     data = {}
     for d in ["node-exporter", "trigger_primitives", "frontend_ethernet", "readout", "overview", "A_CvwTCWk", "uprof"]:
-        file = search_file(data_files,d)
+        file = search_file(data_files,d+"-")
         if file:
             data[d] = times.slice_time_range(files.read_hdf5(file), tr)
         else:
@@ -710,14 +837,15 @@ def analyse_data(test_args : dict):
         print(f"cannot infer readout plane type based on data_source: {test_args['data_source']}, default to APA.")
         readout_plane = ReadoutPlane.APA
 
-    process_cache_info(data["A_CvwTCWk"], data["uprof"])
+    process_cache_info(data["A_CvwTCWk"], data["uprof"], out)
 
     process_cpu_info(data["node-exporter"], out, pinning_file = pinning_file)
 
     process_disk_info(data["node-exporter"], out, readout_plane)
 
-    for func in [process_memory_info, process_network_info]:
-        func(data["node-exporter"], out)
+    process_memory_info(data["node-exporter"], data["A_CvwTCWk"], data["uprof"], out, test_args["host"])
+
+    process_network_info(data["node-exporter"], out)
 
     for d, func in zip(["trigger_primitives", "frontend_ethernet"], [process_tp_info, process_frontend_info]):
         func(data[d], out, readout_plane)

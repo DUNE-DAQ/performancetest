@@ -157,7 +157,7 @@ def plot(x, y, label : str, xlabel : str, ylabel : str, newFigure : bool = True,
 
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
-    if label is not None: plt.legend()
+    if label is not None: plt.legend(fontsize="x-small")
     plt.tight_layout()
 
     if book is not None:
