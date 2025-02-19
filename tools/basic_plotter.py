@@ -69,7 +69,7 @@ def plot(args : argparse.Namespace, display : bool = False):
     dashboard_config = files.load_json(f"{os.environ['PERFORMANCE_TEST_PATH']}/config/dashboard_info.json")
 
     hdf_files = {}
-    for n in dashboard_config["dashboard_uid"] + ["uprof", "node-exporter"]:
+    for n in dashboard_config["dashboard_uid"] + ["uprof-pcm", "uprof-power", "node-exporter"]:
         hdf_files[n] = search_hdf5(n, args["data_path"])
 
     for f in hdf_files:

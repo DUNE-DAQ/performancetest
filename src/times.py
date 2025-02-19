@@ -13,6 +13,21 @@ import numpy as np
 
 time_range = namedtuple("time_range", ["start", "end"])
 
+
+def month2num(month : str) -> int:
+    """ Convert a Month in text to number.
+        Matthew Man (University of Toronto), Danaisis Vargas Oliva (University of Toronto)
+
+    Args:
+        month (str): Month in text form.
+
+    Returns:
+        int: Month number.
+    """
+    months = {'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4, 'May': 5, 'Jun': 6, 'Jul': 7, 'Aug': 8, 'Sep': 9, 'Oct': 10, 'Nov': 11, 'Dec': 12}
+    return months[month] if month in months else print('Warning: invalid month')
+
+
 def get_unix_timestamp(time : str) -> int:
     """ Convert date time into unix timestamp.
         Matthew Man (University of Toronto), Danaisis Vargas Oliva (University of Toronto)

@@ -111,14 +111,13 @@ To run each step by hand, you can run:
 
 ```[bash]
 collect_metrics.py -f <path of your json file>
-
-frontend_ethernet.py -f <path of your json file>
-resource_utlization.py -f <path of your json file>
-tp_metrics.py -f <path of your json file>
+basic_plotter.py -f <path of your json file> 
 analyze_data.py -f <path of your json file>
 ```
 
-The first command retrives data from the grafana dashboards (daq_overview, frontent_ethernet, trigger_primitives, intel PCM) and stores the data to hdf5 files. In addition, the a new entry is added to the json file called the `data_path` that is the path all files produced are kept. The others generate relavent plots from the stored data and writes them to file (in `data_path`). Finally, to generate the report:
+The first command retrives data from the grafana dashboards (daq_overview, frontent_ethernet, trigger_primitives, intel PCM) and stores the data to hdf5 files. In addition, the a new entry is added to the json file called the `data_path` that is the path all files produced are kept. The second will make simple plots of the metrics captured intended for initial assessment, while the final script performs more detailed analysis and makes more comprehensive plots. All the created files and data is kept in `out_path`.
+
+Finally, to generate the report:
 
 ```[bash]
 performance_report.py -f <path of your json file>
@@ -127,6 +126,20 @@ performance_report.py -f <path of your json file>
 which creates a pdf document of the performance report, based off the template design.
 
 Note that when you are done you shold also move the json file to the `data_path` **TODO: automatically copy the configuration to the data_path**
+
+### AMD hardware counters
+
+To add AMD hardware counters to the performance test workflow, first one must run the uprof software **during** a given test, by running the following:
+
+`sudo $PERFORMANCE_TEST_PATH/scripts/start_uprof.sh <test_name> <duration_seconds>`
+
+to run the pcm and power profiling tools for a set time. Next in the test configuration json file the optional parameter:
+
+```[json]
+"uprof_file": "path to your uprof csv file",
+```
+
+can be added. Then, the performance test tools above can be re-ran to process this csv file along with the dashboard data, which is included in the performance report. Note if not running the tools from scratch, you can add the `--regen` option to redo the data harvesting (required if you add the uprof csv file to an existing test workflow.)
 
 ### Micro Service
 

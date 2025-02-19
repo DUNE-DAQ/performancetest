@@ -643,73 +643,107 @@ def uprof_to_df(file : str) -> pd.DataFrame:
     Returns:
         pd.DataFrame: Formatted data.
     """
-    formatted = []
+    formatted = {"pcm" : [], "power" : []}
 
+    timechart = False
+    timechart_header = True
     with open(file, 'r') as f:
         for line in f:
-            # extract initial time
-            if 'Profile Time:' in line:
-                full_date = line[14:-1]
-                full_date = full_date.replace('/', '-')
-                msec0 = int(full_date[20:23])
-                sec0  = int(full_date[17:19])
-                min0  = int(full_date[14:16])
-                hour0 = int(full_date[11:13])
-                day0  = int(full_date[8:10])
-            
-            # append package numbers to headers,
-            if 'Package' in line:
-                header1 = line.split(',')
-            if 'Timestamp' in line:
-                header2 = line.split(',')[1:]
-
-                package_num = '0'
-                header_new = ['Timestamp']
-                for package,header in zip(header1,header2):
-                    if (package=='\n') or (header=='\n'):
-                        header_new += ['CPU Utilization']
-                        header_new_str = ','.join(header_new)
-                        formatted.append(header_new_str)
-                    if 'Package' in package:
-                        package_num = package[-1]
-                    header_new += [header+' Socket' + package_num]
-
-            # generate full timestamps
-            if re.search('..:..:..:...,', line):
-                msec_n_old = int(line[9:12])
-                sec_n_old = int(line[6:8])
-                min_n_old = int(line[3:5])
-                hour_n_old = int(line[0:2])
+            if "AMDPROFILER POWER PROFILE REPORT" in line: timechart = True
+            if not timechart:
+                #* pcm stats
+                # extract initial time
+                if 'Profile Time:' in line:
+                    full_date = line[14:-1]
+                    full_date = full_date.replace('/', '-')
+                    msec0 = int(full_date[20:23])
+                    sec0  = int(full_date[17:19])
+                    min0  = int(full_date[14:16])
+                    hour0 = int(full_date[11:13])
+                    day0  = int(full_date[8:10])
                 
-                msec_n = (msec_n_old + msec0) % 1000
-                msec_carryover = (msec_n_old + msec0) // 1000
-                sec_n  = (sec_n_old + sec0 + msec_carryover) % 60
-                sec_carryover  = (sec_n_old + sec0 + msec_carryover) // 60
-                min_n  = (min_n_old + min0 + sec_carryover) % 60
-                min_carryover = (min_n_old + min0 + sec_carryover) // 60
-                hour_n = (hour_n_old + hour0 + min_carryover) % 24
-                hour_carryover = (hour_n_old + hour0 + min_carryover) // 24
-                day_n  = (day0 + hour_carryover)
-                date_n = f'{full_date[0:7]}-{day_n:02d} {hour_n:02d}:{min_n:02d}:{sec_n:02d}'
-                line_n = re.sub('..:..:..:...', date_n, line)
-                line_list = line_n.split(',')
+                # append package numbers to headers,
+                if 'Package' in line:
+                    header1 = line.split(',')
+                if 'Timestamp' in line:
+                    header2 = line.split(',')[1:]
 
-                # CPU Utilization
-                cpu_utiliz = float(line_list[1]) + float(line_list[22])
-                cpu_utiliz = str(round(cpu_utiliz, 2))
-                line_list[-1] = cpu_utiliz
-                # line_list.append('\n')
-                line_n = ','.join(line_list)
-                formatted.append(line_n)
+                    package_num = '0'
+                    header_new = ['Timestamp']
+                    for package,header in zip(header1,header2):
+                        if (package=='\n') or (header=='\n'):
+                            header_new += ['CPU Utilization']
+                            header_new_str = ','.join(header_new)
+                            formatted["pcm"].append(header_new_str)
+                        if 'Package' in package:
+                            package_num = package[-1]
+                        header_new += [header+' Socket' + package_num]
 
-    df = []
-    for f in formatted:
-        df.append(f.split(","))
-    df = pd.DataFrame(df[1:], columns = df[0])
-    df.set_index("Timestamp", inplace = True)
-    ut = times.dt_to_unix_array(df.index)
-    df = df.set_index(ut)
-    return df.astype("float")
+                # generate full timestamps
+                if re.search('..:..:..:...,', line):
+                    msec_n_old = int(line[9:12])
+                    sec_n_old = int(line[6:8])
+                    min_n_old = int(line[3:5])
+                    hour_n_old = int(line[0:2])
+                    
+                    msec_n = (msec_n_old + msec0) % 1000
+                    msec_carryover = (msec_n_old + msec0) // 1000
+                    sec_n  = (sec_n_old + sec0 + msec_carryover) % 60
+                    sec_carryover  = (sec_n_old + sec0 + msec_carryover) // 60
+                    min_n  = (min_n_old + min0 + sec_carryover) % 60
+                    min_carryover = (min_n_old + min0 + sec_carryover) // 60
+                    hour_n = (hour_n_old + hour0 + min_carryover) % 24
+                    hour_carryover = (hour_n_old + hour0 + min_carryover) // 24
+                    day_n  = (day0 + hour_carryover)
+                    date_n = f'{full_date[0:7]}-{day_n:02d} {hour_n:02d}:{min_n:02d}:{sec_n:02d}'
+                    line_n = re.sub('..:..:..:...', date_n, line)
+                    line_list = line_n.split(',')
+
+                    # CPU Utilization
+                    cpu_utiliz = float(line_list[1]) + float(line_list[22])
+                    cpu_utiliz = str(round(cpu_utiliz, 2))
+                    line_list[-1] = cpu_utiliz
+                    # line_list.append('\n')
+                    line_n = ','.join(line_list)
+                    formatted["pcm"].append(line_n)
+            else:
+                #* timechart parsing for power stats
+                # get & reformat full date
+                if 'Profile Start Time:' in line:
+                    full_date = line.split(',')[1]
+                    month = times.month2num(full_date[0:3])
+                    date = int(full_date[4:6])
+                    year = int(full_date[7:11])
+                    full_date_new = f'{year}-{month:02d}-{date:02d}'
+
+                # Reformat timestamps
+                if not timechart_header:
+                    timestamp_n = line.split(',')[1]
+                    timestamp_n = timestamp_n.split(':')
+                    hour_n = int(timestamp_n[0])
+                    min_n = int(timestamp_n[1])
+                    sec_n = int(timestamp_n[2])
+                    date_n = f',{full_date_new} {hour_n:02d}:{min_n:02d}:{sec_n:02d},'
+
+                    line_n = re.sub(',.*:.*:.*:...,', date_n, line)
+                    formatted["power"].append(line_n)
+
+                # header=False indicates next line is data
+                if 'Timestamp' in line:
+                    timechart_header = False
+                    formatted["power"].append(line)
+
+    df = {k : [] for k in formatted}
+    for k, v in formatted.items():
+        for f in v:
+            df[k].append(f.split(","))
+
+    for k, v in df.items():
+        df[k] = pd.DataFrame(v[1:], columns=v[0])        
+        df[k].set_index("Timestamp", inplace = True)
+        df[k] = df[k].set_index(times.dt_to_unix_array(df[k].index))
+        df[k] = df[k].astype(float)
+    return df
 
 
 def extract_uprof_data(uprof_output : str, output_file : str, out_dir : str):
@@ -721,7 +755,8 @@ def extract_uprof_data(uprof_output : str, output_file : str, out_dir : str):
         out_dir (str): Output diretory.
     """
     df = uprof_to_df(uprof_output)
-
-    output = str(out_dir) + f"uprof-{output_file}.hdf5"
-    df.to_hdf(output, key = "df")
+    for k, v in df.items():
+        output = str(out_dir) + f"uprof-{k}-{output_file}.hdf5"
+        v.to_hdf(output, key = "df")
+        print(f'Data saved to HDF5 successfully: {output}')
     return

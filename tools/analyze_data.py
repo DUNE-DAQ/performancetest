@@ -815,7 +815,7 @@ def analyse_data(test_args : dict):
     tr = time_range(*test_args["time_range"])
 
     data = {}
-    for d in ["node-exporter", "trigger_primitives", "frontend_ethernet", "readout", "overview", "A_CvwTCWk", "uprof"]:
+    for d in ["node-exporter", "trigger_primitives", "frontend_ethernet", "readout", "overview", "A_CvwTCWk", "uprof-pcm"]:
         file = search_file(data_files,d+"-")
         if file:
             data[d] = times.slice_time_range(files.read_hdf5(file), tr)
@@ -837,13 +837,13 @@ def analyse_data(test_args : dict):
         print(f"cannot infer readout plane type based on data_source: {test_args['data_source']}, default to APA.")
         readout_plane = ReadoutPlane.APA
 
-    process_cache_info(data["A_CvwTCWk"], data["uprof"], out)
+    process_cache_info(data["A_CvwTCWk"], data["uprof-pcm"], out)
 
     process_cpu_info(data["node-exporter"], out, pinning_file = pinning_file)
 
     process_disk_info(data["node-exporter"], out, readout_plane)
 
-    process_memory_info(data["node-exporter"], data["A_CvwTCWk"], data["uprof"], out, test_args["host"])
+    process_memory_info(data["node-exporter"], data["A_CvwTCWk"], data["uprof-pcm"], out, test_args["host"])
 
     process_network_info(data["node-exporter"], out)
 
