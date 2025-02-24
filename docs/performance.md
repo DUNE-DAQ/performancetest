@@ -32,8 +32,11 @@ The following instructions are aimed at users who want to run and create a perfo
         - And run this if it's enabled: `sudo service numad stop`
         - in np02/np04 this is not installed
 - **Mounting RAIDs devices:**
+    - Use various querying tools to determine the names and NUMA location of each NVMe drive, so RAIDs can be set up with drives in the same NUMA
+    - WARNING: nvme enumeration in /dev is subject to change on reboot
     - `lsblk -f`
     - `lspci | grep memory`
+    - `lstopo`
         
         ```
         sudo mdadm -D /dev/md127
