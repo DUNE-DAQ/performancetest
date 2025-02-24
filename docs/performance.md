@@ -46,6 +46,7 @@ The following instructions are aimed at users who want to run and create a perfo
         sudo mount -t xfs /dev/md127 /mnt/nvm_raid0
         ls -l /mnt/
         sudo chown <user> /mnt/nvm_raid0
+        chmod -R ugo+rw /mnt/nvm_raid0
         ls -l /mnt/nvm_raid0
         sudo chown <user> /mnt/nvm_raid0/fiofile
         ```
@@ -53,6 +54,7 @@ The following instructions are aimed at users who want to run and create a perfo
     - Make sure np04daq user has write access to the directory
     - Modify `/etc/fstab` to mount on boot up.
         - Note: this didn't work, the device file `/dev/md0` was forgotten on reboot so it crashed
+        - If something goes fishy, the machine won't boot properly -> one needs to manually remove the persisted config for the array over IPMI console redirection from fstab.
     - Also, to query drive info you can use: `sudo smartctl -a /dev/nvme0n1`
 - **CPU pinning:**
 
