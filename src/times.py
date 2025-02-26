@@ -135,3 +135,40 @@ def slice_time_range(data : dict[pd.DataFrame], times : time_range) -> dict[pd.D
         data[k] = df[mask]
     return data
 
+
+def match_times(df : pd.DataFrame, run_time : time_range) -> pd.DataFrame:
+    recorded_times = time_range(min(df.index), max(df.index))
+    
+    if recorded_times.start == recorded_times.end:
+        step = 10 # assign some default step value
+    else:
+        step = int(np.mean(df.index[1:] - df.index[:-1]))
+
+    pad_start = None
+    pad_end = None
+    mask = df.index > 0 # set all to true
+    if recorded_times.start > run_time.start:
+        pad_start = time_range(run_time.start, min(run_time.end, recorded_times.start))
+    else:
+        mask = mask & (df.index >= run_time.start)
+
+    if recorded_times.end < run_time.end:
+        pad_end = time_range(max(recorded_times.end, run_time.start), run_time.end)
+    else:
+        mask & (df.index <= run_time.end)
+
+    new_df = df.iloc[mask]
+
+    pad = []
+    if pad_end is not None:
+        pad = list(range(*pad_end, step))
+    if pad_start is not None:
+        pad = list(range(*pad_start, step))
+    for i in run_time: # make sure the run times are padded in the timestamps
+        if (i not in new_df.index) and (i not in pad):
+            pad.append(i)
+
+    df2 = pd.DataFrame({c : {i : 0 for i in pad} for c in df.columns})
+    new_df = pd.concat([new_df, df2], axis = 0).sort_index()
+
+    return new_df
