@@ -15,16 +15,17 @@ from warnings import warn
 from basic_functions import reformat_cpu_util #! this should be deprecated as core utilisation need to be included in the dashboards
 import files
 import harvester
+import times
 import utils
 
 from rich import print
 
 
-def create_dashboard_info(args : argparse.Namespace) -> dict:
+def create_dashboard_info(args : dict) -> dict:
     """ Load information about which dashboards to query and which grafana url to use.
 
     Args:
-        args (argparse.Namespace): arguments for the test.
+        args (dict): arguments for the test.
 
     Returns:
         dict: Grafana url, dashboard uid, and session names for each dashboard.
@@ -68,14 +69,21 @@ def collect_metrics(args : argparse.Namespace | dict) -> None | dict:
         cpu_df.to_csv(cu_file.name)
         core_utilisation_files.append(cu_file.resolve().as_posix())
 
-    # extract grafana data
-    harvester.extract_grafana_data(dashboard_info, test_args["run_number"], test_args["host"], test_args["session"], test_args["dunedaq_version"], output_file = name, out_dir = out_dir)
+    # get run time (or time range from arguments)
+    time_range = times.parse_time_range(times.time_range(*test_args["time_range"]))
+    if type(time_range.start) == int:
+        time_range = harvester.get_run_time(dashboard_info, test_args["run_number"], test_args["session"], test_args["dunedaq_version"])
+    else:
+        time_range = time_range
 
-    harvester.extract_node_exporter_data(dashboard_info, test_args["run_number"], test_args["host"], test_args["session"], test_args["dunedaq_version"], output_file = name, out_dir = out_dir)
+    # extract grafana data
+    harvester.extract_grafana_data(dashboard_info, test_args["run_number"], test_args["host"], time_range, test_args["dunedaq_version"], output_file = name, out_dir = out_dir)
+
+    harvester.extract_node_exporter_data(dashboard_info, test_args["host"], time_range, test_args["dunedaq_version"], output_file = name, out_dir = out_dir)
 
     # convert csv data to hdf5
     if "uprof_file" in test_args:
-        harvester.extract_uprof_data(test_args["uprof_file"], name, out_dir)
+        harvester.extract_uprof_data(test_args["uprof_file"], time_range, name, out_dir)
 
     if type(args) == argparse.Namespace:
         new_args["data_path"] = out_dir

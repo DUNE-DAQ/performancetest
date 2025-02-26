@@ -6,7 +6,9 @@ Authors: Shyam Bhuller (University of Oxford), Matthew Man (University of Toront
 Description: Collect and parse data from the Grafana dashboards (The spice must flow).
 """
 import copy
+import datetime
 import re
+import shutil
 import tables
 import warnings
 
@@ -49,7 +51,7 @@ def get_influx_db_id(dunedaq_version : str) -> int:
     return db_id
 
 
-def get_run_time(url : str, datasource : dict, run_number : int, partition : str, dunedaq_version : str) -> time_range:
+def get_run_time(dashboard_info : dict[str], run_number : int, test_session : str, dunedaq_version : str) -> time_range:
     """ Get the start time and end time of the run.
         Authors: Shyam Bhuller (University of Oxford)
 
@@ -61,9 +63,11 @@ def get_run_time(url : str, datasource : dict, run_number : int, partition : str
     Returns:
         time_range: start and end times in unix time.
     """
+    url = dashboard_info["grafana_url"]
+    datasource = get_valid_datasources(queries.get_datasources(url), dunedaq_version)["influxdb"]
 
     if utils.dunedaq_major_version(dunedaq_version) == 4:
-        query_str = f"SELECT \"runno\" FROM \"dunedaq.rcif.runinfo.Info\" WHERE (\"partition_id\" = '{partition}' AND \"runno\" = {run_number})"
+        query_str = f"SELECT \"runno\" FROM \"dunedaq.rcif.runinfo.Info\" WHERE (\"partition_id\" = '{test_session}' AND \"runno\" = {run_number})"
     elif utils.dunedaq_major_version(dunedaq_version) == 5:
         query_str = f"SELECT \"run_number\" FROM \"dunedaq.rcif.opmon.RunInfo\" WHERE \"run_number\" = {run_number}"
     else:
@@ -358,7 +362,7 @@ def get_valid_datasources(datasources : list[dict], dunedaq_version : str) -> di
     return valid_datasources
 
 
-def extract_node_exporter_data(dashboard_info : dict[str], run_number : int, host : str, test_session : str, dunedaq_version : str, output_file : str, out_dir : str):
+def extract_node_exporter_data(dashboard_info : dict[str], host : str, time : str, dunedaq_version : str, output_file : str, out_dir : str):
     """ Extract node exporter data form the prometheus database directly i.e. not through the Grafana api.
         Authors: Shyam Bhuller (University of Oxford)
 
@@ -429,7 +433,7 @@ def extract_node_exporter_data(dashboard_info : dict[str], run_number : int, hos
     valid_ds = get_valid_datasources(datasources, dunedaq_version)
     prometheus_url = valid_ds["prometheus"]["url"]
 
-    time = get_run_time(url, valid_ds["influxdb"], run_number, test_session, dunedaq_version)
+    # time = get_run_time(url, valid_ds["influxdb"], run_number, test_session, dunedaq_version)
 
     print(f"{time=}")
 
@@ -509,7 +513,7 @@ def format_hdf_keys(dashboard_data : dict[pd.DataFrame]):
     return
 
 
-def extract_grafana_data(dashboard_info : dict[str], run_number : int, host : str, test_session : str, dunedaq_version : str, output_file : str, out_dir : str) -> list[str]:
+def extract_grafana_data(dashboard_info : dict[str], run_number : int, host : str, time : times.time_range, dunedaq_version : str, output_file : str, out_dir : str) -> list[str]:
     """ Extract data from Grafana dashboards.
         Authors: Shyam Bhuller (University of Oxford), Matthew Man (University of Toronto), Danaisis Vargas Oliva (University of Toronto)
 
@@ -524,15 +528,14 @@ def extract_grafana_data(dashboard_info : dict[str], run_number : int, host : st
     Returns:
         list[str]: List of the output files.
     """
+    print(f"{time=}")
+
     url = dashboard_info["grafana_url"]
     datasource_urls = queries.get_datasources(url) # gather list of all datasources
 
     valid_ds = get_valid_datasources(datasource_urls, dunedaq_version)
     ds_parser = {"influxdb" : parse_result_influx, "prometheus" : parse_result_prometheus, "postgres" : parse_result_postgres}
 
-    time = get_run_time(url, valid_ds["influxdb"], run_number, test_session, dunedaq_version)
-
-    print(f"{time=}")
 
     out_files = []
     for dashboard, session in zip(dashboard_info["dashboard_uid"], dashboard_info["session"]): # iterate over each dashboard
@@ -739,14 +742,20 @@ def uprof_to_df(file : str) -> pd.DataFrame:
             df[k].append(f.split(","))
 
     for k, v in df.items():
-        df[k] = pd.DataFrame(v[1:], columns=v[0])        
+        df[k] = pd.DataFrame(v[1:], columns=v[0])
         df[k].set_index("Timestamp", inplace = True)
-        df[k] = df[k].set_index(times.dt_to_unix_array(df[k].index))
+
+        # hack to ensure timezones matches the timezone from gafana (timezone of the server).
+        tz = datetime.datetime.now(datetime.timezone.utc).astimezone().tzinfo
+        t = pd.to_datetime(df[k].index).tz_localize(tz)
+        t = (t - pd.Timestamp("1970-01-01").tz_localize("UTC")) // pd.Timedelta('1s')
+        
+        df[k] = df[k].set_index(t)
         df[k] = df[k].astype(float)
     return df
 
 
-def extract_uprof_data(uprof_output : str, output_file : str, out_dir : str):
+def extract_uprof_data(uprof_output : str, run_time : times.time_range, output_file : str, out_dir : str):
     """ Write uProf output to hdf5 file.
 
     Args:
@@ -754,9 +763,18 @@ def extract_uprof_data(uprof_output : str, output_file : str, out_dir : str):
         output_file (str): Output file name.
         out_dir (str): Output diretory.
     """
-    df = uprof_to_df(uprof_output)
-    for k, v in df.items():
+    dfs = uprof_to_df(uprof_output)
+
+    for k in dfs:
+        dfs[k] = times.match_times(dfs[k], run_time)
+
+    for k, v in dfs.items():
         output = str(out_dir) + f"uprof-{k}-{output_file}.hdf5"
         v.to_hdf(output, key = "df")
         print(f'Data saved to HDF5 successfully: {output}')
+    try:
+        shutil.copy(uprof_output, out_dir + files.pathlib.Path(uprof_output).name)
+        print("uProf output copied to output directory.")
+    except shutil.SameFileError:
+        print("uProf output already copied to output directory.")
     return
