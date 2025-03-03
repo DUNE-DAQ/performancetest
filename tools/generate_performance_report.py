@@ -16,13 +16,14 @@ from basic_plotter import plot
 from performance_report import performance_report
 from workarea_info import get_info
 from analyze_data import analyse_data
+from get_server_info import server_info
 
 from rich import print
 
 
 def main(args : argparse.Namespace):
 
-    test_args = files.load_json(args.file)
+    test_args = files.read_json(args.file)
     collect = True
     if test_args["data_path"] is None:
         print("data path was not created, collecting metrics")
@@ -32,14 +33,14 @@ def main(args : argparse.Namespace):
         collect = False
 
     if collect: collect_metrics(args)
-    test_args = files.load_json(args.file) # reload the config because collect metrics modifies the config
+    test_args = files.read_json(args.file) # reload the config because collect metrics modifies the config
 
     if test_args["workarea"] is not None:
         get_info(test_args["workarea"], test_args["data_path"], test_args["config_repo"])
     else:
         print("configuration has no workarea and it was not supplied. Software and DAQ config information cannot be calculated.")
 
-    for i in [plot, analyse_data, performance_report]:
+    for i in [server_info, plot, analyse_data, performance_report]:
         i(test_args)
 
     return

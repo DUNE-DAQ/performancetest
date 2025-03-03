@@ -90,7 +90,7 @@ def frontend_ethernet(args : dict, display : bool = False):
 
 
 def main(args : argparse.Namespace):
-    test_args = files.load_json(args.file)
+    test_args = files.read_json(args.file)
     frontend_ethernet(test_args)
     return
 

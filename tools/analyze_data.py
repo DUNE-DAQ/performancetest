@@ -88,37 +88,40 @@ def memory_bw_info_Intel(df : pd.DataFrame) -> pd.DataFrame:
     return pd.concat(fmt_df + [mem_data_rw], axis = 1)
 
 
-def calculate_maximum_memory_bw(host : str) -> float:
+def calculate_maximum_memory_bw(hardware_info : str) -> float:
     """ Calculate the maximum available memory bandwidth per socket.
         Assumes that the DIMMs are all the same, there are an equal number of DIMMs per socket. 
         #* memory speed(T/s)/2 * bytes of width * nchannels available / number of sockets (assuming uniform allocation)
         https://www.intel.com/content/www/us/en/support/articles/000056722/processors/intel-core-processors.html
 
     Args:
-        host (str): host machine.
+        hardware_info (str): xml description of the host machine.
 
     Returns:
         float: calculated maximum bandwidth.
     """
-    #! This should use prestored hardware maps if possible
-    cmd = f'ssh {os.environ["USER"]}@{host} sudo dmidecode -t memory | grep -E "Data Width|Memory Speed"' # use dmidecode to get the memory information
-    out = str(shell.run(cmd, capture = True).stdout, "utf-8").replace("\\t", "").splitlines()
+    tree = files.read_xml(hardware_info)
 
-    cmd = f'ssh {os.environ["USER"]}@{host} sudo dmidecode -t processor | grep "Socket Designation"' # also calculate the number of sockets on the machine
-    n_sockets = len(str(shell.run(cmd, capture = True).stdout, "utf-8").replace("\\t", "").splitlines())
+    n_dimms = 0
+    data_width = None
+    clock_speed = None
+    for i in utils.xml_search_elem(tree, "class", "memory"):
+        if "bank" in i.attrib["id"]: # this is a DIMM
+            description = utils.xml_search_elem_name_single(i, "description")
+            if description.text != '[empty]': # DIMM is populated
+                n_dimms += 1
+                width = utils.xml_search_elem_name_single(i, "width")
+                speed = utils.xml_search_elem_name_single(i, "clock")
+                #* assume all DIMMs are the same specifications (they should be...)
+                if width is not None: data_width = int(width.text) # this is in bits
+                if speed is not None: clock_speed = int(speed.text) # this is in Hz
+    n_channels = n_dimms/2
 
-    n_channels = len([i for i in out if "Memory" in i])//2 # only installed DIMMs will have a memory speed registered
-
-    for i in out:
-        if "Width" in i and "Unknown" not in i:
-            width = int(utils.re.sub(r'[^\d]+', '', i))//8
-        if "Memory" in i:
-            speed = int(utils.re.sub(r'[^\d]+', '', i))/2
-
-    return 1E6 * width * speed * n_channels / n_sockets # in units of B/s
+    n_sockets = len(list([i for i in utils.xml_search_elem(tree, "class", "processor") if "cpu" in i.attrib["id"]]))
+    return (data_width//8) * clock_speed * n_channels / n_sockets
 
 
-def process_memory_info(ne : pd.DataFrame, intel : pd.DataFrame | None, amd : pd.DataFrame | None, out : str, host : str, test_args : dict):
+def process_memory_info(ne : pd.DataFrame, intel : pd.DataFrame | None, amd : pd.DataFrame | None, out : str, hw_info : str, test_args : dict):
     """ Process metrics for system memory and plot them.
 
     Args:
@@ -155,18 +158,22 @@ def process_memory_info(ne : pd.DataFrame, intel : pd.DataFrame | None, amd : pd
 
         for i in [intel_data, amd_data]:
             if i is None: continue
-            bw = calculate_maximum_memory_bw(host)
+            if hw_info:
+                bw = calculate_maximum_memory_bw(hw_info)
+            else:
+                bw = None
 
             plotting.plot(times.relative_time(i), i, i.columns, "Relative time (s)", "Memory bandwidth Usage", autofmt = "B/s")
-            plotting.hline(bw, label = "maximum bandwidth", autofmt = "B/s")
+            if bw: plotting.hline(bw, label = "maximum bandwidth", autofmt = "B/s", linestyle = "--")
             plotting.plt.legend(fontsize = "x-small")
             plotting.add_metadata(test_args, int(i.index[0]))
             book.save()
 
-            plotting.plot(times.relative_time(i), 100 * i/bw, i.columns, "Relative time (s)", "Memory bandwidth Usage (%)")
-            plotting.plt.legend(fontsize = "x-small")
-            plotting.add_metadata(test_args, int(i.index[0]))
-            book.save()
+            if bw:
+                plotting.plot(times.relative_time(i), 100 * i/bw, i.columns, "Relative time (s)", "Memory bandwidth Usage (%)")
+                plotting.plt.legend(fontsize = "x-small")
+                plotting.add_metadata(test_args, int(i.index[0]))
+                book.save()
     return
 
 
@@ -852,12 +859,20 @@ def analyse_data(test_args : dict):
     if len(pinning_file) == 0:
         pinning_file = None
     else:
-        pinning_file = files.load_json(pinning_file[0])
+        pinning_file = files.read_json(pinning_file[0])
 
     if pinning_file:
         pinning_file = parse_pinning_file(pinning_file, test_args["host"])
 
     data_files = shell.search_data_file("hdf5", test_args["data_path"])
+
+    hw_info = shell.search_data_file("xml", test_args["data_path"])
+    if len(hw_info) > 0:
+        hw_info = hw_info[0]
+    else:
+        print("Warning: hardware information not found.")
+        hw_info = None
+
     tr = time_range(*test_args["time_range"])
 
     data = {}
@@ -889,7 +904,7 @@ def analyse_data(test_args : dict):
 
     process_disk_info(data["node-exporter"], out, readout_plane, test_args)
 
-    process_memory_info(data["node-exporter"], data["A_CvwTCWk"], data["uprof-pcm"], out, test_args["host"], test_args)
+    process_memory_info(data["node-exporter"], data["A_CvwTCWk"], data["uprof-pcm"], out, hw_info, test_args)
 
     process_network_info(data["node-exporter"], out, test_args)
 
@@ -902,7 +917,7 @@ def analyse_data(test_args : dict):
 
 
 def main(args : argparse.Namespace):
-    test_args = files.load_json(args.file)
+    test_args = files.read_json(args.file)
     analyse_data(test_args)
     return
 

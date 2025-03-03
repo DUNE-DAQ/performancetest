@@ -170,7 +170,7 @@ def get_info(path : str, out : str, repo : str = "ehn1-daqconfigs") -> dict[str]
 
     workarea_info["configuration"] = check_configs(path, out = out, repo = repo)
 
-    files.save_json(out + "workarea_info.json", workarea_info)
+    files.write_json(out + "workarea_info.json", workarea_info)
 
     return
 
@@ -179,7 +179,7 @@ def main(args : argparse.Namespace):
     global printout
     printout = True
 
-    test_args = files.load_json(args.file)
+    test_args = files.read_json(args.file)
     path = args.path
 
     if (path is None) and (test_args["workarea"] is None):

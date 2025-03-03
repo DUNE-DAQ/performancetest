@@ -9,7 +9,31 @@ import pathlib
 import json
 import tables
 
+import xml.etree.ElementTree as ET
+
 import pandas as pd
+
+def write_xml(xml_tree : ET.ElementTree, file : str):
+    """ Write an xml ElementTree to file.
+
+    Args:
+        xml_tree (ET.ElementTree): xml tree.
+        file (str): output file path
+    """
+    xml_tree.write(file)
+    return
+
+
+def read_xml(file : str) -> ET.ElementTree:
+    """ Read xml file and parse into an ElementTree.
+
+    Args:
+        file (str): xml file path.
+
+    Returns:
+        ET.ElementTree: xml tree.
+    """
+    return ET.parse(file)
 
 
 def write_dict_hdf5(dictionary : dict, file : str, mode : str = "a"):
@@ -62,7 +86,7 @@ def read_hdf5(file : str | pathlib.Path) -> pd.DataFrame | dict[pd.DataFrame]:
     return data
 
 
-def load_json(file : str | pathlib.Path) -> dict:
+def read_json(file : str | pathlib.Path) -> dict:
     """Open json file as dictionary.
 
     Args:
@@ -75,7 +99,7 @@ def load_json(file : str | pathlib.Path) -> dict:
         return json.load(f)
 
 
-def save_json(file : str | pathlib.Path, data : dict):
+def write_json(file : str | pathlib.Path, data : dict):
     """Save dictionary to json file.
 
     Args:

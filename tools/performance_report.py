@@ -123,7 +123,7 @@ def performance_report(test_args : dict):
     if test_args["workarea"] is not None:
         winfo = shell.search_data_file("workarea_info", test_args["data_path"])
         if len(winfo) > 0:
-            winfo = files.load_json(winfo[0])
+            winfo = files.read_json(winfo[0])
 
         html = html.replace("&daq_version", "release information: \n" + workarea_info.make_release_table(winfo["release"]))
         html = html.replace("&commit_hashes", f"release packages: \n {workarea_info.make_repo_table(winfo['release_commit'])} \n local packages: \n {workarea_info.make_repo_table(winfo['local_commit'])} \n")
@@ -165,7 +165,7 @@ def performance_report(test_args : dict):
 
 
 def main(args : argparse.Namespace):
-    test_args = files.load_json(args.file)
+    test_args = files.read_json(args.file)
     performance_report(test_args)
     return
 

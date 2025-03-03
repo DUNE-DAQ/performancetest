@@ -48,7 +48,7 @@ def generate_config_template(name : str | pathlib.Path):
         # "report_comment" : ["comment for each test"]
 
     }
-    files.save_json(name, cfg)
+    files.write_json(name, cfg)
     print(f"template config file {name.with_suffix('.json')} created")
 
 
