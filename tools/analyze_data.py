@@ -543,42 +543,42 @@ def process_disk_info(data : dict[pd.DataFrame], out : str, readout_plane : Read
         # line plots
         plotting.plot(time, io_time, io_time.columns, tlabel, "Disk IO time (s)")
         plotting.plt.axhline(rp.snb_readout_time, color = "k", linestyle = "--", label = "Expected\nwrite time (100 s)")
-        plotting.plt.legend()
+        plotting.plt.legend(fontsize="x-small")
         plotting.add_metadata(test_args, t0)
         book.save()
 
         plotting.plot(time, write_rate, write_rate.columns, tlabel, "Disk write rate (Gb/s)")
         plotting.hline(data_input, "Data input rate", "k", "--", "Gb/s")
         plotting.hline(8 * rp.max_disk_write, "Maximum RAID write rate", "red", "--", "Gb/s")
-        plotting.plt.legend()
+        plotting.plt.legend(fontsize="x-small")
         plotting.add_metadata(test_args, t0)
         book.save()
         
         plotting.plot(time, total_written, total_written.columns, tlabel, "Total written to disk (GB)")
         plotting.plt.axhline(max_write_rp, color = "k", linestyle = "--", label = f"Expected data written\nper {readout_plane.name} ({max_write_rp} GB)")
         plotting.plt.axhline(max_write_disk, color = "red", linestyle = "--", label = f"Maximum data writable to disk ({max_write_disk/1000} TB)")
-        plotting.plt.legend()
+        plotting.plt.legend(fontsize="x-small")
         plotting.add_metadata(test_args, t0)
         book.save()
 
         # bar plots
         plotting.bar(max_io.index, max_io.values, "Device", ylabel = "Total IO time (s)", rotation = 30, bar_label = True)
         plotting.plt.axhline(rp.snb_readout_time, color = "k", linestyle = "--", label = "Expected\nwrite time (100 s)")
-        plotting.plt.legend()
+        plotting.plt.legend(fontsize="x-small")
         plotting.add_metadata(test_args, t0)
         book.save()
 
         plotting.bar(max_wr.index, max_wr.values, "Device", ylabel = "Maximum Disk write rate (Gb/s)", rotation = 30, bar_label = True)
         plotting.hline(data_input, "Data input rate", "k", "--", "Gb/s")
         plotting.hline(8 * rp.max_disk_write, "Maximum RAID write rate", "red", "--", "Gb/s")
-        plotting.plt.legend()
+        plotting.plt.legend(fontsize="x-small")
         plotting.add_metadata(test_args, t0)
         book.save()
 
         plotting.bar(max_tw.index, max_tw.values, "Device", ylabel = "Total written to disk (GB)", rotation = 30, bar_label = True)
         plotting.plt.axhline(max_write_rp, color = "k", linestyle = "--", label = f"Expected data written\nper {readout_plane.name} ({max_write_rp} GB)")
         plotting.plt.axhline(max_write_disk, color = "red", linestyle = "--", label = f"Maximum data writable to disk ({max_write_disk/1000} TB)")
-        plotting.plt.legend()
+        plotting.plt.legend(fontsize="x-small")
         plotting.add_metadata(test_args, t0)
         book.save()
     return
@@ -651,7 +651,7 @@ def process_tp_info(data : dict[pd.DataFrame], out : str, readout_plane : Readou
         
             plotting.hline(expected_hit_rate * n_rp, "expected hit rate", "red", "--", "Hz")
             plotting.hline(acceptance_hit_rate * n_rp, "acceptence hit rate", "k", "--", "Hz")
-            plotting.plt.legend()
+            plotting.plt.legend(fontsize="x-small")
             plotting.add_metadata(test_args, int(total_hit_rate.index[0]))
             book.save()
 
@@ -661,7 +661,7 @@ def process_tp_info(data : dict[pd.DataFrame], out : str, readout_plane : Readou
                 plotting.plot(times.relative_time(hit_rate_apa[c]), hit_rate_apa[c].values, c, "Time (s)", "TP rate", newFigure = False, autofmt = "Hz")
             plotting.hline(expected_hit_rate, f"expected hit rate per {readout_plane.name}", "red", "--", "Hz")
             plotting.hline(acceptance_hit_rate, f"acceptence hit rate per {readout_plane.name}", "k", "--", "Hz")
-            plotting.plt.legend()
+            plotting.plt.legend(fontsize="x-small")
             plotting.add_metadata(test_args, int(hit_rate_apa[c].index[0]))
             book.save()
 
@@ -670,7 +670,7 @@ def process_tp_info(data : dict[pd.DataFrame], out : str, readout_plane : Readou
             plotting.plt.title("TPWriter receieve/write rates")
             plotting.hline(expected_hit_rate * n_rp, "expected hit rate", "red", "--", "Hz")
             plotting.hline(acceptance_hit_rate * n_rp, "acceptence hit rate", "k", "--", "Hz")
-            plotting.plt.legend()
+            plotting.plt.legend(fontsize="x-small")
             plotting.add_metadata(test_args, int(tp_writer_info.index[0]))
             book.save()
 
@@ -678,12 +678,13 @@ def process_tp_info(data : dict[pd.DataFrame], out : str, readout_plane : Readou
             plotting.plt.title("TPWriter receieve/write rates")
             plotting.hline(expected_hit_rate * n_rp * rp.tp_size, "expected hit rate", "red", "--", "b/s")
             plotting.hline(acceptance_hit_rate * n_rp * rp.tp_size, "acceptence hit rate", "k", "--", "b/s")
-            plotting.plt.legend()
+            plotting.plt.legend(fontsize="x-small")
             plotting.add_metadata(test_args, int(tp_writer_info.index[0]))
             book.save()
 
         plotting.bar(total_tp_drop_rates.index, total_tp_drop_rates.values, "", "Number of TPs", "TPs dropped", bar_label = True)
         plotting.plt.ylim(0)
+        plotting.add_metadata(test_args, int(tp_writer_info.index[0]))
         book.save()
 
         if not tph_request_rates.empty:
@@ -743,13 +744,13 @@ def process_frontend_info(data : dict[pd.DataFrame], out : str, readout_plane : 
     with plotting.PlotBook(out + "fe_plots") as book:
         plotting.plot(times.relative_time(rx_throughput_apps), rx_throughput_apps, rx_throughput_apps.columns, "Time (s)", "RX throughput", autofmt = "B/s")
         plotting.hline(max_rate_per_stream * n_queues_per_app, "Acceptance data input", autofmt = "B/s", linestyle = "--")
-        plotting.plt.legend()
+        plotting.plt.legend(fontsize="x-small")
         plotting.add_metadata(test_args, int(rx_throughput_apps.index[0]))
         book.save()
 
         plotting.plot(times.relative_time(rx_throughput), rx_throughput, None, "Time (s)", "RX throughput", autofmt = "B/s")
         plotting.hline(max_rate_per_stream, "Acceptance data input", autofmt = "B/s", linestyle = "--")
-        plotting.plt.legend()
+        plotting.plt.legend(fontsize="x-small")
         plotting.add_metadata(test_args, int(rx_throughput_apps.index[0]))
         book.save()
 
