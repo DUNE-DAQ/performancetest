@@ -110,9 +110,11 @@ which should create a directory where all the data and pdfs are stored (notified
 To run each step by hand, you can run:
 
 ```[bash]
-collect_metrics.py -f <path of your json file>
-basic_plotter.py -f <path of your json file> 
-analyze_data.py -f <path of your json file>
+collect_metrics.py -f <path of your json file> # harvest data from grafana dashboards or raw data files from PCM counters.
+workarea_info.py -f <path to your json file> # get DAQ software and configuration information (optional).
+get_server_info -f <path to your json file> # get hardware information about the server tested.
+basic_plotter.py -f <path of your json file>  # make basic plots of all harvested data.
+analyze_data.py -f <path of your json file> # analyse data and plot KPIs.
 ```
 
 The first command retrives data from the grafana dashboards (daq_overview, frontent_ethernet, trigger_primitives, intel PCM) and stores the data to hdf5 files. In addition, the a new entry is added to the json file called the `data_path` that is the path all files produced are kept. The second will make simple plots of the metrics captured intended for initial assessment, while the final script performs more detailed analysis and makes more comprehensive plots. All the created files and data is kept in `out_path`.
@@ -185,7 +187,7 @@ Note that is the text is not modified or is left blank, the boilerplate text is 
 
 ![image](docs/screenshots/notebook_3.png)
 
-Once complete, you should be able to see plots of the metrics for the given run:
+Once complete, you should be able to see plots of the metrics for the given run:_description_
 
 ![image](docs/screenshots/notebook_4.png)
 

@@ -30,7 +30,7 @@ def create_dashboard_info(args : dict) -> dict:
     Returns:
         dict: Grafana url, dashboard uid, and session names for each dashboard.
     """
-    dashboard_config = files.load_json(f"{os.environ['PERFORMANCE_TEST_PATH']}/config/dashboard_info.json")
+    dashboard_config = files.read_json(f"{os.environ['PERFORMANCE_TEST_PATH']}/config/dashboard_info.json")
 
     for i, uid in enumerate(dashboard_config["dashboard_uid"]):
         if uid == "A_CvwTCWk" : continue # pcm dashboard is not tied to a specific dunedaq version
@@ -45,8 +45,8 @@ def create_dashboard_info(args : dict) -> dict:
 
 def collect_metrics(args : argparse.Namespace | dict) -> None | dict:
     if type(args) == argparse.Namespace:
-        test_args = files.load_json(args.file)
-        new_args = files.load_json(args.file) # reopen config file to add the data file paths
+        test_args = files.read_json(args.file)
+        new_args = files.read_json(args.file) # reopen config file to add the data file paths
     else:
         test_args = args
         new_args = None
@@ -87,7 +87,7 @@ def collect_metrics(args : argparse.Namespace | dict) -> None | dict:
 
     if type(args) == argparse.Namespace:
         new_args["data_path"] = out_dir
-        files.save_json(args.file, new_args)
+        files.write_json(args.file, new_args)
         print(f"{args.file} updated to include data path.")
         return
     else:

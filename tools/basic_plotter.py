@@ -71,18 +71,25 @@ def plot(args : argparse.Namespace, display : bool = False):
     plotting.set_plot_style()
     out_dir = utils.make_plot_dir(args)
     
-    dashboard_config = files.load_json(f"{os.environ['PERFORMANCE_TEST_PATH']}/config/dashboard_info.json")
+    dashboard_config = files.read_json(f"{os.environ['PERFORMANCE_TEST_PATH']}/config/dashboard_info.json")
 
     hdf_files = {}
     for n in dashboard_config["dashboard_uid"] + ["uprof-pcm", "uprof-power", "node-exporter"]:
         hdf_files[n] = search_hdf5(n, args["data_path"])
 
+    blacklist = ["Highest TP rates per channel"] # blacklist data that should not be plotted e.g. takes too long
     for f in hdf_files:
         keys = []
         values = {}
+        if hdf_files[f] is None: continue
         data = files.read_hdf5(hdf_files[f])
         for k in data:
             if data[k].empty: continue
+
+            if k in blacklist:
+                continue
+
+            print(f"Plotting: {k}")
             keys.append(k)
             if type(data[k]) == pd.Series:
                 values[k] = data[k].to_frame()
@@ -99,7 +106,7 @@ def plot(args : argparse.Namespace, display : bool = False):
 
 
 def main(args : argparse.Namespace):
-    test_args = files.load_json(args.file)
+    test_args = files.read_json(args.file)
     plot(test_args)
     return
 

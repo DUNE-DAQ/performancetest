@@ -23,7 +23,7 @@ import conffwk
 import confmodel
 
 from basic_functions import break_file_name, current_time
-from files import load_json
+from files import read_json
 
 from rich import print
 
@@ -479,7 +479,7 @@ def daqconf_info(file_daqconf : str, file_core : str, readout_apps : str, pdf : 
         pdf (FPDF): pdf to save to
         repin_threads_file (bool, optional): whether pinning files were used. Defaults to False.
     """
-    applist = load_json(file_daqconf)
+    applist = read_json(file_daqconf)
 
     emu_mode = True if applist["readout"]['generate_periodic_adc_pattern'] else False
 
@@ -526,7 +526,7 @@ def cpupining_info(file : str, ru : str) -> dict:
     Returns:
         dict: cpu pinning dictionary.
     """
-    return  load_json(file)['daq_application'][f'--name {ru}']
+    return  read_json(file)['daq_application'][f'--name {ru}']
  
 
 def core_utilization(file):
