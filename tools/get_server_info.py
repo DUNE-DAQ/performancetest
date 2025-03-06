@@ -17,7 +17,7 @@ import files, utils, shell
 from rich import print
 
 def server_info(test_args : dict):
-    lshw_out = shell.run(f"ssh {os.environ['USER']}@{test_args['host']} sudo lshw -xml", capture = True)
+    lshw_out = shell.run("sudo lshw -xml", capture = True, host = test_args['host'])
 
     if lshw_out.returncode > 0:
         print("could not get lshw output. See above for reason.")

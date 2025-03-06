@@ -1,20 +1,29 @@
 #!/usr/bin/env python
+"""
+Created on: 03/03/2025 16:55
+
+Author: Shyam Bhuller
+
+Description: Get available resources on a given server.
+"""
 import argparse
 import os
 import sys
 import psutil
 import json
 
-import subprocess
-from subprocess import check_output
+import shell
 
 from rich import print
+
+def run_cmd(cmd : str):
+    return shell.run(cmd, capture = True).stdout.decode("utf-8").splitlines()
 
 
 def get_numa_info() -> tuple[dict, int]:
     numa_dict = {}
     numa_nodes = None
-    numactl_out = run_cmd(['numactl', '-H'])
+    numactl_out = run_cmd('numactl -H')
     if numactl_out:
         for numal in numactl_out:
             if numal.find('cpus') != -1:
@@ -36,13 +45,6 @@ def get_numa_info() -> tuple[dict, int]:
     return numa_dict, numa_nodes
 
 
-def run_cmd(cmd : list[str]):
-    try:
-        return check_output(cmd, stderr = subprocess.STDOUT).decode("utf-8").splitlines()
-    except subprocess.CalledProcessError as err:
-        print(f"{cmd} ran with error: {err.output.decode('utf-8')}")
-
-
 def get_info(devices : list[str]):
     dev_dict = {}
     for dev in devices:
@@ -52,7 +54,7 @@ def get_info(devices : list[str]):
     numa_dict, numa_nodes = get_numa_info()
 
     ##### Check LSPCI
-    lspci_out = run_cmd(["lspci"])
+    lspci_out = run_cmd("lspci")
     if lspci_out:
         for item in lspci_out:
             devl = item.split(' ')
@@ -60,7 +62,7 @@ def get_info(devices : list[str]):
             for dev in devices:
                 if devl[1].find(dev) != -1:
                     dev_dict[dev][devl[0]] = devl
-                    verbose_info = run_cmd(["lspci", "-s", devl[0], "-vvvvv"])
+                    verbose_info = run_cmd(f"lspci -s {devl[0]} -vvvvv")
                     for vline in verbose_info:
                         if vline.find('NUMA') != -1:
                             zone = vline.split()[2]
@@ -76,7 +78,7 @@ def get_info(devices : list[str]):
 
     ##### Check NVMe
     nvme_dict={}
-    nvmesys_out = run_cmd(['nvme', 'list-subsys'])
+    nvmesys_out = run_cmd('nvme list-subsys')
     if nvmesys_out:
         clean_sys_out = [line for line in nvmesys_out if line.find('+-') != -1]
         for nvmel in clean_sys_out:
@@ -84,7 +86,7 @@ def get_info(devices : list[str]):
             nvme_dict[nvmed[1]] = {}
             nvme_dict[nvmed[1]]['pcie'] = nvmed[3][5:]
 
-    nvmelst_out = run_cmd(['nvme', 'list'])
+    nvmelst_out = run_cmd('nvme list')
     if nvmelst_out:
         nvmelst_out = nvmelst_out[2:] # remove headers
         for nvmel in nvmelst_out:
@@ -97,16 +99,16 @@ def get_info(devices : list[str]):
 
     ##### Check RAIDs
     raid_dict={}
-    lsraid_out = run_cmd(['ls','/dev/md/'])
+    lsraid_out = run_cmd('ls /dev/md/')
     if lsraid_out:
         for raid_syml in lsraid_out:
             raid_dict[raid_syml] = {}
             raid_dict[raid_syml]['symlink'] = '/dev/md/'+raid_syml
 
-            raidsyml_out = run_cmd(['ls', '-l', raid_dict[raid_syml]['symlink']])
+            raidsyml_out = run_cmd(f'ls -l {raid_dict[raid_syml]["symlink"]}')
             raid_dict[raid_syml]['device'] = '/dev/'+raidsyml_out[len(raidsyml_out)-1].replace('../', '')
 
-            mdadm_out = run_cmd(['sudo', 'mdadm', '--detail', raid_dict[raid_syml]['symlink']])
+            mdadm_out = run_cmd(f'sudo mdadm --detail {raid_dict[raid_syml]["symlink"]}')
             if mdadm_out:
                 for mdadml in mdadm_out:
                     if "Devices" in mdadml:
@@ -129,7 +131,7 @@ def get_info(devices : list[str]):
                 raid_dict[raid]['usage'] = psutil.disk_usage(part.mountpoint)
 
     # Network
-    lshw_out = run_cmd(["lshw", "-C", "Network", "-C", "Storage", "-json"])
+    lshw_out = run_cmd("lshw -C Network -C Storage -json")
     lshw_out = "".join([i for i in lshw_out if "WARNING:" not in i])
     lshw_out = json.loads(lshw_out)
 
@@ -141,7 +143,7 @@ def get_info(devices : list[str]):
                     if numa_dict[k]["devices"][j][0] == ":".join(pci_addr.split(":")[1:]):
                         numa_dict[k]["devices"][j] = (pci_addr, i)
 
-    hostname = run_cmd(["hostname"])[0]
+    hostname = run_cmd("hostname")[0]
     return {"host" : hostname, "dev" : dev_dict, "raid" : raid_dict, "nvme" : nvme_dict, "numa" : numa_dict}
 
 

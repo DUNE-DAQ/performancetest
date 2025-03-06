@@ -27,18 +27,49 @@ def chdir(dire : str):
         os.chdir(cwd)
 
 
-def run(cmd : str, new_env : bool = False, capture : bool = False) -> subprocess.CompletedProcess:
+def run(cmd : str, new_env : bool = False, capture : bool = False, host : str = None) -> subprocess.CompletedProcess:
     """ Run a bash command.
 
     Args:
         cmd (str): Bash command.
         env (bool, optional): Whether to run the command without the enviromnent variables. Defaults to False.
-        capture (bool, optional) capture output of command to a string. Defaults to False.
+        capture (bool, optional): Capture output of command to a string. Defaults to False.
+        host (str, optional): if provided, runs command on a specified remote host.
 
     Returns:
         subprocess.CompletedProcess: _description_
     """
-    return subprocess.run(cmd, env = {} if new_env is True else None, shell = True, stdout = subprocess.PIPE if capture is True else None)
+    if host:
+        cmd = f"ssh {os.environ['USER']}@{host} {cmd}"    
+    pipe = subprocess.PIPE if capture is True else None
+    out = subprocess.run(cmd, env = {} if new_env is True else None, shell = True, stdout = pipe, stderr = pipe)
+    if out.stderr:
+        print(f"Error running '{cmd}': {out.stderr}")
+    return out
+
+
+def parse_output(output: subprocess.CompletedProcess, separator : str = None) -> list | dict:
+    """ Get output from run and apply some simple formatting.
+
+    Args:
+        output (subprocess.CompletedProcess): Subprocess output.
+        separator (str, optional): String separator to split key-value pairs. Defaults to None.
+
+    Returns:
+        list | dict: _description_
+    """
+    output_lines = str(output.stdout)[2:].split("\\n")
+
+    if separator:
+        parsed = {}
+        for i in output_lines:
+            info = i.split(separator)
+            if len(info) > 1:
+                parsed[info[0]] = info[1].replace("  ", "")
+
+        return parsed
+    else:
+        return output_lines
 
 
 def search_data_file(s : str, path : str | pathlib.Path) -> list[pathlib.Path]:

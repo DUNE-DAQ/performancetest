@@ -1,4 +1,11 @@
 #!/usr/bin/env python
+"""
+Created on: 03/03/2025 17:17
+
+Author: Shyam Bhuller
+
+Description: Simple attempt at breaking down available hardware resources from auto-dicovery.py into a objects akin to OKS objects.
+"""
 import argparse
 import sys
 
