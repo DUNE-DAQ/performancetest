@@ -6,6 +6,7 @@ Author: Shyam Bhuller
 
 Description: Create a cpu pinning file for a readout server.
 
+#! Can get the server name from the template pinning file.
 #! Pinning file needs to figure out the thread names somehow...
 #! rte-worker threads are predefined in the OKS configuration, must read them in.
 
@@ -21,13 +22,12 @@ import llc_domain_parser
 
 from dataclasses import dataclass
 
-from socket import gethostname
-
-from rich import print
-
+from rich import print, rule
 
 @dataclass
 class Element:
+    """ Representation of a single object in the core map.
+    """
     id : int
     children : list[int] # only keep the ID not the object itself
     parent : "Element"
@@ -38,6 +38,14 @@ class Element:
 
 
     def get_type(self, type : str):
+        """ Search and return child objects by their type.
+
+        Args:
+            type (str): _description_
+
+        Returns:
+            _type_: _description_
+        """
         cores = []
         if self.children:
             for c in self.children:
@@ -95,7 +103,6 @@ class CoreMap:
 
         return
 
-
     def __make_func__(self, type : str) -> callable:
         def func(self) -> ElementList:
             return ElementList([i for i in self.elements if i.type == type], self)
@@ -124,6 +131,25 @@ class CoreMap:
                 e.parent.children.remove(e)
         if len(e.parent.children) == 0: self.remove(e.parent)
         return
+
+
+    def print(self):
+        top_elements = [e for e in self.elements if e.parent is None]
+        out = self.__remake_domain_map(top_elements)
+        print(out)
+        return
+
+
+    def __remake_domain_map(self, elements : list[Element]) -> list:
+        out = []
+        for e in elements:
+            k = f"{e.type}:{e.id}"
+            if e.children:
+                v = self.__remake_domain_map(e.children)
+                out.append({k: v})
+            else:
+                out.append(k)
+        return out
 
 
     @staticmethod
@@ -209,6 +235,16 @@ def load_template(template_file : str) -> dict:
 
 
 def assign_cores_map(core_map : CoreMap, numa_region : Element, max_cores : int) -> list[int]:
+    """ Assign processing units to a thread. Used for non-cache aware pinning.
+
+    Args:
+        core_map (CoreMap): CPU map of server.
+        numa_region (Element): NUMA region to assign processing units from.
+        max_cores (int): Maximum number of procssing units to assign to a thread.
+
+    Returns:
+        list[int]: assigned processing units
+    """
     pus = []
     while len(pus) < max_cores:
         tpproc_core = ElementList(numa_region.get_type("Core"), core_map).first
@@ -217,6 +253,16 @@ def assign_cores_map(core_map : CoreMap, numa_region : Element, max_cores : int)
 
 
 def assign_cores(core_map : CoreMap, cores : list[Element], max_cores : int) -> list[int]:
+    """ Assign processing units to a thread. Used for cache aware pinning.
+
+    Args:
+        core_map (CoreMap): CPU map of server.
+        cores (list[Element]): List of cores to assign processing units from.
+        max_cores (int): Maximum number of procssing units to assign to a thread.
+
+    Returns:
+        list[int]: assigned processing units
+    """
     pus = []
     while len(pus) < max_cores:
         next_core = ElementList(cores, core_map).first
@@ -225,6 +271,16 @@ def assign_cores(core_map : CoreMap, cores : list[Element], max_cores : int) -> 
 
 
 def fill_piining_map_cache(pinning : dict, max_cores : dict, core_map : CoreMap) -> dict:
+    """ Assign processing units to threads. Is L3 cache aware. Thread names are prioritized by order in the dictionary.
+
+    Args:
+        pinning (dict): Pinning dictionary.
+        max_cores (dict): Max number of processing units to assign to a thread type.
+        core_map (CoreMap): CPU map of server.
+
+    Returns:
+        dict: Filled pinning map.
+    """
     #* rte-worker and raw processors are linked in some way (not exposed in the configurtion). This is needed to ensure rtes and raw procs are in the same l3 domain.
     #* tpproc, parent and ccp should be in l3 domain other than rawprocs, rtes and recording
 
@@ -284,15 +340,20 @@ def fill_piining_map_cache(pinning : dict, max_cores : dict, core_map : CoreMap)
                 raise Exception(f"do not know how to assign cores to thread {t}")
         
         pinning["daq_application"][app]["parent"] = core_list_to_str(ccps)
-        print(numa_region.get_type("Core"))
-
-    print(pinning)
-
     return pinning
 
 
 def fill_pinning_map(pinning : dict, max_cores : dict, core_map : CoreMap) -> dict:
+    """ Assign processing units to threads. Is not L3 cache aware. Thread names are prioritized by order in the dictionary.
 
+    Args:
+        pinning (dict): Pinning dictionary.
+        max_cores (dict): Max number of processing units to assign to a thread type.
+        core_map (CoreMap): CPU map of server.
+
+    Returns:
+        dict: Filled pinning map.
+    """
     # First exclude the first core (first two processing units) in each numa region
     for n in core_map.numa.elements:
         core_map.core.get_id(min([c.id for c in n.get_type("Core")]))
@@ -309,8 +370,6 @@ def fill_pinning_map(pinning : dict, max_cores : dict, core_map : CoreMap) -> di
         rawprocs = None
         ccps = None
         for t in pinning["daq_application"][app]["threads"]:
-            # print(t)
-            # print(numa_region.get_type("PU"))
             if "rte-worker" in t:
                 #! probably add some checks here: makre sure lcores are from the numa region, keep track of the cache id for each lcore
                 pu = int(t.split("-")[-1])
@@ -345,18 +404,24 @@ def fill_pinning_map(pinning : dict, max_cores : dict, core_map : CoreMap) -> di
 
 def main(args = argparse.Namespace):
     cm = CoreMap(llc_domain_parser.create_llc_domain_map(args.readout_server))
+    print(rule.Rule("CPU map"))
+    cm.print()
 
     pus_numa = [[p.id for p in n.get_type("PU")] for n in cm.numa.elements]
 
     # how many cores should be assigned to a single thread (sharing rules are omitted here). Taken from np04-srv-031 pinning
     max_cores = {k : getattr(args, k) for k in max_cores_default}
 
+    # pinnig while running
     pinning = load_template(args.template)
     if args.cache_aware:
         pinning = fill_piining_map_cache(pinning, max_cores, cm)
     else:
         pinning = fill_pinning_map(pinning, max_cores, cm)
+    print(rule.Rule("CPU pinning running"))
+    print(pinning)
 
+    # pinning during conf
     pinning_conf = copy.deepcopy(pinning)
     for app in pinning_conf["daq_application"]:
         if not app[-2:].isalpha():
@@ -364,15 +429,17 @@ def main(args = argparse.Namespace):
         else:
             numa = int(app[-2])
         pinning_conf["daq_application"][app]["parent"] = core_list_to_str(pus_numa[numa])
-
+    print(rule.Rule("CPU pinning all"))
     print(pinning_conf)
+
+    print(rule.Rule("remaining CPUs in CPU map"))
+    cm.print()
 
     for p, n in zip([pinning, pinning_conf],["cpupin-all-running.json", "cpupin-all.json"]):
         with open(n, "w") as f:
             json.dump(p, f, indent = 4)
 
         print(f"pinning has been written to {n}")
-
     return
 
 if __name__ == "__main__":
@@ -386,7 +453,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser("Generate a pinning file for a readout machine.")
     parser.add_argument("-t", "--template", type = str, help = "pinning file template. must be a json file.", required = True)
-    parser.add_argument("-r", "--readout_server", type = str, default = gethostname(), help = "hostname for the machine, if not provided the current machine hostname is used.")
+    parser.add_argument("-r", "--readout_server", type = str, help = "hostname for the machine, if not provided the current machine hostname is used.", required = True)
     parser.add_argument("-c", "--cache_aware", action="store_true", help = "make a pinning file taking cache domains into account.")
 
     for k, v in max_cores_default.items():

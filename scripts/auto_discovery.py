@@ -5,6 +5,7 @@ Created on: 03/03/2025 16:55
 Author: Shyam Bhuller
 
 Description: Get available resources on a given server.
+#! put the get_info methods into a module
 """
 import argparse
 import os
@@ -16,11 +17,25 @@ import shell
 
 from rich import print
 
-def run_cmd(cmd : str):
+def run_cmd(cmd : str) -> list[str]:
+    """ Run a command, capture the output and decode it into lines.
+
+    Args:
+        cmd (str): Command to execute.
+
+    Returns:
+        list[str]: Parsed output.
+    """
     return shell.run(cmd, capture = True).stdout.decode("utf-8").splitlines()
 
 
 def get_numa_info() -> tuple[dict, int]:
+    """ Get numa information from numactl.
+        #! replace with lstopo
+
+    Returns:
+        tuple[dict, int]: Map of processing units in each numa region (not core/cache aware), and number of numa nodes.
+    """
     numa_dict = {}
     numa_nodes = None
     numactl_out = run_cmd('numactl -H')
@@ -45,7 +60,15 @@ def get_numa_info() -> tuple[dict, int]:
     return numa_dict, numa_nodes
 
 
-def get_info(devices : list[str]):
+def get_info(devices : list[str]) -> dict:
+    """ Get information from lspci, nvme, mdadm and lshw.
+
+    Args:
+        devices (list[str]): list of the devices to search for.
+
+    Returns:
+        dict: Device information. 
+    """
     dev_dict = {}
     for dev in devices:
         dev_dict[dev] = {}

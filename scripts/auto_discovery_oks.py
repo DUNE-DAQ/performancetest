@@ -5,16 +5,15 @@ Created on: 03/03/2025 17:17
 Author: Shyam Bhuller
 
 Description: Simple attempt at breaking down available hardware resources from auto-dicovery.py into a objects akin to OKS objects.
+#! put the python classes into a module.
 """
 import argparse
-import sys
 
 from abc import ABC
 
 from rich import print
 
-import importlib  
-auto_discovery = importlib.import_module("auto-discovery")
+import auto_discovery
 
 class Resource(ABC):
     """ A component of the Host that can be used by the TDAQ. """
@@ -99,8 +98,10 @@ class Host:
 
 
 def main(args : argparse.Namespace):
-    info = auto_discovery.get_info(['Ethernet', 'Non-Volatile', 'Xilinx', 'CERN'])
-    host = Host(info["host"])
+    info = auto_discovery.get_info(['Ethernet', 'Non-Volatile', 'Xilinx', 'CERN']) # run auto discovery tools
+    host = Host(info["host"]) # create a Host object with the host name
+
+    # fill in the host details using auto-discovery
 
     for r in info["raid"].values():
         host.raid.append(RAID(r["device"].split("-> ")[-1], r["symlink"], r["drives"]))
@@ -128,6 +129,7 @@ def main(args : argparse.Namespace):
                 node.devices.append(NUMADevice(d[1], d[0], int(k), d[1]))
         host.numa.append(node)
 
+    # print host information
     print(f"{host.name=}")
     for node in host.numa:
         print(f"{node.numa=}")
@@ -141,12 +143,7 @@ def main(args : argparse.Namespace):
 
 
 if __name__ == "__main__":
-    desc='Discover hardware setup and available resources. Necessary tools installed: lspci, numactl, mdadm, nvme-cli'
+    desc = 'Discover hardware setup and available resources. Necessary tools installed: lspci, numactl, mdadm, nvme-cli'
     parser = argparse.ArgumentParser(description=desc)
-    try:
-        args = parser.parse_args()
-    except:
-        parser.print_help()
-        sys.exit(0)
-
+    args = parser.parse_args()
     main(args)
