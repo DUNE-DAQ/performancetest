@@ -533,7 +533,7 @@ def process_disk_info(data : dict[pd.DataFrame], out : str, readout_plane : Read
 
     # * this is not correct, as disk IO time is not the same as the total time elapsed.
     write_rate = 8 * data["Disk Written (Bps)"][nvme_sample]/(1000**3)
-    total_written =  write_rate * io_time / 8
+    total_written =  write_rate * 100 / 8
 
     if "Disk Total Written (B)" in data:
         total_written =  (data["Disk Total Written (B)"] - data["Disk Total Written (B)"].min(axis=0)) /(1000**3)
