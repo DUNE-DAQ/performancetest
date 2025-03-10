@@ -523,16 +523,20 @@ def process_disk_info(data : dict[pd.DataFrame], out : str, readout_plane : Read
         print("Warning: no NVMe data was found")
         return
 
-    time = data["Disk IO time (s)"].index.astype(int)
+    time = data["Disk IO time (s)"].index.astype(int) # this is the total time elapsed
     t0 = time[0]
     time = time - t0
     tlabel = "Relative time (s)"
 
     dt = data["Disk IO time (s)"] - data["Disk IO time (s)"].iloc[0]
-    io_time = dt[nvme_sample]
+    io_time = dt[nvme_sample] # this is the time the nvme/SSD spends writing. Note that if the write rate BW is not at 100%, the disk io time does not equal the total time recording, because the disk is waiting some amount.
 
+    # * this is not correct, as disk IO time is not the same as the total time elapsed.
     write_rate = 8 * data["Disk Written (Bps)"][nvme_sample]/(1000**3)
     total_written =  write_rate * io_time / 8
+
+    if "Disk Total Written (B)" in data:
+        total_written =  (data["Disk Total Written (B)"] - data["Disk Total Written (B)"].min(axis=0)) /(1000**3)
 
     max_io = io_time.max()
     max_wr = write_rate.max()
@@ -541,7 +545,7 @@ def process_disk_info(data : dict[pd.DataFrame], out : str, readout_plane : Read
 
     with plotting.PlotBook(out + "disk_plots.pdf") as book:
         # line plots
-        plotting.plot(time, io_time, io_time.columns, tlabel, "Disk IO time (s)")
+        plotting.plot(time, io_time, io_time.columns, tlabel, "Disk time spent during IO (s)")
         plotting.plt.axhline(rp.snb_readout_time, color = "k", linestyle = "--", label = "Expected\nwrite time (100 s)")
         plotting.plt.legend(fontsize="x-small")
         plotting.add_metadata(test_args, t0)
