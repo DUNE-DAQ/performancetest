@@ -204,7 +204,7 @@ def bar(x, y, xlabel : str, ylabel : str, title : str = None, rotation : int = 0
             else:
                 bl.append(f"{i:,.3f}")
 
-    if bar_label: plt.bar_label(rect, label_type = "edge", labels = bl, fontsize="small")
+    if bar_label: plt.bar_label(rect, label_type = "edge", labels = bl, fontsize="x-small")
     plt.xticks(rotation = rotation)
     plt.tight_layout()
 
