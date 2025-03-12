@@ -129,6 +129,14 @@ which creates a pdf document of the performance report, based off the template d
 
 Note that when you are done you shold also move the json file to the `data_path` **TODO: automatically copy the configuration to the data_path**
 
+### Custom pinning file
+
+It is possible to use a different the pinning file passed in the workarea config if you pass
+
+```[json]
+"pinning": "path to your pinning file",
+```
+
 ### AMD hardware counters
 
 To add AMD hardware counters to the performance test workflow, first one must run the uprof software **during** a given test, by running the following:

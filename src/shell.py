@@ -69,7 +69,7 @@ def parse_output(output: subprocess.CompletedProcess, separator : str = None) ->
 
         return parsed
     else:
-        return output_lines
+        return output_lines[:-1]
 
 
 def search_data_file(s : str, path : str | pathlib.Path) -> list[pathlib.Path]:
