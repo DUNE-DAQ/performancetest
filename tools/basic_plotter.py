@@ -7,6 +7,7 @@ Authors: Shyam Bhuller (University of Oxford)
 Description: Basic plot of metrics from hdf5 files.
 """
 import argparse
+import multiprocessing
 import os
 
 import files, plotting, shell, utils, times
@@ -23,6 +24,7 @@ class plotter(plotting.PlotEngine):
     def __init__(self, metrics, data, test_args):
         self.test_args = test_args
         super().__init__(metrics, data)
+
 
     def plot_metric(self, metric: str):
         tlabel = "Relative time (s)"
@@ -70,14 +72,16 @@ def search_hdf5(search_term : str, path : str) -> str | None:
 def plot(args : argparse.Namespace, display : bool = False):
     plotting.set_plot_style()
     out_dir = utils.make_plot_dir(args)
-    
+
     dashboard_config = files.read_json(f"{os.environ['PERFORMANCE_TEST_PATH']}/config/dashboard_info.json")
 
     hdf_files = {}
     for n in dashboard_config["dashboard_uid"] + ["uprof-pcm", "uprof-power", "node-exporter"]:
         hdf_files[n] = search_hdf5(n, args["data_path"])
 
+
     blacklist = ["Highest TP rates per channel"] # blacklist data that should not be plotted e.g. takes too long
+
     for f in hdf_files:
         keys = []
         values = {}
@@ -97,11 +101,19 @@ def plot(args : argparse.Namespace, display : bool = False):
                 values[k] = data[k]
         plt = plotter(keys, values, args)
 
-        if display is True:
-            plt.plot_display()
-        else:
-            plt.plot_book(out_dir + f)
+        procs = []
+        q = multiprocessing.Queue()
+        if display is False:
+            for i in plt.metrics:
+                proc = multiprocessing.Process(target = plt.plot_book_fig, args = [i, q])
+                procs.append(proc)
+                proc.start()
 
+            with plotting.PlotBook(out_dir + f, True) as book:
+                for proc in procs:
+                    book.save(q.get())
+        else:
+            plt.plot_display()
     return
 
 

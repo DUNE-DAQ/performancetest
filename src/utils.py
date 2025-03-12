@@ -13,6 +13,24 @@ import xml.etree.ElementTree as ET
 
 import pathlib
 
+def timer(func):
+    """ Decorator which times a function.
+
+    Args:
+        func (function): function to time
+    """
+    def wrapper_function(*args, **kwargs) -> object:
+        """ Times funcions, returns outputs
+        Returns:
+            any: func output
+        """
+        s = time.time()
+        out = func(*args,  **kwargs)
+        print(f'{func.__name__!r} executed in {(time.time()-s):.4f}s')
+        return out
+    return wrapper_function
+
+
 class ApplicationArguments(argparse.ArgumentParser):
     """ Class for managing application arguments for the performance report tools.
         Inherits from application.ArgumentParser and modifies class to reduce boilerplate when defining application args.
