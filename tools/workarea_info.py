@@ -10,6 +10,8 @@ Description: Information about the workarea used to perform the test.
 import argparse
 import os
 
+from contextlib import contextmanager
+
 import tabulate
 import yaml
 
@@ -18,6 +20,26 @@ import files, shell, utils
 from rich import print
 
 printout = False
+
+@contextmanager
+def change_git_config():
+    """ Temporarily change the safe directory list in the users git config.
+    """
+    existing_dirs = shell.parse_output(shell.run("git config --global --get-all safe.directory", capture = True))
+    try:
+        if "*" in existing_dirs:
+            print("skip adding safe directory")
+        else:
+            shell.run("git config --global --add safe.directory '*'")
+        yield
+    finally:
+        if "*" not in existing_dirs:
+            shell.run("git config --global --unset-all safe.directory")
+
+            for i in existing_dirs:
+                if i != "*": shell.run(f"git config --global --add safe.directory '{i}'")
+        return
+
 
 def verbprint(i : any):
     """ controlled printout.
@@ -190,7 +212,9 @@ def main(args : argparse.Namespace):
     else:
         pass
 
-    get_info(path, test_args["data_path"], test_args["config_repo"])
+    with change_git_config():
+        get_info(path, test_args["data_path"], test_args["config_repo"])
+
     return
 
 
