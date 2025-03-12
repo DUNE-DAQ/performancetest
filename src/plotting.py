@@ -5,15 +5,18 @@ Author: Shyam Bhuller (University of Oxford)
 
 Description: Module for making plots.
 """
-from abc import ABC, abstractmethod
-from matplotlib.cm import get_cmap
 import warnings
+
+from abc import ABC, abstractmethod
+from multiprocessing import Queue
 
 import numpy as np
 import pandas as pd
+import matplotlib
 import matplotlib.pyplot as plt
-from matplotlib.ticker import FuncFormatter
 
+from matplotlib.cm import get_cmap
+from matplotlib.ticker import FuncFormatter
 from matplotlib.backends.backend_pdf import PdfPages
 
 import times
@@ -121,11 +124,11 @@ class PlotBook:
         self.close()
         self.is_open = False
 
-    def save(self):
+    def save(self, figure : matplotlib.figure.Figure | None = None):
         if hasattr(self, "pdf"):
             try:
-                self.pdf.savefig(bbox_inches='tight')
-                plt.close()
+                self.pdf.savefig(figure = figure, bbox_inches='tight')
+                if not figure: plt.close()
             except AttributeError:
                 pass
 
@@ -255,4 +258,18 @@ class PlotEngine(ABC):
                 self.plot_metric(i)
                 book.save()
                 plt.clf()
+        return
+
+
+    def plot_book_fig(self, metric : str, queue : Queue):
+        """ Plot metrics and append figure to a multiprocessing queue.
+
+        Args:
+            metric (str): metric to plot
+            queue (Queue): queue to append figure to.
+        """
+        plt.clf()
+        fig = plt.figure(figsize=(8*1.2, 6*1.2))
+        self.plot_metric(metric)
+        queue.put(fig)
         return
