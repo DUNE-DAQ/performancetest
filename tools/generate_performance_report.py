@@ -10,11 +10,12 @@ import argparse
 
 import files
 import utils
+import shell
 
 from collect_metrics import collect_metrics
 from basic_plotter import plot
 from performance_report import performance_report
-from workarea_info import get_info
+from workarea_info import change_git_config, get_info
 from analyze_data import analyse_data
 from get_server_info import server_info
 
@@ -36,9 +37,13 @@ def main(args : argparse.Namespace):
     test_args = files.read_json(args.file) # reload the config because collect metrics modifies the config
 
     if test_args["workarea"] is not None:
-        get_info(test_args["workarea"], test_args["data_path"], test_args["config_repo"])
+        with change_git_config(): get_info(test_args["workarea"], test_args["data_path"], test_args["config_repo"])
     else:
         print("configuration has no workarea and it was not supplied. Software and DAQ config information cannot be calculated.")
+
+    if "pinning" in test_args:
+        print("copying custom pinning file for report generation.")
+        shell.run(f"cp {test_args['pinning']} {test_args['data_path']}")
 
     for i in [server_info, plot, analyse_data, performance_report]:
         i(test_args)
