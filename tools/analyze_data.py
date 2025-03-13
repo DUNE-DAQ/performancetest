@@ -13,6 +13,7 @@ import pathlib
 
 from collections import namedtuple
 from enum import Enum
+from types import SimpleNamespace
 
 import files, shell, plotting, utils, times
 from times import time_range
@@ -628,25 +629,26 @@ def process_tp_info(data : dict[pd.DataFrame], out : str, readout_plane : Readou
     expected_hit_rate = min(rp.tp_rate) * rp.num_channels
     acceptance_hit_rate = max(rp.tp_rate) * rp.num_channels
 
-    hit_rates = list(utils.search_dict(data, "hit rates").values())[0]
+    tp_data = SimpleNamespace(**{
+        "hit_rate" : list(utils.search_dict(data, "hit rates").values())[0],
+        "hits_sent" : list(utils.search_dict(data, "TP Sent rates").values())[0],
+        "tp_writer_info" : list(utils.search_dict(data, "TP writing rates").values())[0],
+        "tph_request_rates" : list(utils.search_dict(data, "(?=.*Request rate)(?!.*tphandler)").values())[0],
+        "total_tp_drop_rates" : list(utils.search_dict(data, "dropped").values())[0].sum(axis = 0)
+    })
 
-    hits_sent = list(utils.search_dict(data, "TP Sent rates").values())[0]
+    if all([getattr(tp_data, k).empty for k in vars(data)]):
+        print("Warning: no trigger primitive information found!")
+        return
 
-    tp_writer_info = list(utils.search_dict(data, "TP writing rates").values())[0]
-
-    tph_request_rates = list(utils.search_dict(data, "(?=.*Request rate)(?!.*tphandler)").values())[0]
-
-    total_tp_drop_rates = list(utils.search_dict(data, "dropped").values())[0]
-    total_tp_drop_rates = total_tp_drop_rates.sum(axis = 0)
-
-    n_rp = len(hit_rates.columns.values) // (rp.num_wibs * rp.num_nics)
+    n_rp = len(tp_data.hit_rates.columns.values) // (rp.num_wibs * rp.num_nics)
     if n_rp == 0: n_rp += 1 # if we have less dlhs than expected, assume one readout plane was used for now
 
-    total_hit_rate = hit_rates.sum(axis = 1) # hit rate across entire detector
-    total_hit_sent = hits_sent.sum(axis = 1) # hits sent by the DLH to the trigger?
+    total_hit_rate = tp_data.hit_rates.sum(axis = 1) # hit rate across entire detector
+    total_hit_sent = tp_data.hits_sent.sum(axis = 1) # hits sent by the DLH to the trigger?
 
     #? code assumes readout plane channels are in ascending order, find another way to group DLHs?
-    hit_rate_apa = pd.DataFrame({f"{readout_plane.name} {i}" : np.sum(hit_rates.values[:, i * n_rp:(i+1)*n_rp], axis=1) for i in range(n_rp)})
+    hit_rate_apa = pd.DataFrame({f"{readout_plane.name} {i}" : np.sum(tp_data.hit_rates.values[:, i * n_rp:(i+1)*n_rp], axis=1) for i in range(n_rp)})
 
     with plotting.PlotBook(out + "tp_plots") as book:
         if not total_hit_rate.empty:
@@ -669,39 +671,40 @@ def process_tp_info(data : dict[pd.DataFrame], out : str, readout_plane : Readou
             plotting.add_metadata(test_args, int(hit_rate_apa[c].index[0]))
             book.save()
 
-        if not tp_writer_info.empty:
-            plotting.plot(times.relative_time(tp_writer_info), tp_writer_info[["TP Received", "TP written"]], ["received", "written"], "Time (s)", "TP rate", autofmt = "Hz")
+        if not tp_data.tp_writer_info.empty:
+            plotting.plot(times.relative_time(tp_data.tp_writer_info), tp_data.tp_writer_info[["TP Received", "TP written"]], ["received", "written"], "Time (s)", "TP rate", autofmt = "Hz")
             plotting.plt.title("TPWriter receieve/write rates")
             plotting.hline(expected_hit_rate * n_rp, "expected hit rate", "red", "--", "Hz")
             plotting.hline(acceptance_hit_rate * n_rp, "acceptence hit rate", "k", "--", "Hz")
             plotting.plt.legend(fontsize="x-small")
-            plotting.add_metadata(test_args, int(tp_writer_info.index[0]))
+            plotting.add_metadata(test_args, int(tp_data.tp_writer_info.index[0]))
             book.save()
 
-            plotting.plot(times.relative_time(tp_writer_info), rp.tp_size * tp_writer_info[["TP Received", "TP written"]], ["received", "written"], "Time (s)", "Rate", autofmt = "b/s")
+            plotting.plot(times.relative_time(tp_data.tp_writer_info), rp.tp_size * tp_data.tp_writer_info[["TP Received", "TP written"]], ["received", "written"], "Time (s)", "Rate", autofmt = "b/s")
             plotting.plt.title("TPWriter receieve/write rates")
             plotting.hline(expected_hit_rate * n_rp * rp.tp_size, "expected hit rate", "red", "--", "b/s")
             plotting.hline(acceptance_hit_rate * n_rp * rp.tp_size, "acceptence hit rate", "k", "--", "b/s")
             plotting.plt.legend(fontsize="x-small")
-            plotting.add_metadata(test_args, int(tp_writer_info.index[0]))
+            plotting.add_metadata(test_args, int(tp_data.tp_writer_info.index[0]))
             book.save()
 
-        plotting.bar(total_tp_drop_rates.index, total_tp_drop_rates.values, "", "Number of TPs", "TPs dropped", bar_label = True)
-        plotting.plt.ylim(0)
-        plotting.add_metadata(test_args, int(tp_writer_info.index[0]))
-        book.save()
-
-        if not tph_request_rates.empty:
-            plotting.plot(times.relative_time(tph_request_rates), tph_request_rates.values, tph_request_rates.columns, "Time (s)", "Request Rates", autofmt = "Hz")
-            plotting.add_metadata(test_args, int(tph_request_rates.index[0]))
+        if not tp_data.total_tp_drop_rates.empty:
+            plotting.bar(tp_data.total_tp_drop_rates.index, tp_data.total_tp_drop_rates.values, "", "Number of TPs", "TPs dropped", bar_label = True)
+            plotting.plt.ylim(0)
+            plotting.add_metadata(test_args, int(tp_data.total_tp_drop_rates.index[0]))
             book.save()
 
-        if not tph_request_rates.empty:
-            request_rate_percent = tph_request_rates.sum(axis=0)
+        if not tp_data.tph_request_rates.empty:
+            plotting.plot(times.relative_time(tp_data.tph_request_rates), tp_data.tph_request_rates.values, tp_data.tph_request_rates.columns, "Time (s)", "Request Rates", autofmt = "Hz")
+            plotting.add_metadata(test_args, int(tp_data.tph_request_rates.index[0]))
+            book.save()
+
+        if not tp_data.tph_request_rates.empty:
+            request_rate_percent = tp_data.tph_request_rates.sum(axis=0)
             request_rate_percent = request_rate_percent.div(request_rate_percent["Total "], axis = 0)
             request_rate_percent.pop("Total ")
             plotting.bar(request_rate_percent.index, request_rate_percent, "Requst type", "Requests (%)", "Total number of requests", bar_label = True)
-            plotting.add_metadata(test_args, int(tph_request_rates.index[0]))
+            plotting.add_metadata(test_args, int(tp_data.tph_request_rates.index[0]))
             book.save()
     return
 
@@ -715,6 +718,10 @@ def process_frontend_info(data : dict[pd.DataFrame], out : str, readout_plane : 
         readout_plane (ReadoutPlane): The readout plane tested with.
     """
     rx_throughput = list(utils.search_dict(data, "Throughput").values())[0] # bytes recevied from each queue in a readout application
+    if rx_throughput.empty:
+        print("Warning: no frontend ethernet data was found!")
+        return
+    start_time = int(rx_throughput.index[0])
     UDPQueue = namedtuple("UDPQueue", ["application", "queue"])
     dict_cols = {c : UDPQueue(**ast.literal_eval(c)) for c in rx_throughput.columns}
     rx_throughput = rx_throughput.rename(columns = dict_cols)
@@ -749,13 +756,13 @@ def process_frontend_info(data : dict[pd.DataFrame], out : str, readout_plane : 
         plotting.plot(times.relative_time(rx_throughput_apps), rx_throughput_apps, rx_throughput_apps.columns, "Time (s)", "RX throughput", autofmt = "B/s")
         plotting.hline(max_rate_per_stream * n_queues_per_app, "Acceptance data input", autofmt = "B/s", linestyle = "--")
         plotting.plt.legend(fontsize="x-small")
-        plotting.add_metadata(test_args, int(rx_throughput_apps.index[0]))
+        plotting.add_metadata(test_args, start_time)
         book.save()
 
         plotting.plot(times.relative_time(rx_throughput), rx_throughput, None, "Time (s)", "RX throughput", autofmt = "B/s")
         plotting.hline(max_rate_per_stream, "Acceptance data input", autofmt = "B/s", linestyle = "--")
         plotting.plt.legend(fontsize="x-small")
-        plotting.add_metadata(test_args, int(rx_throughput_apps.index[0]))
+        plotting.add_metadata(test_args, start_time)
         book.save()
 
         total_errors = {k : v.sum(axis=0) for k,v in rx_errors.items()}
@@ -763,19 +770,19 @@ def process_frontend_info(data : dict[pd.DataFrame], out : str, readout_plane : 
         for k, v in total_errors.items():
             plotting.bar(label, v.values, None, "Counts", k, bar_label = True)
             plotting.plt.ylim(0)
-            plotting.add_metadata(test_args, int(rx_throughput_apps.index[0]))
+            plotting.add_metadata(test_args, start_time)
             book.save()
 
         total_dropped_frames = {f"{readout_plane.name} {i}" : v.sum().sum() for i, v in enumerate(rx_dropped_frames.values())}
         plotting.bar(list(total_dropped_frames.keys()), list(total_dropped_frames.values()), None, "Counts", "RX Dropped Frames", bar_label = True)
         plotting.plt.ylim(0)
-        plotting.add_metadata(test_args, int(rx_throughput_apps.index[0]))
+        plotting.add_metadata(test_args, start_time)
         book.save()
 
         total_errors_dlh = {f"{readout_plane.name} {i}" : v.sum().sum() for i, v in enumerate(total_errors_dlh.values())}
         plotting.bar(list(total_errors_dlh.keys()), list(total_errors_dlh.values()), None, "Counts", "Errors from DLH", bar_label = True)
         plotting.plt.ylim(0)
-        plotting.add_metadata(test_args, int(rx_throughput_apps.index[0]))
+        plotting.add_metadata(test_args, start_time)
         book.save()
     return
 
@@ -788,6 +795,10 @@ def process_readout_info(data : dict[pd.DataFrame], out : str, test_args : dict)
         out (str): output file diretory.
     """
     request_rates_total = list(utils.search_dict(data, "(?=.*Request rates)(?!.*for)").values())[0]
+
+    if request_rates_total.empty:
+        print("Warning: no readout request rate information found!")
+        return
 
     request_rates_dlh = utils.search_dict(data, "(?=.*Request rates)(?=.*for)")
 
@@ -822,6 +833,10 @@ def process_daq_overview_info(data : dict[pd.DataFrame], out : str, test_args : 
     """
     global_trigger_rate = data["Global Trigger Rate"]
     dataflow_written_rate = data["Data Writers Information"].sort_index() # not sure what happened here
+
+    if global_trigger_rate.empty and dataflow_written_rate.empty:
+        print("Warning : no DAQ overview data found!")
+        return
 
     with plotting.PlotBook(out + "ov_plots") as book:
         total_count = global_trigger_rate.pop("Total count")
