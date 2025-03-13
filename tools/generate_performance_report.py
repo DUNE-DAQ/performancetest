@@ -43,7 +43,7 @@ def main(args : argparse.Namespace):
 
     if "pinning" in test_args:
         print("copying custom pinning file for report generation.")
-        shell.run(f"cp {test_args['pinning']} {test_args['data_path']}")
+    shell.run(f"cp {test_args['pinning']} {test_args['data_path']}cpupin-all-running.json")
 
     for i in [server_info, plot, analyse_data, performance_report]:
         i(test_args)
