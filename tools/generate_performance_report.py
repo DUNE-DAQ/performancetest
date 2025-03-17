@@ -4,7 +4,7 @@ Created on: 13/10/2024 00:10
 
 Author: Shyam Bhuller (University of Oxford)
 
-Description: Deprecated, likely does not work with current data files.
+Description: Create a performance report with one command.
 """
 import argparse
 
@@ -43,7 +43,7 @@ def main(args : argparse.Namespace):
 
     if "pinning" in test_args:
         print("copying custom pinning file for report generation.")
-    shell.run(f"cp {test_args['pinning']} {test_args['data_path']}cpupin-all-running.json")
+        shell.run(f"cp {test_args['pinning']} {test_args['data_path']}cpupin-all-running.json")
 
     for i in [server_info, plot, analyse_data, performance_report]:
         i(test_args)

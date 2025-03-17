@@ -630,14 +630,14 @@ def process_tp_info(data : dict[pd.DataFrame], out : str, readout_plane : Readou
     acceptance_hit_rate = max(rp.tp_rate) * rp.num_channels
 
     tp_data = SimpleNamespace(**{
-        "hit_rate" : list(utils.search_dict(data, "hit rates").values())[0],
+        "hit_rates" : list(utils.search_dict(data, "hit rates").values())[0],
         "hits_sent" : list(utils.search_dict(data, "TP Sent rates").values())[0],
         "tp_writer_info" : list(utils.search_dict(data, "TP writing rates").values())[0],
         "tph_request_rates" : list(utils.search_dict(data, "(?=.*Request rate)(?!.*tphandler)").values())[0],
         "total_tp_drop_rates" : list(utils.search_dict(data, "dropped").values())[0].sum(axis = 0)
     })
 
-    if all([getattr(tp_data, k).empty for k in vars(data)]):
+    if all([getattr(tp_data, k).empty for k in vars(tp_data)]):
         print("Warning: no trigger primitive information found!")
         return
 
@@ -691,12 +691,12 @@ def process_tp_info(data : dict[pd.DataFrame], out : str, readout_plane : Readou
         if not tp_data.total_tp_drop_rates.empty:
             plotting.bar(tp_data.total_tp_drop_rates.index, tp_data.total_tp_drop_rates.values, "", "Number of TPs", "TPs dropped", bar_label = True)
             plotting.plt.ylim(0)
-            plotting.add_metadata(test_args, int(tp_data.total_tp_drop_rates.index[0]))
+            plotting.add_metadata(test_args, int(tp_data.tp_writer_info.index[0]))
             book.save()
 
         if not tp_data.tph_request_rates.empty:
             plotting.plot(times.relative_time(tp_data.tph_request_rates), tp_data.tph_request_rates.values, tp_data.tph_request_rates.columns, "Time (s)", "Request Rates", autofmt = "Hz")
-            plotting.add_metadata(test_args, int(tp_data.tph_request_rates.index[0]))
+            plotting.add_metadata(test_args, int(tp_data.tp_writer_info.index[0]))
             book.save()
 
         if not tp_data.tph_request_rates.empty:
@@ -704,7 +704,7 @@ def process_tp_info(data : dict[pd.DataFrame], out : str, readout_plane : Readou
             request_rate_percent = request_rate_percent.div(request_rate_percent["Total "], axis = 0)
             request_rate_percent.pop("Total ")
             plotting.bar(request_rate_percent.index, request_rate_percent, "Requst type", "Requests (%)", "Total number of requests", bar_label = True)
-            plotting.add_metadata(test_args, int(tp_data.tph_request_rates.index[0]))
+            plotting.add_metadata(test_args, int(tp_data.tp_writer_info.index[0]))
             book.save()
     return
 
