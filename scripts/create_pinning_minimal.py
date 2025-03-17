@@ -121,15 +121,20 @@ class CoreMap:
         #* remove any reference to another element: find its children, and remove self from parent
         #* remove self from elements
 
-        if e.children:
-            for c in e.children:
-                self.remove(c, False)
+        if e is not None:
+            if e.children:
+                for c in e.children:
+                    self.remove(c, False)
 
-        self.elements.remove(e)
-        if remove_from_parent:
-            if e in e.parent.children:
-                e.parent.children.remove(e)
-        if len(e.parent.children) == 0: self.remove(e.parent)
+            self.elements.remove(e)
+
+            if e.parent is not None:
+                if remove_from_parent:
+                    if e in e.parent.children:
+                        e.parent.children.remove(e)
+                if (len(e.parent.children) == 0): self.remove(e.parent)
+            else:
+                self.remove(e.parent)
         return
 
 
@@ -311,15 +316,20 @@ def fill_piining_map_cache(pinning : dict, max_cores : dict, core_map : CoreMap)
             print("Info: NUMA region has only one cache domain.")
             readout_cache = caches[0]
             tp_cache = caches[0]
-            readout_cache = caches[0]
             ccp_parent_cache = caches[0]
             available_cores_readout = caches[0].children
         else:
             #! cache assignment to thread is hardcoded right now
-            readout_cache = [caches.pop(0), caches.pop(0)]
-            tp_cache = caches.pop(0)
-            ccp_parent_cache = caches.pop(0)
-            available_cores_readout = readout_cache[0].children + readout_cache[1].children
+            #* old layout
+            # tp_cache = caches.pop(0)
+            # readout_cache = [caches.pop(0), caches.pop(0)]
+            # ccp_parent_cache = caches.pop(0)
+            # available_cores_readout = readout_cache[0].children + readout_cache[1].children
+            #* alternate layout
+            readout_cache = [caches.pop(0), caches.pop(0), caches.pop(0)]
+            other_cache = caches.pop(0)
+            available_cores_readout = readout_cache[0].children + readout_cache[1].children + readout_cache[2].children
+
 
         ccps = None
         for t in pinning["daq_application"][app]["threads"]:
@@ -330,11 +340,13 @@ def fill_piining_map_cache(pinning : dict, max_cores : dict, core_map : CoreMap)
                     pus = assign_cores(core_map, available_cores_readout, max_cores[prefix])
                     pinning["daq_application"][app]["threads"][t] = core_list_to_str(pus)
             elif "tpproc" in t:
-                    pus = assign_cores(core_map, tp_cache.children, max_cores["tpproc"])
+                    pus = assign_cores(core_map, other_cache.children, max_cores["tpproc"])
+                    # pus = assign_cores(core_map, tp_cache.children, max_cores["tpproc"])
                     pinning["daq_application"][app]["threads"][t] = core_list_to_str(pus)
             elif ("cleanup" in t) or ("consumer" in t) or ("periodic" in t):
                 if ccps is None:
-                    ccps = assign_cores(core_map, ccp_parent_cache.children, max_cores["ccp"])
+                    ccps = assign_cores(core_map, other_cache.children, max_cores["ccp"])
+                    # ccps = assign_cores(core_map, ccp_parent_cache.children, max_cores["ccp"])
                 pinning["daq_application"][app]["threads"][t] = core_list_to_str(ccps)
             else:
                 raise Exception(f"do not know how to assign cores to thread {t}")
