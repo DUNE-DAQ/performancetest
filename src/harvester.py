@@ -668,7 +668,7 @@ def uprof_to_df(file : str) -> pd.DataFrame:
                 
                 # append package numbers to headers,
                 if 'Package' in line:
-                    header1 = line.split(',')
+                    header1 = line.split(',')[1:]
                 if 'Timestamp' in line:
                     header2 = line.split(',')[1:]
 
@@ -750,7 +750,7 @@ def uprof_to_df(file : str) -> pd.DataFrame:
         tz = datetime.datetime.now(datetime.timezone.utc).astimezone().tzinfo
         t = pd.to_datetime(df[k].index).tz_localize(tz)
         t = (t - pd.Timestamp("1970-01-01").tz_localize("UTC")) // pd.Timedelta('1s')
-        
+
         df[k] = df[k].set_index(t)
         df[k] = df[k].astype(float)
     return df
