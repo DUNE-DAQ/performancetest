@@ -104,14 +104,19 @@ def plot(args : argparse.Namespace, display : bool = False):
         procs = []
         q = multiprocessing.Queue()
         if display is False:
-            for i in plt.metrics:
-                proc = multiprocessing.Process(target = plt.plot_book_fig, args = [i, q])
+            for i, m in enumerate(plt.metrics):
+                proc = multiprocessing.Process(target = plt.plot_book_fig, args = [i, m, q])
                 procs.append(proc)
                 proc.start()
 
+            output = [None]*len(procs)
+            for proc in procs:
+                o = q.get()
+                output[o[0]] = o[1]
+
             with plotting.PlotBook(out_dir + f, True) as book:
-                for proc in procs:
-                    book.save(q.get())
+                for o in output:
+                    book.save(o)
         else:
             plt.plot_display()
     return

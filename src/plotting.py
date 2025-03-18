@@ -261,7 +261,7 @@ class PlotEngine(ABC):
         return
 
 
-    def plot_book_fig(self, metric : str, queue : Queue):
+    def plot_book_fig(self, index : int, metric : str, queue : Queue):
         """ Plot metrics and append figure to a multiprocessing queue.
 
         Args:
@@ -271,5 +271,5 @@ class PlotEngine(ABC):
         plt.clf()
         fig = plt.figure(figsize=(8*1.2, 6*1.2))
         self.plot_metric(metric)
-        queue.put(fig)
+        queue.put((index, fig))
         return

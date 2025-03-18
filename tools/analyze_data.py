@@ -538,6 +538,7 @@ def process_disk_info(data : dict[pd.DataFrame], out : str, readout_plane : Read
 
     if "Disk Total Written (B)" in data:
         total_written =  (data["Disk Total Written (B)"] - data["Disk Total Written (B)"].min(axis=0)) /(1000**3)
+        total_written = total_written[nvme_sample]
 
     max_io = io_time.max()
     max_wr = write_rate.max()
