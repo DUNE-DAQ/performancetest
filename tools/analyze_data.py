@@ -205,7 +205,7 @@ def process_memory_info(ne : pd.DataFrame, intel : pd.DataFrame | None, amd : pd
         for i in [intel_data, amd_data]:
             if i is None: continue
             if hw_info:
-                bw = calculate_maximum_memory_bw(hw_info)
+                bw = memory_bw_031(hw_info)
             else:
                 bw = None
 
