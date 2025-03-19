@@ -44,7 +44,11 @@ class plotter(plotting.PlotEngine):
 
         make_labels = (len(df.columns) < 20) and (len(df.columns) > 1)
         for c in df.columns:
-            plotting.plot(times.relative_time(df), df[c].astype(float), c if make_labels else None, tlabel, metric, False)
+            try:
+                v = df[c].astype(float)
+            except:
+                v = df[c]
+            plotting.plot(times.relative_time(df), v, c if make_labels else None, tlabel, metric, False)
             plotting.add_metadata(self.test_args, int(df.index[0]))
         plotting.plt.ylim(0, 1.1 * max(plotting.plt.gca().get_ylim()))
 
@@ -93,7 +97,6 @@ def plot(args : argparse.Namespace, display : bool = False):
             if k in blacklist:
                 continue
 
-            print(f"Plotting: {k}")
             keys.append(k)
             if type(data[k]) == pd.Series:
                 values[k] = data[k].to_frame()
