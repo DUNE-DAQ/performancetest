@@ -94,7 +94,6 @@ def autoscale(data : float, units : str, style : str = "2g") -> tuple[FuncFormat
     """
 
     scales = {-3 : "n", -2 : "u", -1 : "m", 0 : "", 1 : "k", 2 : "M", 3 : "G", 4 : "T"}
-    # scales = ["", "k","M","G","T"]
     scale = int(np.floor(np.log10(data)))//3
     new_units = scales[scale] + units
     if units[0] in scales:

@@ -89,6 +89,51 @@ def memory_bw_info_Intel(df : pd.DataFrame) -> pd.DataFrame:
     return pd.concat(fmt_df + [mem_data_rw], axis = 1)
 
 
+def memory_bw_031(hardware_info : str):
+    """ Specific method for 031 tests where hardware info was not captured in the new way.
+
+    Args:
+        hardware_info (str): hardware xml file.
+    """
+    def scale_units(value, units):
+        scales = {-3 : "n", -2 : "u", -1 : "m", 0 : "", 1 : "k", 2 : "M", 3 : "G", 4 : "T"}
+
+        for k, v in scales.items():
+            if units[0] == v:
+                return value * 10**(3*k)
+        return value
+
+    tree = files.read_xml(hardware_info)
+
+    n_dimms = 0
+    data_width = None
+    clock_speed = None
+    n_sockets = 0
+    for i in utils.xml_search_elem_name(tree, "node"):
+        if "id" in i.attrib:
+            if "bank" in i.attrib["id"]:
+                print(i.attrib)
+                description = utils.xml_search_elem_name_single(i, "description")
+                if '[empty]' not in description.text: # DIMM is populated
+                    n_dimms += 1                
+                    text = description.text.split(" ")
+                    for j, t in enumerate(text):
+                        if "Hz" in t:
+                            break
+                    clock_speed = scale_units(int(text[j-1]), text[j]) # this is in bits
+
+                    width = utils.xml_search_elem_name_single(i, "width")
+                    speed = utils.xml_search_elem_name_single(i, "clock")
+                    #* assume all DIMMs are the same specifications (they should be...)
+                    if width is not None: data_width = scale_units(int(width.text), width.attrib["unit"]) # this is in bits
+            if "cpu:" in i.attrib["id"]:
+                n_sockets += 1
+
+    n_channels = n_dimms/2
+
+    return (data_width//8) * clock_speed * n_channels / n_sockets
+
+
 def calculate_maximum_memory_bw(hardware_info : str) -> float:
     """ Calculate the maximum available memory bandwidth per socket.
         Assumes that the DIMMs are all the same, there are an equal number of DIMMs per socket. 
