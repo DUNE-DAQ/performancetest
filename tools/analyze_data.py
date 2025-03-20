@@ -771,7 +771,7 @@ def process_frontend_info(data : dict[pd.DataFrame], out : str, readout_plane : 
         for k, v in total_errors.items():
             plotting.bar(label, v.values, None, "Counts", k, bar_label = True)
             plotting.plt.ylim(0)
-            plotting.add_metadata(test_args, start_time)
+            plotting.add_metadata(test_args, start_time, True)
             book.save()
 
         total_dropped_frames = {f"{readout_plane.name} {i}" : v.sum().sum() for i, v in enumerate(rx_dropped_frames.values())}
