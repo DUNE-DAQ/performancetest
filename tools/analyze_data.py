@@ -687,14 +687,16 @@ def process_tp_info(data : dict[pd.DataFrame], out : str, readout_plane : Readou
         print("Warning: no trigger primitive information found!")
         return
 
-    n_rp = len(tp_data.hit_rates.columns.values) // (rp.num_wibs * rp.num_nics)
+    n_dlh = rp.num_wibs * rp.num_nics
+    n_rp = len(tp_data.hit_rates.columns.values) // n_dlh
+
     if n_rp == 0: n_rp += 1 # if we have less dlhs than expected, assume one readout plane was used for now
 
     total_hit_rate = tp_data.hit_rates.sum(axis = 1) # hit rate across entire detector
     total_hit_sent = tp_data.hits_sent.sum(axis = 1) # hits sent by the DLH to the trigger?
 
     #? code assumes readout plane channels are in ascending order, find another way to group DLHs?
-    hit_rate_apa = pd.DataFrame({f"{readout_plane.name} {i}" : np.sum(tp_data.hit_rates.values[:, i * n_rp:(i+1)*n_rp], axis=1) for i in range(n_rp)})
+    hit_rate_apa = pd.DataFrame({f"{readout_plane.name} {i}" : np.sum(tp_data.hit_rates.values[:, i * n_dlh:(i+1)*n_dlh], axis=1) for i in range(n_rp)})
 
     with plotting.PlotBook(out + "tp_plots") as book:
         if not total_hit_rate.empty:
@@ -814,19 +816,19 @@ def process_frontend_info(data : dict[pd.DataFrame], out : str, readout_plane : 
         total_errors = {k : v.sum(axis=0) for k,v in rx_errors.items()}
         label =  [f"{readout_plane.name} {i}" for i, _ in enumerate(list(total_errors.values())[0].index)]
         for k, v in total_errors.items():
-            plotting.bar(label, v.values, None, "Counts", k, bar_label = True)
+            plotting.bar(label, v.values, None, k, bar_label = True)
             plotting.plt.ylim(0)
-            plotting.add_metadata(test_args, start_time)
+            plotting.add_metadata(test_args, start_time, False)
             book.save()
 
         total_dropped_frames = {f"{readout_plane.name} {i}" : v.sum().sum() for i, v in enumerate(rx_dropped_frames.values())}
-        plotting.bar(list(total_dropped_frames.keys()), list(total_dropped_frames.values()), None, "Counts", "RX Dropped Frames", bar_label = True)
+        plotting.bar(list(total_dropped_frames.keys()), list(total_dropped_frames.values()), None, "RX Dropped Frames", bar_label = True)
         plotting.plt.ylim(0)
         plotting.add_metadata(test_args, start_time)
         book.save()
 
         total_errors_dlh = {f"{readout_plane.name} {i}" : v.sum().sum() for i, v in enumerate(total_errors_dlh.values())}
-        plotting.bar(list(total_errors_dlh.keys()), list(total_errors_dlh.values()), None, "Counts", "Errors from DLH", bar_label = True)
+        plotting.bar(list(total_errors_dlh.keys()), list(total_errors_dlh.values()), None, "Errors from DLH", bar_label = True)
         plotting.plt.ylim(0)
         plotting.add_metadata(test_args, start_time)
         book.save()
