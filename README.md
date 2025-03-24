@@ -141,7 +141,9 @@ It is possible to use a different the pinning file passed in the workarea config
 
 To add AMD hardware counters to the performance test workflow, first one must run the uprof software **during** a given test, by running the following:
 
-`sudo $PERFORMANCE_TEST_PATH/scripts/start_uprof.sh <test_name> <duration_seconds>`
+```
+sudo $PERFORMANCE_TEST_PATH/scripts/start_uprof.sh <test_name> <duration_seconds>
+```
 
 to run the pcm and power profiling tools for a set time. Next in the test configuration json file the optional parameter:
 

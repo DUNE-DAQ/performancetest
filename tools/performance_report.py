@@ -125,10 +125,12 @@ def performance_report(test_args : dict):
         if len(winfo) > 0:
             winfo = files.read_json(winfo[0])
 
-        html = html.replace("&daq_version", "release information: \n" + workarea_info.make_release_table(winfo["release"]))
-        html = html.replace("&commit_hashes", f"release packages: \n {workarea_info.make_repo_table(winfo['release_commit'])} \n local packages: \n {workarea_info.make_repo_table(winfo['local_commit'])} \n")
-        html = html.replace(f"&configuration", workarea_info.make_repo_table(winfo["configuration"]))
-        test_args["documentation"].pop("configuration")
+            html = html.replace("&daq_version", "release information: \n" + workarea_info.make_release_table(winfo["release"]))
+            html = html.replace("&commit_hashes", f"release packages: \n {workarea_info.make_repo_table(winfo['release_commit'])} \n local packages: \n {workarea_info.make_repo_table(winfo['local_commit'])} \n")
+            html = html.replace(f"&configuration", workarea_info.make_repo_table(winfo["configuration"]))
+            test_args["documentation"].pop("configuration")
+        else:
+            print("Warning: no workarea information was found!")
 
 
     for k, v in test_args["documentation"].items():

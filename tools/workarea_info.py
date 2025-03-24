@@ -82,15 +82,16 @@ def check_repos(dire : str) -> dict[list]:
     return repo_info
 
 
-def check_configs(dire : str, out : str, repo : str = "ehn1-daqconfigs") -> dict | None:
+def check_configs(dire : str, out : str, repo : str | None = "ehn1-daqconfigs") -> dict | None:
     """ Check workarea for ehn1-configurations, and return information about the repo.
 
     Args:
-        dire (str): dunedaq directory.
+        dire (str | None): dunedaq directory.
 
     Returns:
         tabulate.JupyterHTMLStr | None: HTML table of repo info.
     """
+    if not repo: return
     db_path = shell.search_data_file(repo, dire)
 
     if len(db_path) > 0:
@@ -147,12 +148,11 @@ def get_info(path : str, out : str, repo : str = "ehn1-daqconfigs") -> dict[str]
     Returns:
         dict[str]: html tables of the information.
     """
-
     # check this is valid dunedaq directory
     ls = os.listdir(path)
     if "dbt-workarea-constants.sh" not in ls:
         raise Exception(f"{path} is not a valid dunedaq directory.")
-    
+
     # get the workarea constants
     with open(path + "/dbt-workarea-constants.sh") as f:
         lines = f.readlines()
