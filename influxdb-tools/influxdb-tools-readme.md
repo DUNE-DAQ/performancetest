@@ -1,4 +1,5 @@
 
+  
 # InfluxDB Tools 
 
 We are using InfluxDB for archiving our performance testing of the np04 servers. The database is set up so that each run is a separate bucket which so far have been named *run-RUN_NUMBER* all of these are intended to be retained forever so that we can retrieve the data at any future time for analysis. This will be documentation on setting up an InfluxDB and using the tools which I have made to process the hdf5 files from the output of the performance test tools. 
@@ -19,5 +20,9 @@ Which will run the python script over all of the hdf5 files in the directory and
 
 ## Uploading to the InfluxDB
 
-Once the files are created you can use the the InfluxDB GUI to upload the csv files to the database. Make sure to create the bucket corresponding to the run. I will add pictures later showing the process with the GUI. Additionally there is a bash script for uploading all csv files in a directory to the influx db. This is `upload_all_csvs.sh` and will automatically create a bucket with the same name as the directory and upload the data in the csvs to the database in that bucket. Note that this will produce a lot of errors and warnings since we don't do anything to remove empty parts of the csvs or NaNs but this hasn't caused us problems. 
+In order to upload things to the database one needs to first install the influx cli. The influx cli can be installed from the instructions here https://docs.influxdata.com/influxdb/cloud/reference/cli/influx/?t=Linux. Once this is done you can set up a configuration the organization is called *np04-perftest* and you can create an api token using the cli following the instructions here https://docs.influxdata.com/influxdb/cloud/admin/tokens/create-token/. Once this is done you can activate the configuration and simply run the `upload_all_csvs.sh` script to upload all of the files of the directory to the database. Note that the name of the directory must be of the form `run-run_number` since the run number is taken from the directory name. 
+
+## Querying The Database and  the GUI
+
+First make sure that the port 8086 on `np04-srv-019` (if this port is a problem we can change it in the configuration) is being forwarded to your machine. Then simply type `localhost:8086` and you will see the browser window with a sign in screen you can use the username `np04-daq` and the password `daqperftest`. Then go to the data explorer page then select a time range and on the leftmost filter select the field you want and then on the rightmost filter select a measurement (or a set of measurements to view) you can then use the mouse to select a specific time range to see the data better.
 
