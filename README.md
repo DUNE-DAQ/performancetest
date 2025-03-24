@@ -158,3 +158,6 @@ can be added. Then, the performance test tools above can be re-ran to process th
 
 ## Micro service
 [Micro service](docs/microservice.md)
+
+## Instructions for generating a performance test with an emulated system
+[performance test cookbook](docs/perf_test_cookbook.md)
