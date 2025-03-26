@@ -108,3 +108,10 @@ def write_json(file : str | pathlib.Path, data : dict):
     """
     with pathlib.Path(file).with_suffix(".json").open("w") as f:
         json.dump(data, f, indent = 4)
+
+
+def read_config(file : str | pathlib.Path) -> dict:
+    cfg = read_json(file)
+    if type(cfg["run_number"]) != int:
+        raise TypeError(f'Run number provided in the configuration json should be an integer, not {type(cfg["run_number"])}')
+    return cfg

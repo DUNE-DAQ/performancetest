@@ -45,8 +45,8 @@ def create_dashboard_info(args : dict) -> dict:
 
 def collect_metrics(args : argparse.Namespace | dict) -> None | dict:
     if type(args) == argparse.Namespace:
-        test_args = files.read_json(args.file)
-        new_args = files.read_json(args.file) # reopen config file to add the data file paths
+        test_args = files.read_config(args.file)
+        new_args = files.read_config(args.file) # reopen config file to add the data file paths
     else:
         test_args = args
         new_args = None
