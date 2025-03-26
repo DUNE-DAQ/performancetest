@@ -18,13 +18,13 @@ def generate_config_template(name : str | pathlib.Path):
     """Generate a template json file for the test reports.
     """
     cfg = {
-        "dunedaq_version" : "version of DUNEDAQ used to perform tests e.g. v4.4.8",
+        "dunedaq_version" : "version of DUNEDAQ used to perform tests e.g. v5.3.0",
         "time_range" : [0, -1], # time range for plots
         "host" : "server being tested e.g. np02-srv-003",
         "data_source" : "source of the data, crp, apa or emu",
         "socket_num" : "socket number tested on the host machine, 0, 1 or 01 for both",
         "test_name" : "short test name",
-        "run_number" : "run number of the test",
+        "run_number" : "run number of the test (without parentheses!)",
         "session" : "grafana partition name for the given test",
         "workarea" : "path to dunedaq directory, can be left as null",
         "config_repo" : "v5 configuration repo used in this test e.g. ehn1-daqconfigs",
@@ -40,13 +40,6 @@ def generate_config_template(name : str | pathlib.Path):
             "concurrancy" : "active users on the readout machine during the time of the run, what applications were run in parallel on the machine",
             "summary" : "summary/conclusions of the test"
         }
-        # "configuration_file" : [
-        #     "daqconf or oks configuration file used in each test"
-        # ],
-        # "repin_threads_file" : [None],
-        # "report_name" : None,
-        # "report_comment" : ["comment for each test"]
-
     }
     files.write_json(name, cfg)
     print(f"template config file {name.with_suffix('.json')} created")

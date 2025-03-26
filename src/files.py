@@ -111,6 +111,14 @@ def write_json(file : str | pathlib.Path, data : dict):
 
 
 def read_config(file : str | pathlib.Path) -> dict:
+    """ Read a performance test configuration file (json).
+
+    Args:
+        file (str | pathlib.Path): configuration file to open.
+
+    Returns:
+        dict: loaded file.
+    """
     cfg = read_json(file)
     if type(cfg["run_number"]) != int:
         raise TypeError(f'Run number provided in the configuration json should be an integer, not {type(cfg["run_number"])}')
