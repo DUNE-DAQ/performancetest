@@ -201,7 +201,7 @@ def main(args : argparse.Namespace):
     global printout
     printout = True
 
-    test_args = files.read_json(args.file)
+    test_args = files.read_config(args.file)
     path = args.path
 
     if (path is None) and (test_args["workarea"] is None):

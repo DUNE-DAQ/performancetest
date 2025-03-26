@@ -35,7 +35,7 @@ def setup_commands(path : str, spack_version : str, release_type : str, release_
 
 def main(args : argparse.Namespace):
 
-    test_args = files.read_json(args.file)
+    test_args = files.read_config(args.file)
     info = files.read_json(shell.search_data_file("workarea_info.json", test_args["data_path"])[0])
 
     work_dir = args.path + f'RECREATED_{info["release"]["release"]}'

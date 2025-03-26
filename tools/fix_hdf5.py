@@ -61,7 +61,7 @@ def fix_indices(file_list : list[str]):
 
 
 def main(args):
-    test_args = files.read_json(args.file)
+    test_args = files.read_config(args.file)
     fl = shell.search_data_file(".hdf5", test_args["data_path"])
 
     if len(fl) == 0:

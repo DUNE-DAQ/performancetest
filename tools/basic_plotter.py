@@ -126,7 +126,7 @@ def plot(args : argparse.Namespace, display : bool = False):
 
 
 def main(args : argparse.Namespace):
-    test_args = files.read_json(args.file)
+    test_args = files.read_config(args.file)
     plot(test_args)
     return
 

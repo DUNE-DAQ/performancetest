@@ -32,7 +32,7 @@ def server_info(test_args : dict):
 
 
 def main(args : argparse.Namespace):
-    test_args = files.read_json(args.file)
+    test_args = files.read_config(args.file)
     server_info(test_args)
     return
 

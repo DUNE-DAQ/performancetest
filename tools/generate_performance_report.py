@@ -24,7 +24,7 @@ from rich import print
 
 def main(args : argparse.Namespace):
 
-    test_args = files.read_json(args.file)
+    test_args = files.read_config(args.file)
     collect = True
     if test_args["data_path"] is None:
         print("data path was not created, collecting metrics")
@@ -34,7 +34,7 @@ def main(args : argparse.Namespace):
         collect = False
 
     if collect: collect_metrics(args)
-    test_args = files.read_json(args.file) # reload the config because collect metrics modifies the config
+    test_args = files.read_config(args.file) # reload the config because collect metrics modifies the config
 
     if test_args["workarea"] is not None:
         with change_git_config(): get_info(test_args["workarea"], test_args["data_path"], test_args["config_repo"])

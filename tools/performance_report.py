@@ -167,7 +167,7 @@ def performance_report(test_args : dict):
 
 
 def main(args : argparse.Namespace):
-    test_args = files.read_json(args.file)
+    test_args = files.read_config(args.file)
     performance_report(test_args)
     return
 

@@ -150,7 +150,7 @@ def resource_utilization(args : dict, display : bool = False):
 
 
 def main(args : argparse.Namespace):
-    test_args = files.read_json(args.file)
+    test_args = files.read_config(args.file)
     resource_utilization(test_args)
     return
 

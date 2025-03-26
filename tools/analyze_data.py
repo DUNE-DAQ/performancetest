@@ -940,7 +940,7 @@ def analyse_data(test_args : dict):
 
 
 def main(args : argparse.Namespace):
-    test_args = files.read_json(args.file)
+    test_args = files.read_config(args.file)
     analyse_data(test_args)
     return
 

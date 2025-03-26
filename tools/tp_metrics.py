@@ -71,7 +71,7 @@ def tp_metrics(args : dict, display : bool = False):
 
 
 def main(args : argparse.Namespace):
-    test_args = files.read_json(args.file)
+    test_args = files.read_config(args.file)
     tp_metrics(test_args)
     return
 

@@ -71,7 +71,7 @@ def get_run_time(dashboard_info : dict[str], run_number : int, test_session : st
     elif utils.dunedaq_major_version(dunedaq_version) == 5:
         query_str = f"SELECT \"run_number\" FROM \"dunedaq.rcif.opmon.RunInfo\" WHERE \"run_number\" = {run_number}"
     else:
-        raise Exception(f"version {dunedaq_version} not supported for ")
+        raise Exception(f"version {dunedaq_version} is not supported.")
 
     response = queries.query_var_influx(url, datasource, query_str)
     values = np.array(response["results"][0]["series"][0]["values"])
