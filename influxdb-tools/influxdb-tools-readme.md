@@ -24,5 +24,5 @@ In order to upload things to the database one needs to first install the influx 
 
 ## Querying The Database and  the GUI
 
-First make sure that the port 8086 on `np04-srv-019` (if this port is a problem we can change it in the configuration) is being forwarded to your machine. Then simply type `localhost:8086` and you will see the browser window with a sign in screen you can use the username `np04-daq` and the password `daqperftest`. Then go to the data explorer page then select a time range and on the leftmost filter select the field you want and then on the rightmost filter select a measurement (or a set of measurements to view) you can then use the mouse to select a specific time range to see the data better.
+First make sure that the port 8086 on `np04-srv-019` (if this port is a problem we can change it in the configuration) is being forwarded to your machine. Then simply type `localhost:8086` and you will see the browser window with a sign in screen you can use the username `np04-daq`. Then go to the data explorer page then select a time range and on the leftmost filter select the field you want and then on the rightmost filter select a measurement (or a set of measurements to view) you can then use the mouse to select a specific time range to see the data better.
 
