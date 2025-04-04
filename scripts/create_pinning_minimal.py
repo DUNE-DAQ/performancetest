@@ -38,14 +38,14 @@ class Element:
         return f"{self.type}(id : {self.id}, children : {len(self.children) if self.children else None}, parent : {self.parent})"
 
 
-    def get_type(self, type : str):
+    def get_type(self, type : str) -> list:
         """ Search and return child objects by their type.
 
         Args:
-            type (str): _description_
+            type (str): type of element to find.
 
         Returns:
-            _type_: _description_
+            list: list of elements of that type.
         """
         cores = []
         if self.children:
@@ -222,8 +222,37 @@ def core_list_to_str(cores : list[int]) -> str:
     return ",".join(str(c) for c in cores)
 
 
+def check_none(value, default):
+    if value is None:
+        return default
+    else:
+        return value
+
+
+def get_resource_allocation(template_file : str) -> ChainMap:
+    with open(template_file, "r") as f:
+        template = json.load(f)
+
+    if "resource_allocation" in template:
+        cpu_resource_allocation = ChainMap(*template["resource_allocation"])
+    else:
+        print("Warning: no resource allocation found in the pinning template, using the default")
+        cpu_resource_allocation = ChainMap(*[dict(i) for i in cpu_resource_allocation_default.maps])
+
+    tmp = []
+    for i in cpu_resource_allocation.maps:
+        tmp.append({k : check_none(getattr(args, k), cpu_resource_allocation[k]) for k in i})
+    cpu_resource_allocation = ChainMap(*tmp)
+    print(f"{cpu_resource_allocation=}")
+
+    return cpu_resource_allocation
+
+
 def load_template(template_file : str) -> dict:
-    #! this should be read from the oks config
+    with open(template_file, "r") as f:
+        template = json.load(f)
+
+    # ! this should be read from the oks config
     pinning = {"daq_application" : {}}
     with open(template_file, "r") as f:
         template = json.load(f)
@@ -468,14 +497,9 @@ def main(args = argparse.Namespace):
 
     pus_numa = [[p.id for p in n.get_type("PU")] for n in cm.numa.elements]
 
-    # how many cores should be assigned to a single thread (sharing rules are omitted here). Taken from np04-srv-031 pinning
-    cpu_resource_allocation = []
-    for i in cpu_resource_allocation_default.maps:
-        cpu_resource_allocation.append({k : getattr(args, k) for k in i})
-    cpu_resource_allocation = ChainMap(*cpu_resource_allocation)
-    print(f"{cpu_resource_allocation=}")
-
+    cpu_resource_allocation = get_resource_allocation(args.template)
     pinning = load_template(args.template)
+    print(pinning)
 
     # pinnig while running
     if args.cache_aware:
@@ -533,7 +557,7 @@ if __name__ == "__main__":
             name = "consumer, cleanup or periodic"
         else:
             name = k
-        parser.add_argument(f"--{k}", dest = k, type = int, default = v, help = f"number of cores to assign to a {name} thread. Set to {cpu_resource_allocation_default[k]} by default.")
+        parser.add_argument(f"--{k}", dest = k, type = int, default = None, help = f"number of cores to assign to a {name} thread. Set to {cpu_resource_allocation_default[k]} by default.")
 
     args = parser.parse_args()
 
