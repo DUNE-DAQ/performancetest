@@ -18,7 +18,7 @@ import argparse
 import copy
 import json
 
-import llc_domain_parser
+import llc_domain_parser, files
 
 from collections import ChainMap
 from dataclasses import dataclass
@@ -58,6 +58,8 @@ class Element:
 
 
 class ElementList:
+    """ A list of elements with special properties, including when items are called, they are removed from the list and domain map.
+    """
     def __init__(self, elements : list, domain_map):
         self.elements = elements
         self.map = domain_map
@@ -71,7 +73,15 @@ class ElementList:
         return e
 
 
-    def get_id(self, i : int):
+    def get_id(self, i : int) -> Element:
+        """ Get the Element that matches the specific id.
+
+        Args:
+            i (int): id.
+
+        Returns:
+            Element: Found Element, only returns the first occurance found.
+        """
         for e in self.elements:
             if e.id == i:
                 self.elements.remove(e)
@@ -80,7 +90,12 @@ class ElementList:
         raise Exception(f"Element with id {i} was not found!")
 
     @property
-    def first(self):
+    def first(self) -> Element:
+        """ Get the first Element in the list.
+
+        Returns:
+            Element: First element.
+        """
         return self.__getitem__(0)
 
 
@@ -89,6 +104,9 @@ class ElementList:
 
 
 class CoreMap:
+    """ Map of CPU processing units. Converts a parsed output of lstopo into a Elements for each type of resouce in the lstopo map (Core, PU, NUMA, Socket etc.).
+        Each Element is assigned parents and children, so the nested data is represented as a flat list to better allow getting an Element from each reosuce layer.
+    """
     def __init__(self, domain_map : dict):
         self.elements = []
         CoreMap.ParseMap(domain_map, element_list = self.elements)
@@ -104,13 +122,21 @@ class CoreMap:
 
         return
 
-    def __make_func__(self, type : str) -> callable:
+    def __make_func__(self, type : str):
+        """ Create a property function for a given element type in the coremap.
+            This property function returns the appropriate ElementList for that given type.
+
+        Args:
+            type (str): The type to make function for.
+        """
         def func(self) -> ElementList:
             return ElementList([i for i in self.elements if i.type == type], self)
         setattr(CoreMap, type.lower(), property(func))
 
 
     def __offset_core_id__(self):
+        """ Offset the Core IDs from the lstopo map as they are the same for each socket.
+        """
         offset = len(self.core) // len(self.socket)
         for c in self.core.elements:
             c.id = c.id + c.parent.parent.parent.id * offset
@@ -118,10 +144,14 @@ class CoreMap:
 
 
     def remove(self, e : Element, remove_from_parent : bool = True):
-        #* remove any reference to another element: find its parent, and remove self from children
-        #* remove any reference to another element: find its children, and remove self from parent
-        #* remove self from elements
-
+        """ Removes an Element from the CoreMap. To correctly do so, it does the following for the Element to be removed:
+            #* remove any reference to another element: find its parent, and remove self from children
+            #* remove any reference to another element: find its children, and remove self from parent
+            #* remove from self.elements
+        Args:
+            e (Element): Element to remove
+            remove_from_parent (bool, optional): Optinally remove from the parent. Required logic for a recusive implementation. Defaults to True.
+        """
         if e is not None:
             if e.children:
                 for c in e.children:
@@ -141,6 +171,8 @@ class CoreMap:
 
 
     def print(self):
+        """Pretty print representation of the CoreMap
+        """
         top_elements = [e for e in self.elements if e.parent is None]
         out = self.__remake_domain_map(top_elements)
         print(out)
@@ -148,6 +180,14 @@ class CoreMap:
 
 
     def __remake_domain_map(self, elements : list[Element]) -> list:
+        """ Nested list representation of the CoreMap for visulization. Keys and values are represented as strings.
+
+        Args:
+            elements (list[Element]): List of elements.
+
+        Returns:
+            list: list 
+        """
         out = []
         for e in elements:
             k = f"{e.type}:{e.id}"
@@ -161,6 +201,13 @@ class CoreMap:
 
     @staticmethod
     def ParseMap(container, parent : Element = None, element_list : list = []):
+        """ Parse the lstopo output, and create Elements from each resource recursively.
+
+        Args:
+            container: a list or dictionary from the lstopo output that represents a resource.
+            parent (Element, optional): Parent element (if exists or the resource has a parent). Defaults to None.
+            element_list (list, optional): _description_. Defaults to [].
+        """
         if type(container) == dict:
             for item in container.items():
                 if hasattr(item[1], "__iter__"):
@@ -191,6 +238,12 @@ class CoreMap:
 
     @staticmethod
     def AssignElementType(e : Element):
+        """ Assigns the Elements type based on the parents/child type. The current hierarchy of reasources is (top to bottom):
+            Socket -> NUMA -> Cache -> Core -> PU.
+
+        Args:
+            e (Element): Element
+        """
         # code asssumes all children are the same type (which should be true)
         if not e.parent:
             e.type = "Socket" # we are at the highest level
@@ -222,13 +275,6 @@ def core_list_to_str(cores : list[int]) -> str:
     return ",".join(str(c) for c in cores)
 
 
-def check_none(value, default):
-    if value is None:
-        return default
-    else:
-        return value
-
-
 def get_resource_allocation(template_file : str) -> ChainMap:
     with open(template_file, "r") as f:
         template = json.load(f)
@@ -241,51 +287,11 @@ def get_resource_allocation(template_file : str) -> ChainMap:
 
     tmp = []
     for i in cpu_resource_allocation.maps:
-        tmp.append({k : check_none(getattr(args, k), cpu_resource_allocation[k]) for k in i})
+        tmp.append({k : getattr(args, k) if cpu_resource_allocation[k] is None else cpu_resource_allocation[k] for k in i})
     cpu_resource_allocation = ChainMap(*tmp)
     print(f"{cpu_resource_allocation=}")
 
     return cpu_resource_allocation
-
-
-def load_template(template_file : str) -> dict:
-    with open(template_file, "r") as f:
-        template = json.load(f)
-
-    # ! this should be read from the oks config
-    pinning = {"daq_application" : {}}
-    with open(template_file, "r") as f:
-        template = json.load(f)
-
-    for k, v in template["daq_application"].items():
-        pinning["daq_application"][k] = {}
-
-        if "parent" in v:
-            pinning["daq_application"][k]["parent"] = None
-        if "threads" in v:
-            pinning["daq_application"][k]["threads"] = {}
-            for t in v["threads"]:
-                pinning["daq_application"][k]["threads"][t] = None
-    return pinning
-
-
-
-def assign_cores_map(core_map : CoreMap, numa_region : Element, max_cores : int) -> list[int]:
-    """ Assign processing units to a thread. Used for non-cache aware pinning.
-
-    Args:
-        core_map (CoreMap): CPU map of server.
-        numa_region (Element): NUMA region to assign processing units from.
-        max_cores (int): Maximum number of procssing units to assign to a thread.
-
-    Returns:
-        list[int]: assigned processing units
-    """
-    pus = []
-    while len(pus) < max_cores:
-        tpproc_core = ElementList(numa_region.get_type("Core"), core_map).first
-        pus.extend([c.id for c in tpproc_core.children])
-    return pus
 
 
 def assign_cores(core_map : CoreMap, cores : list[Element], max_cores : int) -> list[int]:
@@ -326,17 +332,12 @@ def fill_pinning_map_cache(pinning : dict, cpu_alloc : ChainMap, core_map : Core
     for n in core_map.numa.elements:
         core_map.core.get_id(min([c.id for c in n.get_type("Core")]))
 
-    for app in pinning["daq_application"]:
-        n_rte = len([k for k in pinning["daq_application"][app]["threads"] if "rte" in k]) # count the number of rte workers for this daq application
-
-        # infer numa number daq application will be allocated to
-        if not app[-2:].isalpha():
-            numa = int(app[-1])
-        else:
-            numa = int(app[-2])
+    pinning_dict = {k : {"threads" : {}} for k in pinning}
+    for app in pinning:
+        n_rte = len([k for k in pinning[app]["threads"] if "rte" in k]) # count the number of rte workers for this daq application
 
         for numa_region in core_map.numa.elements: # get the numa region, but do not remove it from the map yet
-            if numa_region.id == numa: break
+            if numa_region.id == pinning[app]["numa"]: break
 
         # count the total number of cores requested to be assigned to this application, and check it is sensible
         total_requested_cores = n_rte * cpu_alloc["rte"] + sum([v for k, v in cpu_alloc.items() if k != "rte"])
@@ -358,7 +359,6 @@ def fill_pinning_map_cache(pinning : dict, cpu_alloc : ChainMap, core_map : Core
                     n += v
             requested_caches_map.append(int(n / pus_per_cache) + (n % pus_per_cache > 0))
             requested_caches += int(n / pus_per_cache) + (n % pus_per_cache > 0)
-
         print(f"{requested_caches=}")
 
         caches = numa_region.get_type("Cache")
@@ -367,7 +367,7 @@ def fill_pinning_map_cache(pinning : dict, cpu_alloc : ChainMap, core_map : Core
 
         # Now find the cache corresponding to the rte workers, and assign the rte worker threads
         rte_cache = None
-        for t in pinning["daq_application"][app]["threads"]:
+        for t in pinning[app]["threads"]:
             if "rte-worker" in t:
                 pu = int(t.split("-")[-1])
                 for c in caches:
@@ -378,7 +378,7 @@ def fill_pinning_map_cache(pinning : dict, cpu_alloc : ChainMap, core_map : Core
                             if rte_cache.id != c.id:
                                 raise Exception("rte workers should be assigned from the same L3 cache domain!")
                 # before assigning the other cores, assign rtes first as these are provided by the configuration
-                pinning["daq_application"][app]["threads"][t] = str(pu)
+                pinning_dict[app]["threads"][t] = str(pu)
                 core_map.pu.get_id(pu)
         caches.remove(rte_cache)
 
@@ -395,11 +395,10 @@ def fill_pinning_map_cache(pinning : dict, cpu_alloc : ChainMap, core_map : Core
                 for i in range(n):
                     g.extend(caches.pop(0).children)
                 groups.append(g)
-        print(f"{groups=}")
 
         # assign the remaining cores
         ccps = None
-        for t in pinning["daq_application"][app]["threads"]:
+        for t in pinning[app]["threads"]:
             if "rte-worker" in t: # this assignment happens before, as lcores are defined by the configuration
                 continue
 
@@ -420,72 +419,13 @@ def fill_pinning_map_cache(pinning : dict, cpu_alloc : ChainMap, core_map : Core
             if prefix == "ccp": # cleanup, consumer and periodic threads are unique because they are all assigned the same cores
                 if ccps is None:
                     ccps = assign_cores(core_map, cg, cpu_alloc["ccp"])
-                pinning["daq_application"][app]["threads"][t] = core_list_to_str(ccps)
+                pinning_dict[app]["threads"][t] = core_list_to_str(ccps)
             else:
                 pus = assign_cores(core_map, cg, cpu_alloc[prefix])
-                pinning["daq_application"][app]["threads"][t] = core_list_to_str(pus)
+                pinning_dict[app]["threads"][t] = core_list_to_str(pus)
 
-        pinning["daq_application"][app]["parent"] = core_list_to_str(ccps)
-    return pinning
-
-
-def fill_pinning_map(pinning : dict, cpu_alloc : ChainMap, core_map : CoreMap) -> dict:
-    """ Assign processing units to threads. Is not L3 cache aware. Thread names are prioritized by order in the dictionary.
-
-    Args:
-        pinning (dict): Pinning dictionary.
-        cpu_alloc (ChainMap): cpu reosurce allocation map.
-        core_map (CoreMap): CPU map of server.
-
-    Returns:
-        dict: Filled pinning map.
-    """
-    # First exclude the first core (first two processing units) in each numa region
-    for n in core_map.numa.elements:
-        core_map.core.get_id(min([c.id for c in n.get_type("Core")]))
-
-    for app in pinning["daq_application"]:
-        if not app[-2:].isalpha():
-            numa = int(app[-1])
-        else:
-            numa = int(app[-2])
-
-        for numa_region in core_map.numa.elements: # get the nume region, but do not remove it from the map yet
-            if numa_region.id == numa: break
-
-        rawprocs = None
-        ccps = None
-        for t in pinning["daq_application"][app]["threads"]:
-            if "rte-worker" in t:
-                #! probably add some checks here: makre sure lcores are from the numa region, keep track of the cache id for each lcore
-                pu = int(t.split("-")[-1])
-                pinning["daq_application"][app]["threads"][t] = str(pu)
-                core_map.pu.get_id(pu)
-
-            elif "tpproc" in t:
-                tpprocs = assign_cores_map(core_map, numa_region, cpu_alloc["tpproc"])
-                pinning["daq_application"][app]["threads"][t] = core_list_to_str(tpprocs)
-
-            elif "rawproc" in t:
-                if rawprocs is None:
-                    rawprocs = assign_cores_map(core_map, numa_region, cpu_alloc["rawproc"])
-                pinning["daq_application"][app]["threads"][t] = core_list_to_str(rawprocs)
-
-            elif ("cleanup" in t) or ("consumer" in t) or ("periodic" in t):
-                if ccps is None:
-                    ccps = assign_cores_map(core_map, numa_region, cpu_alloc["ccp"])
-                pinning["daq_application"][app]["threads"][t] = core_list_to_str(ccps)
-
-            elif "recording" in t:
-                recording = assign_cores_map(core_map, numa_region, cpu_alloc["recording"])
-                pinning["daq_application"][app]["threads"][t] = core_list_to_str(recording)
-
-            else:
-                raise Exception(f"do not know how to assign cores to thread {t}")
-        
-        pinning["daq_application"][app]["parent"] = core_list_to_str(rawprocs + ccps)
-
-    return pinning
+        pinning_dict[app]["parent"] = core_list_to_str(ccps)
+    return {"daq_application" : pinning_dict}
 
 
 def main(args = argparse.Namespace):
@@ -498,14 +438,18 @@ def main(args = argparse.Namespace):
     pus_numa = [[p.id for p in n.get_type("PU")] for n in cm.numa.elements]
 
     cpu_resource_allocation = get_resource_allocation(args.template)
-    pinning = load_template(args.template)
+
+    if not has_multiple_caches and len(cpu_resource_allocation.maps) > 1:
+        print("hardware does not have multiple cache boundaries, cache regions will be merged into one")
+    if has_multiple_caches and len(cpu_resource_allocation.maps) == 1:
+        print('Warning: CPU has multiple cache boundaries, but only one cache region was requested. Consider using the default resource allocation (remove "resource_allocation" from the template), or define multiple cache regions')
+
+    # ! this should be inferred from the oks config
+    pinning = files.read_json(args.template)["daq_application"]
     print(pinning)
 
     # pinnig while running
-    if args.cache_aware:
-        pinning = fill_pinning_map_cache(pinning, cpu_resource_allocation, cm)
-    else:
-        pinning = fill_pinning_map(pinning, cpu_resource_allocation, cm)
+    pinning = fill_pinning_map_cache(pinning, cpu_resource_allocation, cm)
     print(rule.Rule("CPU pinning running"))
     print(pinning)
 
@@ -523,12 +467,8 @@ def main(args = argparse.Namespace):
     print(rule.Rule("remaining CPUs in CPU map"))
     cm.print()
 
-    if has_multiple_caches and not args.cache_aware:
-        print("Warning: pinning file generated does not account for cache boundaries, but the host does have multiple cache boundaries, consider re-running with the -c option.")
     for p, n in zip([pinning, pinning_conf],["cpupin-all-running.json", "cpupin-all.json"]):
-        with open(n, "w") as f:
-            json.dump(p, f, indent = 4)
-
+        files.write_json(n, p)
         print(f"pinning has been written to {n}")
     return
 
@@ -550,7 +490,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser("Generate a pinning file for a readout machine.")
     parser.add_argument("-t", "--template", type = str, help = "pinning file template. must be a json file.", required = True)
     parser.add_argument("-r", "--readout_server", type = str, help = "hostname for the machine, if not provided the current machine hostname is used.", required = True)
-    parser.add_argument("-c", "--cache_aware", action="store_true", help = "make a pinning file taking cache domains into account.")
 
     for k, v in cpu_resource_allocation_default.items():
         if k == "ccp":
