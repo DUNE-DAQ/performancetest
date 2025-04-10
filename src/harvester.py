@@ -5,6 +5,8 @@ Authors: Shyam Bhuller (University of Oxford), Matthew Man (University of Toront
 
 Description: Collect and parse data from the Grafana dashboards (The spice must flow).
 """
+import asyncio
+import aiohttp
 import copy
 import datetime
 import multiprocessing
@@ -65,7 +67,7 @@ def get_run_time(dashboard_info : dict[str], run_number : int, test_session : st
         time_range: start and end times in unix time.
     """
     url = dashboard_info["grafana_url"]
-    datasource = get_valid_datasources(queries.get_datasources(url), dunedaq_version)["influxdb"]
+    datasource = get_valid_datasources(queries.aquery_single(queries.get_datasources, url = url), dunedaq_version)["influxdb"]
 
     if utils.dunedaq_major_version(dunedaq_version) == 4:
         query_str = f"SELECT \"runno\" FROM \"dunedaq.rcif.runinfo.Info\" WHERE (\"partition_id\" = '{test_session}' AND \"runno\" = {run_number})"
@@ -74,7 +76,8 @@ def get_run_time(dashboard_info : dict[str], run_number : int, test_session : st
     else:
         raise Exception(f"version {dunedaq_version} is not supported.")
 
-    response = queries.query_var_influx(url, datasource, query_str)
+    response = queries.aquery_single(queries.aquery_var_influx, url = url, datasource = datasource, query_str = query_str)
+    # response = queries.query_var_influx(url, datasource, query_str)
     values = np.array(response["results"][0]["series"][0]["values"])
     t = values[values[:, 1].astype(int) == run_number][:, 0] # select times for the given run number
     utimes = times.dt_to_unix_array([t[0], t[-1]]).values # get the unix time for start and end times
@@ -431,9 +434,8 @@ def extract_node_exporter_data(dashboard_info : dict[str], host : str, time : st
             query_dict[name] = query
 
     url = dashboard_info["grafana_url"]
-    datasources = queries.get_datasources(url)
 
-    valid_ds = get_valid_datasources(datasources, dunedaq_version)
+    valid_ds = get_valid_datasources(queries.aquery_single(queries.get_datasources, url = url), dunedaq_version)
     prometheus_url = valid_ds["prometheus"]["url"]
 
     # time = get_run_time(url, valid_ds["influxdb"], run_number, test_session, dunedaq_version)
@@ -519,9 +521,8 @@ def format_hdf_keys(dashboard_data : dict[pd.DataFrame]):
 def extract_grafana_data_mp(dashboard_info : dict[str], run_number : int, host : str, time : times.time_range, dunedaq_version : str, output_file : str, out_dir : str):
     print(f"{time=}")
     url = dashboard_info["grafana_url"]
-    datasource_urls = queries.get_datasources(url) # gather list of all datasources
 
-    valid_ds = get_valid_datasources(datasource_urls, dunedaq_version)
+    valid_ds = get_valid_datasources(queries.aquery_single(queries.get_datasources, url = url), dunedaq_version)
     ds_parser = {"influxdb" : parse_result_influx, "prometheus" : parse_result_prometheus, "postgres" : parse_result_postgres}
 
     pool = multiprocessing.Pool(len(dashboard_info["dashboard_uid"]))
@@ -544,13 +545,12 @@ def extract_grafana_data_all(dashboard_info : dict[str], run_number : int, host 
     print(f"{time=}")
 
     url = dashboard_info["grafana_url"]
-    datasource_urls = queries.get_datasources(url) # gather list of all datasources
 
-    valid_ds = get_valid_datasources(datasource_urls, dunedaq_version)
+    valid_ds = get_valid_datasources(queries.aquery_single(queries.get_datasources, url = url), dunedaq_version)
     ds_parser = {"influxdb" : parse_result_influx, "prometheus" : parse_result_prometheus, "postgres" : parse_result_postgres}
 
     for dashboard, session in zip(dashboard_info["dashboard_uid"], dashboard_info["session"]): # iterate over each dashboard
-        dashboard_data = extract_grafana_data(dashboard, session, url, run_number, host, time, valid_ds, ds_parser, output_file, out_dir)
+        extract_grafana_data(dashboard, session, url, run_number, host, time, valid_ds, ds_parser, output_file, out_dir)
     return
 
 
@@ -569,12 +569,9 @@ def extract_grafana_data(dashboard : str, session : str, url : str, run_number :
     Returns:
         list[str]: List of the output files.
     """
-    print("hi!")
     var_map = collect_vars(url, valid_ds["influxdb"], run_number, time, session, host) # get list of relavent variables used by the dashboards
-    print("get variable map")
 
     panels = queries.get_grafana_panels(url, dashboard) # get panels from dashboard
-    print("get panels")
 
     if not panels:
         print("no panels were found in the dashboard!")
@@ -644,7 +641,6 @@ def extract_grafana_data(dashboard : str, session : str, url : str, run_number :
                 dashboard_data[panel_title] = merged_df.astype(float).sort_index() # make sure data is kept in time order
             except ValueError:
                 dashboard_data[panel_title] = merged_df.sort_index()
-    # print(dashboard_data)
 
     for data in dashboard_data.values():
         if type(data) == "dict":
@@ -657,6 +653,7 @@ def extract_grafana_data(dashboard : str, session : str, url : str, run_number :
             warnings.warn(f"no data was extracted from the dashboard {dashboard}. Check the data has not expired!")
 
     format_hdf_keys(dashboard_data)
+    print(dashboard_data)
 
     # Save the dataframes
     output = str(out_dir) + f"grafana-{dashboard}-{output_file}.hdf5"

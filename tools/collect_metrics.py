@@ -6,6 +6,8 @@ Authors: Shyam Bhuller (University of Oxford), Matthew Man (University of Toront
 
 Description: Collect metrics from the grafana dashboards.
 """
+import asyncio
+import aiohttp
 import os
 import argparse
 import pathlib
@@ -71,15 +73,15 @@ def collect_metrics(args : argparse.Namespace | dict) -> None | dict:
 
     # get run time (or time range from arguments)
     time_range = times.parse_time_range(times.time_range(*test_args["time_range"]))
-    if type(time_range.start) == int:
+    if type(time_range.start) == int:  
         time_range = harvester.get_run_time(dashboard_info, test_args["run_number"], test_args["session"], test_args["dunedaq_version"])
     else:
         time_range = time_range
 
     # extract grafana data
     # harvester.extract_grafana_data(dashboard_info, test_args["run_number"], test_args["host"], time_range, test_args["dunedaq_version"], output_file = name, out_dir = out_dir)
-    harvester.extract_grafana_data_mp(dashboard_info, test_args["run_number"], test_args["host"], time_range, test_args["dunedaq_version"], output_file = name, out_dir = out_dir)
-    # harvester.extract_grafana_data_all(dashboard_info, test_args["run_number"], test_args["host"], time_range, test_args["dunedaq_version"], output_file = name, out_dir = out_dir)
+    # harvester.extract_grafana_data_mp(dashboard_info, test_args["run_number"], test_args["host"], time_range, test_args["dunedaq_version"], output_file = name, out_dir = out_dir)
+    harvester.extract_grafana_data_all(dashboard_info, test_args["run_number"], test_args["host"], time_range, test_args["dunedaq_version"], output_file = name, out_dir = out_dir)
 
     # harvester.extract_node_exporter_data(dashboard_info, test_args["host"], time_range, test_args["dunedaq_version"], output_file = name, out_dir = out_dir)
 

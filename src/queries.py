@@ -5,6 +5,7 @@ Authors: Shyam Bhuller (University of Oxford), Matthew Man (University of Toront
 
 Description: Module to handle queries to the grafana dahsboards through the grafana HTTP api.
 """
+import asyncio
 import json
 from warnings import warn
 
@@ -21,7 +22,23 @@ from times import time_range
 from rich import print
 
 
+def aquery_single(func : callable, **kwargs) -> any:
+    """ Make a single async query.
+
+    Args:
+        func (callable): coroutine to call.
+
+    Returns:
+        any: output of the coroutine.
+    """
+    async def af():
+        async with aiohttp.ClientSession() as cs:
+            return await func(cs, **kwargs)
+    return asyncio.run(af())
+
+
 async def arequest(session : aiohttp.ClientSession, url : str, extension : str = None, params : dict[str] = None):
+    data = None
     try:
         full_url = urljoin(url, extension)
         async with aiohttp.ClientSession() as session:
@@ -29,6 +46,7 @@ async def arequest(session : aiohttp.ClientSession, url : str, extension : str =
                 data = await resp.json()
         if resp.status != 200:
             print(f"Request for {full_url} got respone {resp.status}, {data}")
+            data = None
     except Exception as e:
         print(e)
     return data
@@ -107,31 +125,23 @@ def make_names_str(names : list) -> str:
     return names_str
 
 
-async def aget_datasources(cs : aiohttp.ClientSession, url : str) -> list[dict]:
-    return arequest(cs, url, "api/datasources")
-
-
-def get_datasources(url : str) -> list[dict]:
+def get_datasources(cs : aiohttp.ClientSession, url : str) -> list[dict]:
     """ Get the urls for each datasource the Grafana dashboards use.
-        Authors: Shyam Bhuller (University of Oxford), Matthew Man (University of Toronto), Danaisis Vargas Oliva (University of Toronto)
+        Authors: Shyam Bhuller (University of Oxford)
 
     Args:
         url (str): Grafana url.
 
-    Raises:
-        Exception: Error in making the http request.
-
     Returns:
         list[dict]: list of each datasource used.
     """
-    with urlopen(urljoin(url, "api/datasources")) as response:
-        if response.status == 200:
-            return urljson(response)
-        else:
-            raise Exception(f"http request resulted in code: {response.status_code}")
+    data = arequest(cs, url, "api/datasources")
+    if data is None:
+        raise Exception(f"datasources could not be found by querying {url}")
+    return data
 
 
-async def get_grafana_panels(cs : aiohttp.ClientSession, url : str, uid : str):
+async def aget_grafana_panels(cs : aiohttp.ClientSession, url : str, uid : str):
     panels = []
     # Get dashboard configuration
     out = arequest(cs, urljoin(url, f"api/dashboards/uid/{uid}"))
@@ -339,7 +349,7 @@ def replace_var(query : str, target : str, value : str) -> str:
     return query
 
 
-async def aquery_var_influx(cs : aiohttp.ClientSession, url : str, datasource : dict, query_str : str) -> dict | None:
+def aquery_var_influx(cs : aiohttp.ClientSession, url : str, datasource : dict, query_str : str) -> dict | None:
     data = {
         "q"  : query_str,
         "db" : datasource["jsonData"]["dbName"]
