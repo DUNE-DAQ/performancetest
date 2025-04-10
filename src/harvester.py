@@ -76,7 +76,7 @@ def get_run_time(dashboard_info : dict[str], run_number : int, test_session : st
     else:
         raise Exception(f"version {dunedaq_version} is not supported.")
 
-    response = queries.aquery_single(queries.aquery_var_influx, url = url, datasource = datasource, query_str = query_str)
+    response = queries.aquery_single(queries.query_var_influx, url = url, datasource = datasource, query_str = query_str)
     # response = queries.query_var_influx(url, datasource, query_str)
     values = np.array(response["results"][0]["series"][0]["values"])
     t = values[values[:, 1].astype(int) == run_number][:, 0] # select times for the given run number
@@ -85,12 +85,13 @@ def get_run_time(dashboard_info : dict[str], run_number : int, test_session : st
     return time_range(start = min(utimes), end =max(utimes))
 
 
-def collect_vars(url : str, datasource : dict, run_number : int, time : time_range, partition : str, host : str) -> dict:
+async def collect_vars(cs : aiohttp.ClientSession, url : str, datasource : dict, run_number : int, time : time_range, partition : str, host : str) -> dict:
     """ Collect relavent variables from the grafana dashboards. This is very specific to the DUNEDAQ,
         so this would be a likely failure point if operational monitoring changes.
         Authors: Shyam Bhuller (University of Oxford)
 
     Args:
+        cs (aiohttp.ClientSession): open ClientSession from which to make the http request.
         url (str): Grafana url.
         datasource (dict): influx datasource.
         time (time_range): Time range of the test.
@@ -106,11 +107,9 @@ def collect_vars(url : str, datasource : dict, run_number : int, time : time_ran
     collected_vars = {}
     for k, v in vars_to_collect.items():
         try:
-            print("getting vars")
-            collected_vars[k] = v(url, datasource, time, partition)
+            collected_vars[k] = await v(cs, url, datasource, time, partition)
         except Exception as e:
             print(f"cannot get {k} for session {partition}, Reason: {e}")
-    print("got vars")
     # some variables whose values can be populated from the test configuration file
     var_map = {
         "host" : host, # only true is expr in target?
@@ -131,11 +130,12 @@ def collect_vars(url : str, datasource : dict, run_number : int, time : time_ran
     return var_map
 
 
-def get_dpdk_vars(url : str, datasource : dict, time : time_range, partition : str) -> dict[str]:
+async def get_dpdk_vars(cs : aiohttp.ClientSession, url : str, datasource : dict, time : time_range, partition : str) -> dict[str]:
     """ Get the different variables and values specific to dpdklibs.
         Authors: Shyam Bhuller (University of Oxford)
 
     Args:
+        cs (aiohttp.ClientSession): open ClientSession from which to make the http request.
         url (str): Grafana url.
         datasources (dict): influx datasource.
         time (time_range): time range of test.
@@ -148,7 +148,8 @@ def get_dpdk_vars(url : str, datasource : dict, time : time_range, partition : s
     query_str = f'SELECT "bytes", application, queue FROM "dunedaq.dpdklibs.opmon.QueueEthXStats" WHERE session = \'{partition}\' AND time >= {time.start}s and time <= {time.end}s'
     # 'SELECT "bytes", application, queue FROM "dunedaq.dpdklibs.opmon.QueueEthXStats" WHERE session = 'partition' AND time >= 1730819865s and time <= 1730820290s'
 
-    response = queries.query_var_influx(url, datasource, query_str)
+    response = await queries.query_var_influx(cs, url, datasource, query_str)
+    # response = queries.query_var_influx(url, datasource, query_str)
 
     values = np.array(response["results"][0]["series"][0]["values"])
 
@@ -168,11 +169,12 @@ def get_dpdk_vars(url : str, datasource : dict, time : time_range, partition : s
     return values
 
 
-def get_fe_eth_vars(url : str, datasource : dict, time : time_range, partition : str) -> dict[str]:
+async def get_fe_eth_vars(cs : aiohttp.ClientSession, url : str, datasource : dict, time : time_range, partition : str) -> dict[str]:
     """ Get the different variables and values specific to front end ethernet readout.
         Authors: Shyam Bhuller (University of Oxford)
 
     Args:
+        cs (aiohttp.ClientSession): open ClientSession from which to make the http request.
         url (str): Grafana url.
         datasources (dict): influx datasource.
         time (time_range): time range of test.
@@ -183,7 +185,8 @@ def get_fe_eth_vars(url : str, datasource : dict, time : time_range, partition :
     """
     query_str = f"SELECT \"sent_udp_count\", application, element, detector, crate, slot, queue FROM \"dunedaq.hermesmodules.opmon.LinkInfo\" WHERE session = '{partition}' AND time >= {time.start}s and time <= {time.end}s"
 
-    response = queries.query_var_influx(url, datasource, query_str)
+    response = await queries.query_var_influx(cs, url, datasource, query_str)
+    # response = queries.query_var_influx(url, datasource, query_str)
 
     values = np.array(response["results"][0]["series"][0]["values"])
 
@@ -198,11 +201,12 @@ def get_fe_eth_vars(url : str, datasource : dict, time : time_range, partition :
     return values
 
 
-def get_dhs(url : str, datasource : dict, time : time_range, partition : str) -> dict[str]:
+async def get_dhs(cs : aiohttp.ClientSession, url : str, datasource : dict, time : time_range, partition : str) -> dict[str]:
     """ Get the different variables and values specific to the datahandlers.
         Authors: Shyam Bhuller (University of Oxford)
 
     Args:
+        cs (aiohttp.ClientSession): open ClientSession from which to make the http request.
         url (str): Grafana url.
         datasources (dict): influx datasource.
         time (time_range): time range of test.
@@ -213,7 +217,8 @@ def get_dhs(url : str, datasource : dict, time : time_range, partition : str) ->
     """
     query_str = f"SELECT element FROM (SELECT \"sum_payloads\", element FROM \"dunedaq.datahandlinglibs.opmon.DataHandlerInfo\" WHERE time >= {time.start}s and time <= {time.end}s)"
 
-    response = queries.query_var_influx(url, datasource, query_str)
+    response = await queries.query_var_influx(cs, url, datasource, query_str)
+    # queries.query_var_influx(url, datasource, query_str)
 
     values = response["results"][0]["series"][0]["values"]
 
@@ -518,7 +523,27 @@ def format_hdf_keys(dashboard_data : dict[pd.DataFrame]):
     return
 
 
-def extract_grafana_data_mp(dashboard_info : dict[str], run_number : int, host : str, time : times.time_range, dunedaq_version : str, output_file : str, out_dir : str):
+def run_mp(args : tuple):
+    """ Simple function to run extract_grafana_data (as multiprocessing will not allow nested functions).
+
+    Args:
+        args (tuple): Function arguments.
+    """
+    asyncio.run(extract_grafana_data(*args))
+    return
+
+@utils.timer
+def extract_daq_dashboards(dashboard_info : dict[str], run_number : int, host : str, time : times.time_range, dunedaq_version : str, output_file : str, out_dir : str):
+    """ Extract data from the DAQ grafana dashboards.
+
+    Args:
+        dashboard_info (str): url, uid and sesssion names for the grafana page.
+        run_number (int): run number of specific test.
+        host (str): Host name.
+        partition (str): Partition/session name of the test.
+        output_file (str): Output file name.
+        out_dir (str): Directory to write files to.
+    """
     print(f"{time=}")
     url = dashboard_info["grafana_url"]
 
@@ -528,119 +553,101 @@ def extract_grafana_data_mp(dashboard_info : dict[str], run_number : int, host :
     pool = multiprocessing.Pool(len(dashboard_info["dashboard_uid"]))
     args = []
     for dashboard, session in zip(dashboard_info["dashboard_uid"], dashboard_info["session"]):
-        args.append([dashboard, session, url, run_number, host, time, valid_ds, ds_parser, output_file, out_dir])
-    pool.starmap_async(extract_grafana_data, args)
+        args.append([[dashboard, session, url, run_number, host, time, valid_ds, ds_parser, output_file, out_dir]])
 
-    # q = multiprocessing.Queue()
-    # procs = []
-    # for dashboard, session in zip(dashboard_info["dashboard_uid"], dashboard_info["session"]):
-    #     proc = multiprocessing.Process(target = extract_grafana_data, args = [dashboard, session, url, run_number, host, time, valid_ds, ds_parser, output_file, out_dir])
-    #     procs.append(proc)
-    #     proc.start()
-
+    result = pool.starmap_async(run_mp, args)
+    result.get()
     return
 
 
-def extract_grafana_data_all(dashboard_info : dict[str], run_number : int, host : str, time : times.time_range, dunedaq_version : str, output_file : str, out_dir : str):
-    print(f"{time=}")
-
-    url = dashboard_info["grafana_url"]
-
-    valid_ds = get_valid_datasources(queries.aquery_single(queries.get_datasources, url = url), dunedaq_version)
-    ds_parser = {"influxdb" : parse_result_influx, "prometheus" : parse_result_prometheus, "postgres" : parse_result_postgres}
-
-    for dashboard, session in zip(dashboard_info["dashboard_uid"], dashboard_info["session"]): # iterate over each dashboard
-        extract_grafana_data(dashboard, session, url, run_number, host, time, valid_ds, ds_parser, output_file, out_dir)
-    return
-
-
-def extract_grafana_data(dashboard : str, session : str, url : str, run_number : int, host : str, time : times.time_range, valid_ds : dict, ds_parser : dict[callable], output_file : str, out_dir : str):
-    """ Extract data from Grafana dashboards.
+async def extract_grafana_data(dashboard : str, session : str, url : str, run_number : int, host : str, time : times.time_range, valid_ds : dict, ds_parser : dict[callable], output_file : str, out_dir : str):
+    """ Extract data from grafana dashboards.
         Authors: Shyam Bhuller (University of Oxford), Matthew Man (University of Toronto), Danaisis Vargas Oliva (University of Toronto)
 
     Args:
-        dashboard_info (str): url, uid and sesssion names for the grafana page.
-        run_number (int): run number of specific test.
+        dashboard (str): Dashboard name.
+        session (str): Run session.
+        url (str): Grafana dashboard url.
+        run_number (int): Run number.
         host (str): Host name.
-        partition (str): Partition/session name of the test.
+        time (times.time_range): Time elapsed during the run.
+        valid_ds (dict): Datasources that can be queried from.
+        ds_parser (dict[callable]): Functions to parse various datasources based on the database type.
         output_file (str): Output file name.
         out_dir (str): Directory to write files to.
-
-    Returns:
-        list[str]: List of the output files.
     """
-    var_map = collect_vars(url, valid_ds["influxdb"], run_number, time, session, host) # get list of relavent variables used by the dashboards
+    async with aiohttp.ClientSession() as cs:
+        var_map = await collect_vars(cs, url, valid_ds["influxdb"], run_number, time, session, host) # get list of relavent variables used by the dashboards
 
-    panels = queries.get_grafana_panels(url, dashboard) # get panels from dashboard
+        panels = await queries.get_grafana_panels(cs, url, dashboard)
+        if not panels:
+            print("no panels were found in the dashboard!")
+            return
 
-    if not panels:
-        print("no panels were found in the dashboard!")
-        return
+        panels, original_queries = format_panels(panels, var_map) # populate the panels with the variable values
 
-    panels, original_queries = format_panels(panels, var_map) # populate the panels with the variable values
+        dashboard_data = {}
+        for p, panel in enumerate(panels): # iterate over each panel
+            panel_title = panel.get('title', '') # if a panel has not title ignore it (we wont know what the data is)
+            if 'targets' not in panel: # if a panel has no target is does not have any data
+                print(f'Skipping panel {panel_title}, with no targets.')
+                continue
+            data_type = panel["datasource"].get("type", None)
+            if data_type is None:
+                data_type = panel["datasource"].get("uid", None)
+                if data_type:
+                    data_type = data_type.replace("${", "").replace("}", "")
 
-    dashboard_data = {}
-    for p, panel in enumerate(panels): # iterate over each panel
-        panel_title = panel.get('title', '') # if a panel has not title ignore it (we wont know what the data is)
-        if 'targets' not in panel: # if a panel has no target is does not have any data
-            print(f'Skipping panel {panel_title}, with no targets.')
-            continue
-        data_type = panel["datasource"].get("type", None)
-        if data_type is None:
-            data_type = panel["datasource"].get("uid", None)
-            if data_type:
-                data_type = data_type.replace("${", "").replace("}", "")
+            if (data_type is None) and ("panels" in panel):
+                if len(panel["panels"]) == 0:
+                        data_type = panel["datasource"]["type"]
+                else:
+                    data_type = panel["panels"][0]["datasource"]["type"]
 
-        if (data_type is None) and ("panels" in panel):
-            if len(panel["panels"]) == 0:
-                    data_type = panel["datasource"]["type"]
-            else:
-                data_type = panel["panels"][0]["datasource"]["type"]
+            if panel=='Runs': continue # unsure why this is skipped
 
-        if panel=='Runs': continue # unsure why this is skipped
+            if not panel_title: continue
 
-        if not panel_title: continue
+            # for now ignore tables at the first pass #TODO implement
+            if ("resultFormat" in panel["targets"][0]) and (panel["targets"][0]["resultFormat"] == "table"): continue
 
-        # for now ignore tables at the first pass #TODO implement
-        if ("resultFormat" in panel["targets"][0]) and (panel["targets"][0]["resultFormat"] == "table"): continue
+            query_strs = queries.get_queries(panel) # get the query strings from the panel
 
-        query_strs = queries.get_queries(panel) # get the query strings from the panel
+            if len(query_strs) == 0: continue
+            
+            data_from_panel = {}
+            for query_name, query in query_strs.items(): # loop over all queries
+                response_data = await queries.make_query(cs, valid_ds[data_type], url, query, time) # make the query
+                data_from_panel[query_name] = ds_parser[data_type](response_data, query_name) # get the data from the response, will be specific to the datasource type
 
-        if len(query_strs) == 0: continue
-        
-        data_from_panel = {}
-        for query_name, query in query_strs.items(): # loop over all queries
-            response_data = queries.make_query(valid_ds[data_type], url, query, time) # make the query
-            data_from_panel[query_name] = ds_parser[data_type](response_data, query_name) # get the data from the response, will be specific to the datasource type
+            # organise the DataFrames to save to file
+            single_columns = all([len(data.columns) == 1 for data in data_from_panel.values() if data is not None]) # check the panel returned multiple query DataFrames with a single column
 
-        # organise the DataFrames to save to file
-        single_columns = all([len(data.columns) == 1 for data in data_from_panel.values() if data is not None]) # check the panel returned multiple query DataFrames with a single column
+            # if each query is a dataframe with single columns
+            if single_columns:
+                element_names = [data.columns[0] for data in data_from_panel.values() if data is not None]
+                if len(element_names) > 0:
+                    single_elements = element_names.count(element_names[0]) == len(element_names)
 
-        # if each query is a dataframe with single columns
-        if single_columns:
-            element_names = [data.columns[0] for data in data_from_panel.values() if data is not None]
-            if len(element_names) > 0:
-                single_elements = element_names.count(element_names[0]) == len(element_names)
+                    if single_elements:
+                        for k, v in data_from_panel.items():
+                            v.rename(columns = {element_names[0] : k}, inplace = True)
 
-                if single_elements:
-                    for k, v in data_from_panel.items():
-                        v.rename(columns = {element_names[0] : k}, inplace = True)
+            # condense data for panels which returned multiple DataFrames
+            merged_df = None
+            for v in data_from_panel.values():
+                if merged_df is None:
+                    merged_df = v
+                else:
+                    merged_df = pd.concat([merged_df, v], axis = 1)
 
-        # condense data for panels which returned multiple DataFrames
-        merged_df = None
-        for v in data_from_panel.values():
             if merged_df is None:
-                merged_df = v
+                dashboard_data[panel_title] = pd.DataFrame({})
             else:
-                merged_df = pd.concat([merged_df, v], axis = 1)
-
-        if merged_df is None:
-            dashboard_data[panel_title] = pd.DataFrame({})
-        else:
-            try:
-                dashboard_data[panel_title] = merged_df.astype(float).sort_index() # make sure data is kept in time order
-            except ValueError:
-                dashboard_data[panel_title] = merged_df.sort_index()
+                try:
+                    dashboard_data[panel_title] = merged_df.astype(float).sort_index() # make sure data is kept in time order
+                except ValueError:
+                    dashboard_data[panel_title] = merged_df.sort_index()
 
     for data in dashboard_data.values():
         if type(data) == "dict":
@@ -653,7 +660,7 @@ def extract_grafana_data(dashboard : str, session : str, url : str, run_number :
             warnings.warn(f"no data was extracted from the dashboard {dashboard}. Check the data has not expired!")
 
     format_hdf_keys(dashboard_data)
-    print(dashboard_data)
+    # print(dashboard_data)
 
     # Save the dataframes
     output = str(out_dir) + f"grafana-{dashboard}-{output_file}.hdf5"
