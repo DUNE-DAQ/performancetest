@@ -8,6 +8,7 @@ Description: general utility functions.
 import argparse
 import os
 import re
+import time
 
 import xml.etree.ElementTree as ET
 
@@ -165,7 +166,10 @@ def dunedaq_major_version(version : str) -> int:
     Returns:
         int: version number
     """
-    return int(version.split(".")[0][-1])
+    try:
+        return int(version.split(".")[0][-1])
+    except:
+        raise Exception(f"Not a valid run number : {version}")
 
 
 def search_dict(d : dict[str], regex : str) -> dict[str]:

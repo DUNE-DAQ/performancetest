@@ -13,11 +13,25 @@ from urllib.request import urlopen
 from urllib.error import URLError, HTTPError
 from http.client import HTTPResponse
 
+import aiohttp
 import utils
 
 from times import time_range
 
 from rich import print
+
+
+async def arequest(session : aiohttp.ClientSession, url : str, extension : str = None, params : dict[str] = None):
+    try:
+        full_url = urljoin(url, extension)
+        async with aiohttp.ClientSession() as session:
+            async with session.get(full_url, params = params) as resp:
+                data = await resp.json()
+        if resp.status != 200:
+            print(f"Request for {full_url} got respone {resp.status}, {data}")
+    except Exception as e:
+        print(e)
+    return data
 
 
 def request(url : str, extension : str, data : dict = None) -> dict | None:
@@ -37,9 +51,19 @@ def request(url : str, extension : str, data : dict = None) -> dict | None:
             if response.status == 200:
                 response_data = urljson(response)
     except (HTTPError, URLError, ValueError) as e:
-        print(f"request could not be made: {e}")
+        print(f"request {urljoin(url, extension)}, {data} could not be made: {e}")
 
     return response_data
+
+
+async def aquery_prometheus(cs : aiohttp.ClientSession, url : str, query_str : str, time_range : time_range) -> dict | None:
+    data = {
+        'query': query_str,
+        'start': time_range.start,
+        'end': time_range.end,
+        'step': 2 # make this configurable?
+    }
+    return arequest(cs, url, "api/v1/query_range", data)
 
 
 def query_prometheus(url : str, query_str : str, time_range : time_range) -> dict | None:
@@ -83,6 +107,10 @@ def make_names_str(names : list) -> str:
     return names_str
 
 
+async def aget_datasources(cs : aiohttp.ClientSession, url : str) -> list[dict]:
+    return arequest(cs, url, "api/datasources")
+
+
 def get_datasources(url : str) -> list[dict]:
     """ Get the urls for each datasource the Grafana dashboards use.
         Authors: Shyam Bhuller (University of Oxford), Matthew Man (University of Toronto), Danaisis Vargas Oliva (University of Toronto)
@@ -101,6 +129,16 @@ def get_datasources(url : str) -> list[dict]:
             return urljson(response)
         else:
             raise Exception(f"http request resulted in code: {response.status_code}")
+
+
+async def get_grafana_panels(cs : aiohttp.ClientSession, url : str, uid : str):
+    panels = []
+    # Get dashboard configuration
+    out = arequest(cs, urljoin(url, f"api/dashboards/uid/{uid}"))
+    if out is None:
+        return []
+    else:
+        return out
 
 
 def get_grafana_panels(url : str, uid : str) -> list[dict]:
@@ -174,6 +212,38 @@ def get_queries(panel : dict) -> dict:
             queries[target["table"]] = target["rawSql"]
 
     return queries
+
+
+async def amake_query(cs : aiohttp.ClientSession, datasource : dict, url : str, query : str, time : time_range) -> dict | None:
+    response_data = None
+
+    url_extension = "query" # extension to make queries from the api
+    if datasource["type"] == "influxdb":
+        # data for influxdb v1
+        data = {
+            "q" : query,
+            "db" : datasource["jsonData"]["dbName"]
+        }
+    elif datasource["type"] == "prometheus":
+        # data for prometheus
+        data = {
+            'query': query,
+            'start': time.start,
+            'end': time.end,
+            'step': 2 # make this configurable?
+        }
+        url_extension = "api/v1/query_range"
+    elif datasource["type"] == "postgres":
+        #! not 100% if this is correct.
+        data = {
+            "query" : query,
+        }
+    else:
+        warn(f"unknown database type: {datasource['type']}")
+        return response_data
+
+    response_data = arequest(cs, url, f"api/datasources/proxy/uid/{datasource['uid']}/{url_extension}", data) # attempt to make the query, and stop if it is successful
+    return response_data
 
 
 def make_query(datasource : dict, url : str, query : str, time : time_range) -> dict | None:
@@ -267,6 +337,14 @@ def replace_var(query : str, target : str, value : str) -> str:
         query = query.replace(f"${{{target}}}", value)
         query = query.replace(f"${target}", value)
     return query
+
+
+async def aquery_var_influx(cs : aiohttp.ClientSession, url : str, datasource : dict, query_str : str) -> dict | None:
+    data = {
+        "q"  : query_str,
+        "db" : datasource["jsonData"]["dbName"]
+    } 
+    return arequest(cs, url, f"api/datasources/proxy/uid/{datasource['uid']}/query", data)
 
 
 def query_var_influx(url : str, datasource : dict, query_str : str) -> dict | None:

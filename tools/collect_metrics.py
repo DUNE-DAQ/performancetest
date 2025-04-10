@@ -77,9 +77,11 @@ def collect_metrics(args : argparse.Namespace | dict) -> None | dict:
         time_range = time_range
 
     # extract grafana data
-    harvester.extract_grafana_data(dashboard_info, test_args["run_number"], test_args["host"], time_range, test_args["dunedaq_version"], output_file = name, out_dir = out_dir)
+    # harvester.extract_grafana_data(dashboard_info, test_args["run_number"], test_args["host"], time_range, test_args["dunedaq_version"], output_file = name, out_dir = out_dir)
+    harvester.extract_grafana_data_mp(dashboard_info, test_args["run_number"], test_args["host"], time_range, test_args["dunedaq_version"], output_file = name, out_dir = out_dir)
+    # harvester.extract_grafana_data_all(dashboard_info, test_args["run_number"], test_args["host"], time_range, test_args["dunedaq_version"], output_file = name, out_dir = out_dir)
 
-    harvester.extract_node_exporter_data(dashboard_info, test_args["host"], time_range, test_args["dunedaq_version"], output_file = name, out_dir = out_dir)
+    # harvester.extract_node_exporter_data(dashboard_info, test_args["host"], time_range, test_args["dunedaq_version"], output_file = name, out_dir = out_dir)
 
     # convert csv data to hdf5
     if "uprof_file" in test_args:

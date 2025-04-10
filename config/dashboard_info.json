@@ -4,8 +4,7 @@
         "frontend_ethernet",
         "overview",
         "readout",
-        "trigger_primitives",
-        "A_CvwTCWk"
+        "trigger_primitives"
     ],
     "session" : [null, null, null, null, "np04-daq"]
 }

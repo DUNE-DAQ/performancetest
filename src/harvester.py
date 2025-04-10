@@ -7,6 +7,7 @@ Description: Collect and parse data from the Grafana dashboards (The spice must 
 """
 import copy
 import datetime
+import multiprocessing
 import re
 import shutil
 import tables
@@ -102,10 +103,11 @@ def collect_vars(url : str, datasource : dict, run_number : int, time : time_ran
     collected_vars = {}
     for k, v in vars_to_collect.items():
         try:
+            print("getting vars")
             collected_vars[k] = v(url, datasource, time, partition)
         except Exception as e:
             print(f"cannot get {k} for session {partition}, Reason: {e}")
-
+    print("got vars")
     # some variables whose values can be populated from the test configuration file
     var_map = {
         "host" : host, # only true is expr in target?
@@ -514,12 +516,50 @@ def format_hdf_keys(dashboard_data : dict[pd.DataFrame]):
     return
 
 
-def extract_grafana_data(dashboard_info : dict[str], run_number : int, host : str, time : times.time_range, dunedaq_version : str, output_file : str, out_dir : str) -> list[str]:
+def extract_grafana_data_mp(dashboard_info : dict[str], run_number : int, host : str, time : times.time_range, dunedaq_version : str, output_file : str, out_dir : str):
+    print(f"{time=}")
+    url = dashboard_info["grafana_url"]
+    datasource_urls = queries.get_datasources(url) # gather list of all datasources
+
+    valid_ds = get_valid_datasources(datasource_urls, dunedaq_version)
+    ds_parser = {"influxdb" : parse_result_influx, "prometheus" : parse_result_prometheus, "postgres" : parse_result_postgres}
+
+    pool = multiprocessing.Pool(len(dashboard_info["dashboard_uid"]))
+    args = []
+    for dashboard, session in zip(dashboard_info["dashboard_uid"], dashboard_info["session"]):
+        args.append([dashboard, session, url, run_number, host, time, valid_ds, ds_parser, output_file, out_dir])
+    pool.starmap_async(extract_grafana_data, args)
+
+    # q = multiprocessing.Queue()
+    # procs = []
+    # for dashboard, session in zip(dashboard_info["dashboard_uid"], dashboard_info["session"]):
+    #     proc = multiprocessing.Process(target = extract_grafana_data, args = [dashboard, session, url, run_number, host, time, valid_ds, ds_parser, output_file, out_dir])
+    #     procs.append(proc)
+    #     proc.start()
+
+    return
+
+
+def extract_grafana_data_all(dashboard_info : dict[str], run_number : int, host : str, time : times.time_range, dunedaq_version : str, output_file : str, out_dir : str):
+    print(f"{time=}")
+
+    url = dashboard_info["grafana_url"]
+    datasource_urls = queries.get_datasources(url) # gather list of all datasources
+
+    valid_ds = get_valid_datasources(datasource_urls, dunedaq_version)
+    ds_parser = {"influxdb" : parse_result_influx, "prometheus" : parse_result_prometheus, "postgres" : parse_result_postgres}
+
+    for dashboard, session in zip(dashboard_info["dashboard_uid"], dashboard_info["session"]): # iterate over each dashboard
+        dashboard_data = extract_grafana_data(dashboard, session, url, run_number, host, time, valid_ds, ds_parser, output_file, out_dir)
+    return
+
+
+def extract_grafana_data(dashboard : str, session : str, url : str, run_number : int, host : str, time : times.time_range, valid_ds : dict, ds_parser : dict[callable], output_file : str, out_dir : str):
     """ Extract data from Grafana dashboards.
         Authors: Shyam Bhuller (University of Oxford), Matthew Man (University of Toronto), Danaisis Vargas Oliva (University of Toronto)
 
     Args:
-        dashboard_info (dict[str]): url, uid and sesssion names for the grafana page.
+        dashboard_info (str): url, uid and sesssion names for the grafana page.
         run_number (int): run number of specific test.
         host (str): Host name.
         partition (str): Partition/session name of the test.
@@ -529,113 +569,104 @@ def extract_grafana_data(dashboard_info : dict[str], run_number : int, host : st
     Returns:
         list[str]: List of the output files.
     """
-    print(f"{time=}")
+    print("hi!")
+    var_map = collect_vars(url, valid_ds["influxdb"], run_number, time, session, host) # get list of relavent variables used by the dashboards
+    print("get variable map")
 
-    url = dashboard_info["grafana_url"]
-    datasource_urls = queries.get_datasources(url) # gather list of all datasources
+    panels = queries.get_grafana_panels(url, dashboard) # get panels from dashboard
+    print("get panels")
 
-    valid_ds = get_valid_datasources(datasource_urls, dunedaq_version)
-    ds_parser = {"influxdb" : parse_result_influx, "prometheus" : parse_result_prometheus, "postgres" : parse_result_postgres}
+    if not panels:
+        print("no panels were found in the dashboard!")
+        return
 
+    panels, original_queries = format_panels(panels, var_map) # populate the panels with the variable values
 
-    out_files = []
-    for dashboard, session in zip(dashboard_info["dashboard_uid"], dashboard_info["session"]): # iterate over each dashboard
-        var_map = collect_vars(url, valid_ds["influxdb"], run_number, time, session, host) # get list of relavent variables used by the dashboards
+    dashboard_data = {}
+    for p, panel in enumerate(panels): # iterate over each panel
+        panel_title = panel.get('title', '') # if a panel has not title ignore it (we wont know what the data is)
+        if 'targets' not in panel: # if a panel has no target is does not have any data
+            print(f'Skipping panel {panel_title}, with no targets.')
+            continue
+        data_type = panel["datasource"].get("type", None)
+        if data_type is None:
+            data_type = panel["datasource"].get("uid", None)
+            if data_type:
+                data_type = data_type.replace("${", "").replace("}", "")
 
-        panels = queries.get_grafana_panels(url, dashboard) # get panels from dashboard
+        if (data_type is None) and ("panels" in panel):
+            if len(panel["panels"]) == 0:
+                    data_type = panel["datasource"]["type"]
+            else:
+                data_type = panel["panels"][0]["datasource"]["type"]
 
-        if not panels:
-            print("no panels were found in the dashboard!")
-            return
+        if panel=='Runs': continue # unsure why this is skipped
 
-        panels, original_queries = format_panels(panels, var_map) # populate the panels with the variable values
+        if not panel_title: continue
 
-        dashboard_data = {}
-        for p, panel in enumerate(panels): # iterate over each panel
-            panel_title = panel.get('title', '') # if a panel has not title ignore it (we wont know what the data is)
-            if 'targets' not in panel: # if a panel has no target is does not have any data
-                print(f'Skipping panel {panel_title}, with no targets.')
-                continue
-            data_type = panel["datasource"].get("type", None)
-            if data_type is None:
-                data_type = panel["datasource"].get("uid", None)
-                if data_type:
-                    data_type = data_type.replace("${", "").replace("}", "")
+        # for now ignore tables at the first pass #TODO implement
+        if ("resultFormat" in panel["targets"][0]) and (panel["targets"][0]["resultFormat"] == "table"): continue
 
-            if (data_type is None) and ("panels" in panel):
-                if len(panel["panels"]) == 0:
-                        data_type = panel["datasource"]["type"]
-                else:
-                    data_type = panel["panels"][0]["datasource"]["type"]
+        query_strs = queries.get_queries(panel) # get the query strings from the panel
 
-            if panel=='Runs': continue # unsure why this is skipped
+        if len(query_strs) == 0: continue
+        
+        data_from_panel = {}
+        for query_name, query in query_strs.items(): # loop over all queries
+            response_data = queries.make_query(valid_ds[data_type], url, query, time) # make the query
+            data_from_panel[query_name] = ds_parser[data_type](response_data, query_name) # get the data from the response, will be specific to the datasource type
 
-            if not panel_title: continue
+        # organise the DataFrames to save to file
+        single_columns = all([len(data.columns) == 1 for data in data_from_panel.values() if data is not None]) # check the panel returned multiple query DataFrames with a single column
 
-            # for now ignore tables at the first pass #TODO implement
-            if ("resultFormat" in panel["targets"][0]) and (panel["targets"][0]["resultFormat"] == "table"): continue
+        # if each query is a dataframe with single columns
+        if single_columns:
+            element_names = [data.columns[0] for data in data_from_panel.values() if data is not None]
+            if len(element_names) > 0:
+                single_elements = element_names.count(element_names[0]) == len(element_names)
 
-            query_strs = queries.get_queries(panel) # get the query strings from the panel
+                if single_elements:
+                    for k, v in data_from_panel.items():
+                        v.rename(columns = {element_names[0] : k}, inplace = True)
 
-            if len(query_strs) == 0: continue
-            
-            data_from_panel = {}
-            for query_name, query in query_strs.items(): # loop over all queries
-                response_data = queries.make_query(valid_ds[data_type], url, query, time) # make the query
-                data_from_panel[query_name] = ds_parser[data_type](response_data, query_name) # get the data from the response, will be specific to the datasource type
-
-            # organise the DataFrames to save to file
-            single_columns = all([len(data.columns) == 1 for data in data_from_panel.values() if data is not None]) # check the panel returned multiple query DataFrames with a single column
-
-            # if each query is a dataframe with single columns
-            if single_columns:
-                element_names = [data.columns[0] for data in data_from_panel.values() if data is not None]
-                if len(element_names) > 0:
-                    single_elements = element_names.count(element_names[0]) == len(element_names)
-
-                    if single_elements:
-                        for k, v in data_from_panel.items():
-                            v.rename(columns = {element_names[0] : k}, inplace = True)
-
-            # condense data for panels which returned multiple DataFrames
-            merged_df = None
-            for v in data_from_panel.values():
-                if merged_df is None:
-                    merged_df = v
-                else:
-                    merged_df = pd.concat([merged_df, v], axis = 1)
-
+        # condense data for panels which returned multiple DataFrames
+        merged_df = None
+        for v in data_from_panel.values():
             if merged_df is None:
-                dashboard_data[panel_title] = pd.DataFrame({})
+                merged_df = v
             else:
-                try:
-                    dashboard_data[panel_title] = merged_df.astype(float).sort_index() # make sure data is kept in time order
-                except ValueError:
-                    dashboard_data[panel_title] = merged_df.sort_index()
-        print(dashboard_data)
+                merged_df = pd.concat([merged_df, v], axis = 1)
 
-        for data in dashboard_data.values():
-            if type(data) == "dict":
-                for v in data.values():
-                    if not v.empty:
-                        break
-            elif (type(data) == pd.DataFrame) and (not data.empty):
-                break
-            else:
-                warnings.warn(f"no data was extracted from the dashboard {dashboard}. Check the data has not expired!")
+        if merged_df is None:
+            dashboard_data[panel_title] = pd.DataFrame({})
+        else:
+            try:
+                dashboard_data[panel_title] = merged_df.astype(float).sort_index() # make sure data is kept in time order
+            except ValueError:
+                dashboard_data[panel_title] = merged_df.sort_index()
+    # print(dashboard_data)
 
-        format_hdf_keys(dashboard_data)
+    for data in dashboard_data.values():
+        if type(data) == "dict":
+            for v in data.values():
+                if not v.empty:
+                    break
+        elif (type(data) == pd.DataFrame) and (not data.empty):
+            break
+        else:
+            warnings.warn(f"no data was extracted from the dashboard {dashboard}. Check the data has not expired!")
 
-        # Save the dataframes
-        output = str(out_dir) + f"grafana-{dashboard}-{output_file}.hdf5"
-        try:
-            files.write_dict_hdf5(dashboard_data, output)
-            out_files.append(output)
-            print(f'Data saved to HDF5 successfully: {output}')
-        except Exception as e:
-            print(f'Exception Error: Failed to save data to HDF5: {str(e)}')
+    format_hdf_keys(dashboard_data)
 
-    return out_files
+    # Save the dataframes
+    output = str(out_dir) + f"grafana-{dashboard}-{output_file}.hdf5"
+    try:
+        files.write_dict_hdf5(dashboard_data, output)
+        print(f'Data saved to HDF5 successfully: {output}')
+    except Exception as e:
+        print(f'Exception Error: Failed to save data to HDF5: {str(e)}')
+
+    return
 
 
 def uprof_to_df(file : str) -> pd.DataFrame:
