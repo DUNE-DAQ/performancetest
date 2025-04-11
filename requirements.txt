@@ -7,3 +7,4 @@ tables==3.10.1
 weasyprint==62.3
 jupyter==1.1.1
 ipympl==0.9.6
+aiohttp==3.11.16
