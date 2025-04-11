@@ -147,7 +147,6 @@ async def get_dpdk_vars(cs : aiohttp.ClientSession, url : str, datasource : dict
     # 'SELECT "bytes", application, queue FROM "dunedaq.dpdklibs.opmon.QueueEthXStats" WHERE session = 'partition' AND time >= 1730819865s and time <= 1730820290s'
 
     response = await queries.query_influx(cs, url, datasource, query_str)
-    # response = queries.query_var_influx(url, datasource, query_str)
 
     values = np.array(response["results"][0]["series"][0]["values"])
 
@@ -184,7 +183,6 @@ async def get_fe_eth_vars(cs : aiohttp.ClientSession, url : str, datasource : di
     query_str = f"SELECT \"sent_udp_count\", application, element, detector, crate, slot, queue FROM \"dunedaq.hermesmodules.opmon.LinkInfo\" WHERE session = '{partition}' AND time >= {time.start}s and time <= {time.end}s"
 
     response = await queries.query_influx(cs, url, datasource, query_str)
-    # response = queries.query_var_influx(url, datasource, query_str)
 
     values = np.array(response["results"][0]["series"][0]["values"])
 
@@ -216,7 +214,6 @@ async def get_dhs(cs : aiohttp.ClientSession, url : str, datasource : dict, time
     query_str = f"SELECT element FROM (SELECT \"sum_payloads\", element FROM \"dunedaq.datahandlinglibs.opmon.DataHandlerInfo\" WHERE time >= {time.start}s and time <= {time.end}s)"
 
     response = await queries.query_influx(cs, url, datasource, query_str)
-    # queries.query_var_influx(url, datasource, query_str)
 
     values = response["results"][0]["series"][0]["values"]
 
@@ -351,36 +348,17 @@ def format_panels(panels: list[dict], var_map : dict) -> tuple[list[dict], list[
     return new_panels, original_queries
 
 
-def get_valid_datasources(datasources : list[dict], dunedaq_version : str) -> dict[dict]:
-    """ Get the valid datasources that can be queried for the given dunedaq version.
-        Authors: Shyam Bhuller (University of Oxford)
-
-    Args:
-        datasources (list[dict]): list of all datasources.
-        dunedaq_version (str): version string (format is vX.Y.Z).
-
-    Returns:
-        dict[dict]: datsources that can be queried
-    """
-    inf_id = get_influx_db_id(dunedaq_version)
-    valid_datasources = {}
-    for d in datasources:
-        if (d["id"] == inf_id) or (d["type"] in ["prometheus", "postgres"]):
-            valid_datasources[d["type"]] = d
-    return valid_datasources
-
-
-async def extract_node_exporter_data(cs : aiohttp.ClientSession, host : str, time : str, output_file : str, out_dir : str, datasources : dict):
+async def extract_node_exporter_data(cs : aiohttp.ClientSession, host : str, time : times.time_range, output_file : str, out_dir : str, datasources : dict):
     """ Extract node exporter data form the prometheus database directly i.e. not through the Grafana api.
         Authors: Shyam Bhuller (University of Oxford)
 
     Args:
-        dashboard_info (dict[str]): url, uid and sesssion names for the grafana page.
-        run_number (int): run number of specific test.
+        cs (aiohttp.ClientSession): open ClientSession from which to make the http request.
         host (str): Host name.
-        partition (str): Partition/session name of the test.
+        time (times.time_range): Time elapsed during the run.
         output_file (str): Output file name.
         out_dir (str): Directory to write files to.
+        datasources (dict): datasources to make queries from.
     """
     query_dict = {
         "CPU Usage (%)" : f"100 * (1 - irate(node_cpu_seconds_total{{nodename=\"{host}\", mode=\"idle\"}}[10m]))",
@@ -516,6 +494,26 @@ def format_hdf_keys(dashboard_data : dict[pd.DataFrame]):
     return
 
 
+def extract_datasources(url : str, dunedaq_version : str) -> dict:
+    """ Get the valid datasources that can be queried for the given dunedaq version.
+        Authors: Shyam Bhuller (University of Oxford)
+
+    Args:
+        datasources (list[dict]): list of all datasources.
+        dunedaq_version (str): version string (format is vX.Y.Z).
+
+    Returns:
+        dict[dict]: datsources that can be queried
+    """
+    datasources = queries.aquery_single(queries.get_datasources, url = url)
+    inf_id = get_influx_db_id(dunedaq_version)
+    valid_datasources = {}
+    for d in datasources:
+        if (d["id"] == inf_id) or (d["type"] in ["prometheus", "postgres"]):
+            valid_datasources[d["type"]] = d
+    return valid_datasources
+
+
 def run_mp(args : tuple):
     """ Simple function to run extract_grafana_data (as multiprocessing will not allow nested functions).
 
@@ -524,11 +522,6 @@ def run_mp(args : tuple):
     """
     asyncio.run(extract_grafana_data(*args))
     return
-
-
-def extract_datasources(url : str, dunedaq_version : str) -> dict:
-    return get_valid_datasources(queries.aquery_single(queries.get_datasources, url = url), dunedaq_version)
-
 
 @utils.timer
 def extract_daq_dashboards(dashboard_info : dict[str], run_number : int, host : str, time : times.time_range, dunedaq_version : str, output_file : str, out_dir : str, datasources : dict):
@@ -541,6 +534,7 @@ def extract_daq_dashboards(dashboard_info : dict[str], run_number : int, host : 
         partition (str): Partition/session name of the test.
         output_file (str): Output file name.
         out_dir (str): Directory to write files to.
+        datasources (dict): datasources to make queries from.
     """
     print(f"{time=}")
     url = dashboard_info["grafana_url"]

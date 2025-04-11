@@ -55,22 +55,6 @@ def collect_metrics(args : argparse.Namespace | dict) -> None | dict:
 
     dashboard_info = create_dashboard_info(test_args)
 
-    core_utilisation_files = []
-
-    if "core_utilisation_files" not in test_args:
-        warn("no core utilisation files were specified!!! Skipping.")
-
-    name = utils.create_filename(test_args)
-    out_dir = str(utils.test_path(test_args)) + "/data/"
-    os.makedirs(out_dir, exist_ok = True)
-
-    if "core_utilisation_files" in test_args:
-        cu_file = pathlib.Path(f"core_utilisation-{name}.csv")
-        # format core util files
-        cpu_df = reformat_cpu_util(test_args["core_utilisation_files"])
-        cpu_df.to_csv(cu_file.name)
-        core_utilisation_files.append(cu_file.resolve().as_posix())
-
     # get datsources from which the data is harvested
     datasources = harvester.extract_datasources(dashboard_info["grafana_url"], test_args["dunedaq_version"])
 
