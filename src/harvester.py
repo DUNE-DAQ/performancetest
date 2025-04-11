@@ -6,7 +6,6 @@ Authors: Shyam Bhuller (University of Oxford), Matthew Man (University of Toront
 Description: Collect and parse data from the Grafana dashboards (The spice must flow).
 """
 import asyncio
-import aiohttp
 import copy
 import datetime
 import multiprocessing
@@ -17,6 +16,7 @@ import warnings
 
 import numpy as np
 import pandas as pd
+import aiohttp
 
 from rich import print
 

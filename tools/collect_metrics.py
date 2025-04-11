@@ -6,15 +6,9 @@ Authors: Shyam Bhuller (University of Oxford), Matthew Man (University of Toront
 
 Description: Collect metrics from the grafana dashboards.
 """
-import asyncio
-import aiohttp
 import os
 import argparse
-import pathlib
 
-from warnings import warn
-
-from basic_functions import reformat_cpu_util #! this should be deprecated as core utilisation need to be included in the dashboards
 import files
 import harvester
 import times
@@ -52,6 +46,10 @@ def collect_metrics(args : argparse.Namespace | dict) -> None | dict:
     else:
         test_args = args
         new_args = None
+
+    name = utils.create_filename(test_args)
+    out_dir = str(utils.test_path(test_args)) + "/data/"
+    os.makedirs(out_dir, exist_ok = True)
 
     dashboard_info = create_dashboard_info(test_args)
 
