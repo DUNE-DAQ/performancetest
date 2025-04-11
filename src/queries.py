@@ -18,22 +18,7 @@ from times import time_range
 from rich import print
 
 
-def aquery_single(func : callable, **kwargs) -> any:
-    """ Make a single async query.
-
-    Args:
-        func (callable): coroutine to call.
-
-    Returns:
-        any: output of the coroutine.
-    """
-    async def af():
-        async with aiohttp.ClientSession() as cs:
-            return await func(cs, **kwargs)
-    return asyncio.run(af())
-
-
-async def request(session : aiohttp.ClientSession, url : str, extension : str = None, params : dict[str] = None):
+async def request(session : aiohttp.ClientSession, url : str, extension : str = None, params : dict[str] = None) -> dict | None:
     """ Make a http request.
 
     Args:
@@ -58,7 +43,7 @@ async def request(session : aiohttp.ClientSession, url : str, extension : str = 
     return data
 
 
-async def aquery_prometheus(cs : aiohttp.ClientSession, url : str, query_str : str, time_range : time_range) -> dict | None:
+async def query_prometheus(cs : aiohttp.ClientSession, url : str, query_str : str, time_range : time_range) -> dict | None:
     """ Make a query from a prometheus database.
         Authors: Shyam Bhuller (University of Oxford), Matthew Man (University of Toronto), Danaisis Vargas Oliva (University of Toronto)
 
@@ -77,111 +62,28 @@ async def aquery_prometheus(cs : aiohttp.ClientSession, url : str, query_str : s
         'end': time_range.end,
         'step': 2 # make this configurable?
     }
-    return request(cs, url, "api/v1/query_range", data)
+    return await request(cs, url, "api/v1/query_range", data)
 
 
-def query_prometheus(url : str, query_str : str, time_range : time_range) -> dict | None:
-    """ Make a query from a prometheus database.
-        Authors: Shyam Bhuller (University of Oxford), Matthew Man (University of Toronto), Danaisis Vargas Oliva (University of Toronto)
-
-    Args:
-        url (str): datasource url.
-        query_str (str): query to make.
-        time_range (time_range): time range to make query in.
-
-    Returns:
-        dict | None: http response
-    """
-    data = {
-        'query': query_str,
-        'start': time_range.start,
-        'end': time_range.end,
-        'step': 2 # make this configurable?
-    }
-    return request(url, "api/v1/query_range", data)
-
-
-def make_names_str(names : list) -> str:
-    """ Convert a list of values into a format compatible for InfluxDB query strings.
-        Authors: Shyam Bhuller (University of Oxford)
-
-    Args:
-        names (list): list of values
-
-    Returns:
-        str: Formatted list.
-    """
-    names_str = "("
-    for i, n in enumerate(names):
-        if i == (len(names) - 1):
-            names_str += f"{n})"
-        else:
-            names_str += f"{n}|"
-
-    return names_str
-
-
-def get_datasources(cs : aiohttp.ClientSession, url : str) -> list[dict]:
-    """ Get the urls for each datasource the Grafana dashboards use.
+async def query_influx(cs : aiohttp.ClientSession, url : str, datasource : dict, query_str : str) -> dict | None:
+    """ Query from specifically the opmon influxdb datasource used for the daq applications.
         Authors: Shyam Bhuller (University of Oxford)
 
     Args:
         cs (aiohttp.ClientSession): open ClientSession from which to make the http request.
         url (str): Grafana url.
+        datasources (dict): influx datasource.
+        query_str (str): Query string.
+        ds_id (int) : dashboard id
 
     Returns:
-        list[dict]: list of each datasource used.
+        dict | None: data from the response if successful, otherwise None.
     """
-    data = request(cs, url, "api/datasources")
-    if data is None:
-        raise Exception(f"datasources could not be found by querying {url}")
-    return data
-
-
-async def get_grafana_panels(cs : aiohttp.ClientSession, url : str, uid : str) -> list[dict]:
-    """ Get panels from a grafana dashboard.
-        Authors: Shyam Bhuller (University of Oxford)
-
-    Args:
-        cs (aiohttp.ClientSession): open ClientSession from which to make the http request.
-        grafana_url (str): Grafana url.
-        dashboard_uid (str): Dashboard uid.
-
-    Returns:
-        list[dict]: List of each panel on the dashboard containing information required to make queries.
-    """
-    panels = await request(cs, urljoin(url, f"api/dashboards/uid/{uid}"))
-    return panels['dashboard']['panels'] # Extract panels data
-
-
-def get_queries(panel : dict) -> dict:
-    """ Return each query made by the panel.
-        Authors: Shyam Bhuller (University of Oxford)
-
-    Args:
-        panel (dict): Grafana panel.
-
-    Returns:
-        dict: query along with its name/description.
-    """
-
-    targets = panel.get('targets', [])
-    queries = {}
-
-    for target in targets:
-        if ('expr' in target) and (target["expr"] != ""):
-            queries[target["legendFormat"]] = target["expr"]
-        elif 'query' in target:
-            if len(targets) > 1:
-                name = target["alias"]
-            else:
-                name = panel["title"]
-            queries[name] = target["query"]
-        elif 'rawSql' in target:
-            print(target)
-            queries[target["table"]] = target["rawSql"]
-
-    return queries
+    data = {
+        "q"  : query_str,
+        "db" : datasource["jsonData"]["dbName"]
+    } 
+    return await request(cs, url, f"api/datasources/proxy/uid/{datasource['uid']}/query", data)
 
 
 async def make_query(cs : aiohttp.ClientSession, datasource : dict, url : str, query : str, time : time_range) -> dict | None:
@@ -229,6 +131,104 @@ async def make_query(cs : aiohttp.ClientSession, datasource : dict, url : str, q
     return response_data
 
 
+async def get_grafana_panels(cs : aiohttp.ClientSession, url : str, uid : str) -> list[dict]:
+    """ Get panels from a grafana dashboard.
+        Authors: Shyam Bhuller (University of Oxford)
+
+    Args:
+        cs (aiohttp.ClientSession): open ClientSession from which to make the http request.
+        grafana_url (str): Grafana url.
+        dashboard_uid (str): Dashboard uid.
+
+    Returns:
+        list[dict]: List of each panel on the dashboard containing information required to make queries.
+    """
+    panels = await request(cs, urljoin(url, f"api/dashboards/uid/{uid}"))
+    return panels['dashboard']['panels'] # Extract panels data
+
+
+def aquery_single(func : callable, **kwargs) -> any:
+    """ Make a single async query.
+
+    Args:
+        func (callable): coroutine to call.
+
+    Returns:
+        any: output of the coroutine.
+    """
+    async def af():
+        async with aiohttp.ClientSession() as cs:
+            return await func(cs, **kwargs)
+    return asyncio.run(af())
+
+
+def make_names_str(names : list) -> str:
+    """ Convert a list of values into a format compatible for InfluxDB query strings.
+        Authors: Shyam Bhuller (University of Oxford)
+
+    Args:
+        names (list): list of values
+
+    Returns:
+        str: Formatted list.
+    """
+    names_str = "("
+    for i, n in enumerate(names):
+        if i == (len(names) - 1):
+            names_str += f"{n})"
+        else:
+            names_str += f"{n}|"
+
+    return names_str
+
+
+def get_datasources(cs : aiohttp.ClientSession, url : str) -> list[dict]:
+    """ Get the urls for each datasource the Grafana dashboards use.
+        Authors: Shyam Bhuller (University of Oxford)
+
+    Args:
+        cs (aiohttp.ClientSession): open ClientSession from which to make the http request.
+        url (str): Grafana url.
+
+    Returns:
+        list[dict]: list of each datasource used.
+    """
+    data = request(cs, url, "api/datasources")
+    if data is None:
+        raise Exception(f"datasources could not be found by querying {url}")
+    return data
+
+
+def get_queries(panel : dict) -> dict:
+    """ Return each query made by the panel.
+        Authors: Shyam Bhuller (University of Oxford)
+
+    Args:
+        panel (dict): Grafana panel.
+
+    Returns:
+        dict: query along with its name/description.
+    """
+
+    targets = panel.get('targets', [])
+    queries = {}
+
+    for target in targets:
+        if ('expr' in target) and (target["expr"] != ""):
+            queries[target["legendFormat"]] = target["expr"]
+        elif 'query' in target:
+            if len(targets) > 1:
+                name = target["alias"]
+            else:
+                name = panel["title"]
+            queries[name] = target["query"]
+        elif 'rawSql' in target:
+            print(target)
+            queries[target["table"]] = target["rawSql"]
+
+    return queries
+
+
 def search_panel(d, action : callable, args : dict) -> dict:
     """ Recusrively search for each value in the panel, and perform a function on the value. Panel passed is modified.
         Authors: Shyam Bhuller (University of Oxford)
@@ -244,7 +244,6 @@ def search_panel(d, action : callable, args : dict) -> dict:
     if (type(d) == dict) and utils.is_collection(d): # specific rule to iterate through a dictionary
         #? is there a way to iterate dictionaries and lists/arrays in the same way?
         for k in d:
-
             if utils.is_collection(d): # if the value from the key is a collection, call search_panel again
                 new = search_panel(d[k], action, args)
                 d[k] = new # append 
@@ -276,27 +275,6 @@ def replace_var(query : str, target : str, value : str) -> str:
         query = query.replace(f"${{{target}}}", value)
         query = query.replace(f"${target}", value)
     return query
-
-
-async def query_var_influx(cs : aiohttp.ClientSession, url : str, datasource : dict, query_str : str) -> dict | None:
-    """ Query from specifically the opmon influxdb datasource used for the daq applications.
-        Authors: Shyam Bhuller (University of Oxford)
-
-    Args:
-        cs (aiohttp.ClientSession): open ClientSession from which to make the http request.
-        url (str): Grafana url.
-        datasources (dict): influx datasource.
-        query_str (str): Query string.
-        ds_id (int) : dashboard id
-
-    Returns:
-        dict | None: data from the response if successful, otherwise None.
-    """
-    data = {
-        "q"  : query_str,
-        "db" : datasource["jsonData"]["dbName"]
-    } 
-    return await request(cs, url, f"api/datasources/proxy/uid/{datasource['uid']}/query", data)
 
 
 def extract_vars(query_str : str) -> list[str]:
