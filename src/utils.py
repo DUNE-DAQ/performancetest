@@ -100,7 +100,7 @@ def test_path(test_args : dict) -> pathlib.Path:
     Returns:
         pathlib.Path: created directory.
     """
-    path = f"perftest-run{test_args['run_number']}-{test_args['dunedaq_version'].replace('.', '_')}-{test_args['host'].replace('-', '')}-{test_args['test_name']}"
+    path = f"perftest-run{test_args['run_number']}-{test_args['dunedaq_version'].replace('.', '_')}-{test_args['test_name']}"
 
     path = pathlib.Path(test_args["out_path"] + "/" + path + "/")
     os.makedirs(path, exist_ok = True)
@@ -149,7 +149,7 @@ def create_filename(test_args : dict) -> str:
     """
     return "-".join([
         test_args["dunedaq_version"].replace(".", "_"),
-        test_args["host"].replace("-", ""),
+        # test_args["host"].replace("-", ""),
         str(test_args["socket_num"]),
         test_args["data_source"],
         test_args["test_name"]

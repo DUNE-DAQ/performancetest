@@ -348,7 +348,7 @@ def format_panels(panels: list[dict], var_map : dict) -> tuple[list[dict], list[
     return new_panels, original_queries
 
 
-async def extract_node_exporter_data(cs : aiohttp.ClientSession, host : str, time : times.time_range, output_file : str, out_dir : str, datasources : dict):
+async def extract_node_exporter_data(host : str, time : times.time_range, output_file : str, out_dir : str, datasources : dict):
     """ Extract node exporter data form the prometheus database directly i.e. not through the Grafana api.
         Authors: Shyam Bhuller (University of Oxford)
 
@@ -419,53 +419,54 @@ async def extract_node_exporter_data(cs : aiohttp.ClientSession, host : str, tim
     print(f"{time=}")
 
     dfs = {}
-    for query in query_dict:
-        response = await queries.query_prometheus(cs, prometheus_url, query_dict[query], time)
-        metrics = {}
-        values = []
+    async with aiohttp.ClientSession() as cs:
+        for query in query_dict:
+            response = await queries.query_prometheus(cs, prometheus_url, query_dict[query], time)
+            metrics = {}
+            values = []
 
-        # get the metrics and values for each sample
-        if len(response["data"]["result"]) == 0:
-            dfs[query] = pd.DataFrame()
+            # get the metrics and values for each sample
+            if len(response["data"]["result"]) == 0:
+                dfs[query] = pd.DataFrame()
 
-        for r in response["data"]["result"]:
-            for k in r["metric"]:
-                if k not in metrics:
-                    metrics[k] = [r["metric"][k]]
+            for r in response["data"]["result"]:
+                for k in r["metric"]:
+                    if k not in metrics:
+                        metrics[k] = [r["metric"][k]]
+                    else:
+                        metrics[k].append(r["metric"][k])
+                values.append(np.array(r["values"]))
+
+            # construct a sample name from the metrics
+            tags = {}
+            for k in metrics:
+                if len(np.unique(metrics[k])) > 1:
+                    tags[k] = metrics[k]
+
+            sample_label = None
+            name = None
+            for k, v in tags.items():
+                if sample_label is None:
+                    sample_label = np.array(v)
+                    name = k
                 else:
-                    metrics[k].append(r["metric"][k])
-            values.append(np.array(r["values"]))
+                    sample_label = np.char.add(np.char.add(sample_label, "_"), np.array(v))
+                    name = name + "_" + k
 
-        # construct a sample name from the metrics
-        tags = {}
-        for k in metrics:
-            if len(np.unique(metrics[k])) > 1:
-                tags[k] = metrics[k]
+            if sample_label is None: sample_label = ["total"]
 
-        sample_label = None
-        name = None
-        for k, v in tags.items():
-            if sample_label is None:
-                sample_label = np.array(v)
-                name = k
+            # construct the dataframe
+            parsed = {}
+            for s, v in zip(sample_label, values):
+                parsed["time"] = v[:, 0]
+                parsed[s] = v[:, 1]
+
+            if len(parsed) != 0:
+                dfs[query] = pd.DataFrame(parsed).set_index("time").astype(float)
+                dfs[query].set_index(dfs[query].index.astype(int), inplace = True)
             else:
-                sample_label = np.char.add(np.char.add(sample_label, "_"), np.array(v))
-                name = name + "_" + k
-
-        if sample_label is None: sample_label = ["total"]
-
-        # construct the dataframe
-        parsed = {}
-        for s, v in zip(sample_label, values):
-            parsed["time"] = v[:, 0]
-            parsed[s] = v[:, 1]
-
-        if len(parsed) != 0:
-            dfs[query] = pd.DataFrame(parsed).set_index("time").astype(float)
-            dfs[query].set_index(dfs[query].index.astype(int), inplace = True)
-        else:
-            warnings.warn(f"no data found for {query}")
-            dfs[query] = pd.DataFrame()
+                warnings.warn(f"no data found for {query}")
+                dfs[query] = pd.DataFrame()
 
     # print(dfs)
     output = str(out_dir) + f"node-exporter-{output_file}.hdf5"
@@ -514,6 +515,11 @@ def extract_datasources(url : str, dunedaq_version : str) -> dict:
     return valid_datasources
 
 
+def run_harvester(func : callable, args : tuple):
+    asyncio.run(func(*args))
+    return 
+
+
 def run_mp(args : tuple):
     """ Simple function to run extract_grafana_data (as multiprocessing will not allow nested functions).
 
@@ -555,8 +561,30 @@ def setup_harvesters(dashboard_info : dict[str], run_number : int, hosts : list[
     url = dashboard_info["grafana_url"]
 
     ds_parser = {"influxdb" : parse_result_influx, "prometheus" : parse_result_prometheus, "postgres" : parse_result_postgres}
+
+    args = []
+    for dashboard, session in zip(dashboard_info["dashboard_uid"], dashboard_info["session"]):
+        if dashboard == "A_CvwTCWk": # Intel PCM dashboard, should be run per server
+            for h in hosts:
+                args.append([extract_grafana_data, [dashboard, session, url, run_number, h, time, datasources, ds_parser, output_file + f'-{h.replace("-", "")}', out_dir]])
+        else:
+            args.append([extract_grafana_data, [dashboard, session, url, run_number, hosts[0], time, datasources, ds_parser, output_file, out_dir]])
+
+    pool = multiprocessing.Pool(len(args))
+    result = pool.starmap_async(run_harvester, args)
+    result.get()
     return
 
+
+def setup_node_exporter_harvesters(hosts : list[str], time : times.time_range, output_file : str, out_dir : str, datasources : dict):
+    args = []
+    for h in hosts:
+        args.append([extract_node_exporter_data, [h, time, output_file + f'-{h.replace("-", "")}', out_dir, datasources]])
+
+    pool = multiprocessing.Pool(len(args))
+    result = pool.starmap_async(run_harvester, args)
+    result.get()
+    return
 
 
 async def extract_grafana_data(dashboard : str, session : str, url : str, run_number : int, host : str, time : times.time_range, valid_ds : dict, ds_parser : dict[callable], output_file : str, out_dir : str):
