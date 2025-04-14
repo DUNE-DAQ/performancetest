@@ -21,8 +21,9 @@ class plotter(plotting.PlotEngine):
     """ Class for handling resource utilization plotting.
         Authors: Shyam Bhuller (University of Oxford)
     """
-    def __init__(self, metrics, data, test_args):
+    def __init__(self, metrics, data, test_args, host : str | None = None):
         self.test_args = test_args
+        self.host = host
         super().__init__(metrics, data)
 
 
@@ -49,7 +50,7 @@ class plotter(plotting.PlotEngine):
             except:
                 v = df[c]
             plotting.plot(times.relative_time(df), v, c if make_labels else None, tlabel, metric, False)
-            plotting.add_metadata(self.test_args, int(df.index[0]))
+            plotting.add_metadata(self.test_args, int(df.index[0]), False, self.host)
         plotting.plt.ylim(0, 1.1 * max(plotting.plt.gca().get_ylim()))
 
         if "(%)" in metric:
@@ -57,7 +58,7 @@ class plotter(plotting.PlotEngine):
         return
 
 
-def search_hdf5(search_term : str, path : str) -> str | None:
+def search_hdf5(search_term : str, path : str) -> list[utils.pathlib.Path]:
     """ Search for hdf5 files with a specific term in a directory.
         Authors: Shyam Bhuller (University of Oxford)
 
@@ -68,9 +69,10 @@ def search_hdf5(search_term : str, path : str) -> str | None:
     Returns:
         str | None: hdf5 file path if found.
     """
+    files = []
     for file in shell.search_data_file(search_term, path):
-        if "hdf5" in file.suffix: return file
-    return
+        if "hdf5" in file.suffix: files.append(file)
+    return files
 
 
 def plot(args : argparse.Namespace, display : bool = False):
@@ -81,8 +83,17 @@ def plot(args : argparse.Namespace, display : bool = False):
 
     hdf_files = {}
     for n in dashboard_config["dashboard_uid"] + ["uprof-pcm", "uprof-power", "node-exporter"]:
-        hdf_files[n] = search_hdf5(n, args["data_path"])
+        search_result = search_hdf5(n, args["data_path"])
+        if len(search_result) > 1:            
+            blocks = [set(s.stem.split("-")) for s in search_result] # break file name into its components
+            diffs = ["-".join(blocks[b] - blocks[b - 1]) for b in range(len(blocks))] # get the unqiue signatrue of the file name
+            for i, d in enumerate(diffs):
+                hdf_files[n + f"_{d}"] = search_result[i]
 
+        elif len(search_result) == 1:
+            hdf_files[n] = search_result[0]
+        else:
+            hdf_files[n] = None
 
     blacklist = ["Highest TP rates per channel"] # blacklist data that should not be plotted e.g. takes too long
 
@@ -90,6 +101,12 @@ def plot(args : argparse.Namespace, display : bool = False):
         keys = []
         values = {}
         if hdf_files[f] is None: continue
+
+        if any([i in f for i in ["A_CvwTCWk", "uprof-pcm", "uprof-power", "node-exporter"]]):
+            host = f.split("_")[-1].replace("srv", "-srv-")
+        else:
+            host = None
+
         data = files.read_hdf5(hdf_files[f])
         for k in data:
             if data[k].empty: continue
@@ -102,7 +119,7 @@ def plot(args : argparse.Namespace, display : bool = False):
                 values[k] = data[k].to_frame()
             else:
                 values[k] = data[k]
-        plt = plotter(keys, values, args)
+        plt = plotter(keys, values, args, host)
 
         procs = []
         q = multiprocessing.Queue()

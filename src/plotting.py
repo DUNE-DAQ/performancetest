@@ -33,7 +33,7 @@ def set_plot_style():
     return
 
 
-def add_metadata(test_args : dict, start_timestamp : int, suptitle : bool = False):
+def add_metadata(test_args : dict, start_timestamp : int, suptitle : bool = False, host : str = None):
     """ Add metadata from a performance test to the title of a plot.
 
     Args:
@@ -45,7 +45,11 @@ def add_metadata(test_args : dict, start_timestamp : int, suptitle : bool = Fals
         func = plt.suptitle
     else:
         func = plt.title
-    func(f'run: {test_args["run_number"]} | start time: {start} | host: {test_args["host"]} | test: {test_args["test_name"].replace("_", " ")}', fontsize = "small")
+    metadata = f'run: {test_args["run_number"]} | start time: {start} | test: {test_args["test_name"].replace("_", " ")}'
+    if host:
+        metadata += f' | host: {host}'
+
+    func(metadata, fontsize = "small")
     return
 
 
