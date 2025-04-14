@@ -110,7 +110,7 @@ async def collect_vars(cs : aiohttp.ClientSession, url : str, datasource : dict,
             print(f"cannot get {k} for session {partition}, Reason: {e}")
     # some variables whose values can be populated from the test configuration file
     var_map = {
-        "host" : host, # only true is expr in target?
+        "host" : host, # only true if expr in target?
         "node" : host, # ""
         "runno" : str(run_number),
         "run_number" : str(run_number),
@@ -549,6 +549,14 @@ def extract_daq_dashboards(dashboard_info : dict[str], run_number : int, host : 
     result = pool.starmap_async(run_mp, args)
     result.get()
     return
+
+
+def setup_harvesters(dashboard_info : dict[str], run_number : int, hosts : list[str], time : times.time_range, dunedaq_version : str, output_file : str, out_dir : str, datasources : dict):
+    url = dashboard_info["grafana_url"]
+
+    ds_parser = {"influxdb" : parse_result_influx, "prometheus" : parse_result_prometheus, "postgres" : parse_result_postgres}
+    return
+
 
 
 async def extract_grafana_data(dashboard : str, session : str, url : str, run_number : int, host : str, time : times.time_range, valid_ds : dict, ds_parser : dict[callable], output_file : str, out_dir : str):
