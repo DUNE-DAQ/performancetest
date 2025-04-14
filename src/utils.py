@@ -149,8 +149,6 @@ def create_filename(test_args : dict) -> str:
     """
     return "-".join([
         test_args["dunedaq_version"].replace(".", "_"),
-        # test_args["host"].replace("-", ""),
-        str(test_args["socket_num"]),
         test_args["data_source"],
         test_args["test_name"]
         ])

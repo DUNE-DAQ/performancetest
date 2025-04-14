@@ -22,7 +22,6 @@ def generate_config_template(name : str | pathlib.Path):
         "time_range" : [0, -1], # time range for plots
         "host" : ["servers to test e.g. np02-srv-003"],
         "data_source" : "source of the data, crp, apa or emu",
-        "socket_num" : "socket number tested on the host machine, 0, 1 or 01 for both",
         "test_name" : "short test name",
         "run_number" : "run number of the test (without quotes!)",
         "session" : "grafana partition name for the given test",
