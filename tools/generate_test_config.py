@@ -20,7 +20,7 @@ def generate_config_template(name : str | pathlib.Path):
     cfg = {
         "dunedaq_version" : "version of DUNEDAQ used to perform tests e.g. v5.3.0",
         "time_range" : [0, -1], # time range for plots
-        "host" : "server being tested e.g. np02-srv-003",
+        "host" : "server being tested e.g. np02-srv-003. Can also be a list of servers if you want to capture data for multiple hosts",
         "data_source" : "source of the data, crp, apa or emu",
         "socket_num" : "socket number tested on the host machine, 0, 1 or 01 for both",
         "test_name" : "short test name",
@@ -53,7 +53,7 @@ def main(args : argparse.Namespace):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser("Generate template json configuration for performance tests.")
 
-    parser.add_argument("-n", "--name", type = pathlib.Path, help = "name of json file")
+    parser.add_argument("-n", "--name", type = pathlib.Path, help = "name of json file", required = True)
 
     args = parser.parse_args()
 
