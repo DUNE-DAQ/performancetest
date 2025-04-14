@@ -137,6 +137,9 @@ def slice_time_range(data : dict[pd.DataFrame], times : time_range) -> dict[pd.D
 
 
 def match_times(df : pd.DataFrame, run_time : time_range) -> pd.DataFrame:
+    if len(df) == 0:
+        print("Warning: Dataframe is empty.")
+        return df
     recorded_times = time_range(min(df.index), max(df.index))
     
     if recorded_times.start == recorded_times.end:

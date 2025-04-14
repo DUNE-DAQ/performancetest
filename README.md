@@ -134,7 +134,7 @@ Note that when you are done you shold also move the json file to the `data_path`
 It is possible to use a different the pinning file passed in the workarea config if you pass
 
 ```[json]
-"pinning": "path to your pinning file",
+"pinning": "path to your pinning file"
 ```
 
 ### AMD hardware counters
@@ -148,7 +148,9 @@ sudo $PERFORMANCE_TEST_PATH/scripts/start_uprof.sh <test_name> <duration_seconds
 to run the pcm and power profiling tools for a set time. Next in the test configuration json file the optional parameter:
 
 ```[json]
-"uprof_file": "path to your uprof csv file",
+"uprof_file": {
+    "host name" : "path to the uprof csv file for this host"
+    },
 ```
 
 can be added. Then, the performance test tools above can be re-ran to process this csv file along with the dashboard data, which is included in the performance report. Note if not running the tools from scratch, you can add the `--regen` option to redo the data harvesting (required if you add the uprof csv file to an existing test workflow.)

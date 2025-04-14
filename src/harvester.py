@@ -8,6 +8,7 @@ Description: Collect and parse data from the Grafana dashboards (The spice must 
 import asyncio
 import copy
 import datetime
+import inspect
 import multiprocessing
 import re
 import shutil
@@ -348,7 +349,250 @@ def format_panels(panels: list[dict], var_map : dict) -> tuple[list[dict], list[
     return new_panels, original_queries
 
 
-async def extract_node_exporter_data(host : str, time : times.time_range, output_file : str, out_dir : str, datasources : dict):
+def format_hdf_keys(dashboard_data : dict[pd.DataFrame]):
+    """ Format keys so they do not break the file structure in hdf5.
+        Authors: Shyam Bhuller (University of Oxford)
+
+    Args:
+        dashboard_data (dict[pd.DataFrame]): dashboard data to be written to hdf5.
+    """
+    for k in list(dashboard_data):
+        if "/" in k: # / is used to break items in to subdirectories in hdf5.
+            if k.split("/")[0].find("(") > 0:
+                rep = " per "
+            else:
+                rep = " "
+            dashboard_data[k.replace("/", rep)] = dashboard_data.pop(k)
+    return
+
+
+def extract_datasources(url : str, dunedaq_version : str) -> dict:
+    """ Get the valid datasources that can be queried for the given dunedaq version.
+        Authors: Shyam Bhuller (University of Oxford)
+
+    Args:
+        datasources (list[dict]): list of all datasources.
+        dunedaq_version (str): version string (format is vX.Y.Z).
+
+    Returns:
+        dict[dict]: datsources that can be queried
+    """
+    datasources = queries.aquery_single(queries.get_datasources, url = url)
+    inf_id = get_influx_db_id(dunedaq_version)
+    valid_datasources = {}
+    for d in datasources:
+        if (d["id"] == inf_id) or (d["type"] in ["prometheus", "postgres"]):
+            valid_datasources[d["type"]] = d
+    return valid_datasources
+
+
+def setup_daq_harvesters(dashboard_info : dict[str], run_number : int, hosts : list[str], time : times.time_range, dunedaq_version : str, output_file : str, out_dir : str, datasources : dict) -> list[callable, list]:
+    """ Prepare the arguments for harvesting daq dashboards.
+
+    Args:
+        dashboard_info (dict[str]): Dictionary of daq dashboards to extact data from.
+        run_number (int): Run number of test.
+        hosts (list[str]): Hosts to extract performance metrics for (Intel PCM).
+        time (times.time_range): Time range of the test.
+        dunedaq_version (str): DUNEDAQ version tested.
+        output_file (str): Output file name.
+        out_dir (str): Output directory for files.
+        datasources (list[dict]): List of all datasources for the grafana dashboard.
+
+    Returns:
+        list[callable, list]: List containing the function to call and its arguments.
+    """
+    url = dashboard_info["grafana_url"]
+
+    ds_parser = {"influxdb" : parse_result_influx, "prometheus" : parse_result_prometheus, "postgres" : parse_result_postgres}
+
+    args = []
+    for dashboard, session in zip(dashboard_info["dashboard_uid"], dashboard_info["session"]):
+        if dashboard == "A_CvwTCWk": # Intel PCM dashboard, should be run per server
+            for h in hosts:
+                args.append([harvest_grafana_data, [dashboard, session, url, run_number, h, time, datasources, ds_parser, output_file + f'-{h.replace("-", "")}', out_dir]])
+        else:
+            args.append([harvest_grafana_data, [dashboard, session, url, run_number, hosts[0], time, datasources, ds_parser, output_file, out_dir]])
+    return args
+
+
+def setup_node_exporter_harvesters(hosts : list[str], time : times.time_range, output_file : str, out_dir : str, datasources : dict) -> list[callable, list]:
+    """ Prepare the arguments for harvesting node exporter data.
+
+    Args:
+        hosts (list[str]): Hosts to extract performance metrics for (Intel PCM).
+        time (times.time_range): Time range of the test.
+        output_file (str): Output file name.
+        out_dir (str): Output directory for files.
+        datasources (list[dict]): List of all datasources for the grafana dashboard.
+
+    Returns:
+        list[callable, list]: List containing the function to call and its arguments.
+    """
+    args = []
+    for h in hosts:
+        args.append([harvest_node_exporter_data, [h, time, output_file + f'-{h.replace("-", "")}', out_dir, datasources]])
+    return args
+
+
+def setup_uprof_harvesters(uprof_output : dict[str], time : times.time_range, output_file : str, out_dir : str) -> list[callable, list]:
+    """ Prepare the arguments for harvesting uprof data.
+
+    Args:
+        uprof_output (dict[str]): uprof csv file paths for each host.
+        time (times.time_range): Time range of the test.
+        output_file (str): Output file name.
+        out_dir (str): Output directory for files.
+
+    Returns:
+        list[callable, list]: List containing the function to call and its arguments.
+    """
+    args = []
+    for k, v in uprof_output.items():
+        args.append([harvest_uprof_data, [v, time, output_file + f'-{k.replace("-", "")}', out_dir]])
+    return args
+
+
+def run_harvester(func : callable, args : tuple):
+    """ Run a harvester function.
+
+    Args:
+        func (callable): Function to run.
+        args (tuple): Arguments for the function
+    """
+    if inspect.iscoroutinefunction(func):
+        asyncio.run(func(*args))
+    else:
+        func(*args)
+    return
+
+@utils.timer
+def extract_data(args : list[callable, list]):
+    """ Run all the harverster functions in parallel.
+
+    Args:
+        args (list[callable, list]): Arguments for the run_harvester function.
+    """
+    pool = multiprocessing.Pool(len(args))
+    result = pool.starmap_async(run_harvester, args)
+    result.get()
+    return
+
+
+async def harvest_grafana_data(dashboard : str, session : str, url : str, run_number : int, host : str, time : times.time_range, valid_ds : dict, ds_parser : dict[callable], output_file : str, out_dir : str):
+    """ Extract data from grafana dashboards.
+        Authors: Shyam Bhuller (University of Oxford), Matthew Man (University of Toronto), Danaisis Vargas Oliva (University of Toronto)
+
+    Args:
+        dashboard (str): Dashboard name.
+        session (str): Run session.
+        url (str): Grafana dashboard url.
+        run_number (int): Run number.
+        host (str): Host name.
+        time (times.time_range): Time elapsed during the run.
+        valid_ds (dict): Datasources that can be queried from.
+        ds_parser (dict[callable]): Functions to parse various datasources based on the database type.
+        output_file (str): Output file name.
+        out_dir (str): Directory to write files to.
+    """
+    async with aiohttp.ClientSession() as cs:
+        var_map = await collect_vars(cs, url, valid_ds["influxdb"], run_number, time, session, host) # get list of relavent variables used by the dashboards
+
+        panels = await queries.get_grafana_panels(cs, url, dashboard)
+        if not panels:
+            print("no panels were found in the dashboard!")
+            return
+
+        panels, original_queries = format_panels(panels, var_map) # populate the panels with the variable values
+
+        dashboard_data = {}
+        for p, panel in enumerate(panels): # iterate over each panel
+            panel_title = panel.get('title', '') # if a panel has not title ignore it (we wont know what the data is)
+            if 'targets' not in panel: # if a panel has no target is does not have any data
+                print(f'Skipping panel {panel_title}, with no targets.')
+                continue
+            data_type = panel["datasource"].get("type", None)
+            if data_type is None:
+                data_type = panel["datasource"].get("uid", None)
+                if data_type:
+                    data_type = data_type.replace("${", "").replace("}", "")
+
+            if (data_type is None) and ("panels" in panel):
+                if len(panel["panels"]) == 0:
+                        data_type = panel["datasource"]["type"]
+                else:
+                    data_type = panel["panels"][0]["datasource"]["type"]
+
+            if panel=='Runs': continue # unsure why this is skipped
+
+            if not panel_title: continue
+
+            # for now ignore tables at the first pass #TODO implement
+            if ("resultFormat" in panel["targets"][0]) and (panel["targets"][0]["resultFormat"] == "table"): continue
+
+            query_strs = queries.get_queries(panel) # get the query strings from the panel
+
+            if len(query_strs) == 0: continue
+            
+            data_from_panel = {}
+            for query_name, query in query_strs.items(): # loop over all queries
+                response_data = await queries.make_query(cs, valid_ds[data_type], url, query, time) # make the query
+                data_from_panel[query_name] = ds_parser[data_type](response_data, query_name) # get the data from the response, will be specific to the datasource type
+
+            # organise the DataFrames to save to file
+            single_columns = all([len(data.columns) == 1 for data in data_from_panel.values() if data is not None]) # check the panel returned multiple query DataFrames with a single column
+
+            # if each query is a dataframe with single columns
+            if single_columns:
+                element_names = [data.columns[0] for data in data_from_panel.values() if data is not None]
+                if len(element_names) > 0:
+                    single_elements = element_names.count(element_names[0]) == len(element_names)
+
+                    if single_elements:
+                        for k, v in data_from_panel.items():
+                            v.rename(columns = {element_names[0] : k}, inplace = True)
+
+            # condense data for panels which returned multiple DataFrames
+            merged_df = None
+            for v in data_from_panel.values():
+                if merged_df is None:
+                    merged_df = v
+                else:
+                    merged_df = pd.concat([merged_df, v], axis = 1)
+
+            if merged_df is None:
+                dashboard_data[panel_title] = pd.DataFrame({})
+            else:
+                try:
+                    dashboard_data[panel_title] = merged_df.astype(float).sort_index() # make sure data is kept in time order
+                except ValueError:
+                    dashboard_data[panel_title] = merged_df.sort_index()
+
+    for data in dashboard_data.values():
+        if type(data) == "dict":
+            for v in data.values():
+                if not v.empty:
+                    break
+        elif (type(data) == pd.DataFrame) and (not data.empty):
+            break
+        else:
+            warnings.warn(f"no data was extracted from the dashboard {dashboard}. Check the data has not expired!")
+
+    format_hdf_keys(dashboard_data)
+    # print(dashboard_data)
+
+    # Save the dataframes
+    output = str(out_dir) + f"grafana-{dashboard}-{output_file}.hdf5"
+    try:
+        files.write_dict_hdf5(dashboard_data, output)
+        print(f'Data saved to HDF5 successfully: {output}')
+    except Exception as e:
+        print(f'Exception Error: Failed to save data to HDF5: {str(e)}')
+
+    return
+
+
+async def harvest_node_exporter_data(host : str, time : times.time_range, output_file : str, out_dir : str, datasources : dict):
     """ Extract node exporter data form the prometheus database directly i.e. not through the Grafana api.
         Authors: Shyam Bhuller (University of Oxford)
 
@@ -478,228 +722,6 @@ async def extract_node_exporter_data(host : str, time : times.time_range, output
     return
 
 
-def format_hdf_keys(dashboard_data : dict[pd.DataFrame]):
-    """ Format keys so they do not break the file structure in hdf5.
-        Authors: Shyam Bhuller (University of Oxford)
-
-    Args:
-        dashboard_data (dict[pd.DataFrame]): dashboard data to be written to hdf5.
-    """
-    for k in list(dashboard_data):
-        if "/" in k: # / is used to break items in to subdirectories in hdf5.
-            if k.split("/")[0].find("(") > 0:
-                rep = " per "
-            else:
-                rep = " "
-            dashboard_data[k.replace("/", rep)] = dashboard_data.pop(k)
-    return
-
-
-def extract_datasources(url : str, dunedaq_version : str) -> dict:
-    """ Get the valid datasources that can be queried for the given dunedaq version.
-        Authors: Shyam Bhuller (University of Oxford)
-
-    Args:
-        datasources (list[dict]): list of all datasources.
-        dunedaq_version (str): version string (format is vX.Y.Z).
-
-    Returns:
-        dict[dict]: datsources that can be queried
-    """
-    datasources = queries.aquery_single(queries.get_datasources, url = url)
-    inf_id = get_influx_db_id(dunedaq_version)
-    valid_datasources = {}
-    for d in datasources:
-        if (d["id"] == inf_id) or (d["type"] in ["prometheus", "postgres"]):
-            valid_datasources[d["type"]] = d
-    return valid_datasources
-
-
-def run_harvester(func : callable, args : tuple):
-    asyncio.run(func(*args))
-    return 
-
-
-def run_mp(args : tuple):
-    """ Simple function to run extract_grafana_data (as multiprocessing will not allow nested functions).
-
-    Args:
-        args (tuple): Function arguments.
-    """
-    asyncio.run(extract_grafana_data(*args))
-    return
-
-@utils.timer
-def extract_daq_dashboards(dashboard_info : dict[str], run_number : int, host : str, time : times.time_range, dunedaq_version : str, output_file : str, out_dir : str, datasources : dict):
-    """ Extract data from the DAQ grafana dashboards.
-
-    Args:
-        dashboard_info (str): url, uid and sesssion names for the grafana page.
-        run_number (int): run number of specific test.
-        host (str): Host name.
-        partition (str): Partition/session name of the test.
-        output_file (str): Output file name.
-        out_dir (str): Directory to write files to.
-        datasources (dict): datasources to make queries from.
-    """
-    print(f"{time=}")
-    url = dashboard_info["grafana_url"]
-
-    ds_parser = {"influxdb" : parse_result_influx, "prometheus" : parse_result_prometheus, "postgres" : parse_result_postgres}
-
-    pool = multiprocessing.Pool(len(dashboard_info["dashboard_uid"]))
-    args = []
-    for dashboard, session in zip(dashboard_info["dashboard_uid"], dashboard_info["session"]):
-        args.append([[dashboard, session, url, run_number, host, time, datasources, ds_parser, output_file, out_dir]])
-
-    result = pool.starmap_async(run_mp, args)
-    result.get()
-    return
-
-
-def setup_harvesters(dashboard_info : dict[str], run_number : int, hosts : list[str], time : times.time_range, dunedaq_version : str, output_file : str, out_dir : str, datasources : dict):
-    url = dashboard_info["grafana_url"]
-
-    ds_parser = {"influxdb" : parse_result_influx, "prometheus" : parse_result_prometheus, "postgres" : parse_result_postgres}
-
-    args = []
-    for dashboard, session in zip(dashboard_info["dashboard_uid"], dashboard_info["session"]):
-        if dashboard == "A_CvwTCWk": # Intel PCM dashboard, should be run per server
-            for h in hosts:
-                args.append([extract_grafana_data, [dashboard, session, url, run_number, h, time, datasources, ds_parser, output_file + f'-{h.replace("-", "")}', out_dir]])
-        else:
-            args.append([extract_grafana_data, [dashboard, session, url, run_number, hosts[0], time, datasources, ds_parser, output_file, out_dir]])
-
-    pool = multiprocessing.Pool(len(args))
-    result = pool.starmap_async(run_harvester, args)
-    result.get()
-    return
-
-
-def setup_node_exporter_harvesters(hosts : list[str], time : times.time_range, output_file : str, out_dir : str, datasources : dict):
-    args = []
-    for h in hosts:
-        args.append([extract_node_exporter_data, [h, time, output_file + f'-{h.replace("-", "")}', out_dir, datasources]])
-
-    pool = multiprocessing.Pool(len(args))
-    result = pool.starmap_async(run_harvester, args)
-    result.get()
-    return
-
-
-async def extract_grafana_data(dashboard : str, session : str, url : str, run_number : int, host : str, time : times.time_range, valid_ds : dict, ds_parser : dict[callable], output_file : str, out_dir : str):
-    """ Extract data from grafana dashboards.
-        Authors: Shyam Bhuller (University of Oxford), Matthew Man (University of Toronto), Danaisis Vargas Oliva (University of Toronto)
-
-    Args:
-        dashboard (str): Dashboard name.
-        session (str): Run session.
-        url (str): Grafana dashboard url.
-        run_number (int): Run number.
-        host (str): Host name.
-        time (times.time_range): Time elapsed during the run.
-        valid_ds (dict): Datasources that can be queried from.
-        ds_parser (dict[callable]): Functions to parse various datasources based on the database type.
-        output_file (str): Output file name.
-        out_dir (str): Directory to write files to.
-    """
-    async with aiohttp.ClientSession() as cs:
-        var_map = await collect_vars(cs, url, valid_ds["influxdb"], run_number, time, session, host) # get list of relavent variables used by the dashboards
-
-        panels = await queries.get_grafana_panels(cs, url, dashboard)
-        if not panels:
-            print("no panels were found in the dashboard!")
-            return
-
-        panels, original_queries = format_panels(panels, var_map) # populate the panels with the variable values
-
-        dashboard_data = {}
-        for p, panel in enumerate(panels): # iterate over each panel
-            panel_title = panel.get('title', '') # if a panel has not title ignore it (we wont know what the data is)
-            if 'targets' not in panel: # if a panel has no target is does not have any data
-                print(f'Skipping panel {panel_title}, with no targets.')
-                continue
-            data_type = panel["datasource"].get("type", None)
-            if data_type is None:
-                data_type = panel["datasource"].get("uid", None)
-                if data_type:
-                    data_type = data_type.replace("${", "").replace("}", "")
-
-            if (data_type is None) and ("panels" in panel):
-                if len(panel["panels"]) == 0:
-                        data_type = panel["datasource"]["type"]
-                else:
-                    data_type = panel["panels"][0]["datasource"]["type"]
-
-            if panel=='Runs': continue # unsure why this is skipped
-
-            if not panel_title: continue
-
-            # for now ignore tables at the first pass #TODO implement
-            if ("resultFormat" in panel["targets"][0]) and (panel["targets"][0]["resultFormat"] == "table"): continue
-
-            query_strs = queries.get_queries(panel) # get the query strings from the panel
-
-            if len(query_strs) == 0: continue
-            
-            data_from_panel = {}
-            for query_name, query in query_strs.items(): # loop over all queries
-                response_data = await queries.make_query(cs, valid_ds[data_type], url, query, time) # make the query
-                data_from_panel[query_name] = ds_parser[data_type](response_data, query_name) # get the data from the response, will be specific to the datasource type
-
-            # organise the DataFrames to save to file
-            single_columns = all([len(data.columns) == 1 for data in data_from_panel.values() if data is not None]) # check the panel returned multiple query DataFrames with a single column
-
-            # if each query is a dataframe with single columns
-            if single_columns:
-                element_names = [data.columns[0] for data in data_from_panel.values() if data is not None]
-                if len(element_names) > 0:
-                    single_elements = element_names.count(element_names[0]) == len(element_names)
-
-                    if single_elements:
-                        for k, v in data_from_panel.items():
-                            v.rename(columns = {element_names[0] : k}, inplace = True)
-
-            # condense data for panels which returned multiple DataFrames
-            merged_df = None
-            for v in data_from_panel.values():
-                if merged_df is None:
-                    merged_df = v
-                else:
-                    merged_df = pd.concat([merged_df, v], axis = 1)
-
-            if merged_df is None:
-                dashboard_data[panel_title] = pd.DataFrame({})
-            else:
-                try:
-                    dashboard_data[panel_title] = merged_df.astype(float).sort_index() # make sure data is kept in time order
-                except ValueError:
-                    dashboard_data[panel_title] = merged_df.sort_index()
-
-    for data in dashboard_data.values():
-        if type(data) == "dict":
-            for v in data.values():
-                if not v.empty:
-                    break
-        elif (type(data) == pd.DataFrame) and (not data.empty):
-            break
-        else:
-            warnings.warn(f"no data was extracted from the dashboard {dashboard}. Check the data has not expired!")
-
-    format_hdf_keys(dashboard_data)
-    # print(dashboard_data)
-
-    # Save the dataframes
-    output = str(out_dir) + f"grafana-{dashboard}-{output_file}.hdf5"
-    try:
-        files.write_dict_hdf5(dashboard_data, output)
-        print(f'Data saved to HDF5 successfully: {output}')
-    except Exception as e:
-        print(f'Exception Error: Failed to save data to HDF5: {str(e)}')
-
-    return
-
-
 def uprof_to_df(file : str) -> pd.DataFrame:
     """ Convert a uProf output file to a DataFrame.
 
@@ -818,7 +840,7 @@ def uprof_to_df(file : str) -> pd.DataFrame:
     return df
 
 
-def extract_uprof_data(uprof_output : str, run_time : times.time_range, output_file : str, out_dir : str):
+def harvest_uprof_data(uprof_output : str, run_time : times.time_range, output_file : str, out_dir : str):
     """ Write uProf output to hdf5 file.
 
     Args:

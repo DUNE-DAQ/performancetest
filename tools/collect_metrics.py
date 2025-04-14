@@ -63,15 +63,16 @@ def collect_metrics(args : argparse.Namespace | dict) -> None | dict:
     else:
         time_range = time_range
 
-    # extract grafana data
-    harvester.setup_harvesters(dashboard_info, test_args["run_number"], test_args["host"], time_range, test_args["dunedaq_version"], name, out_dir, datasources)
+    # setup harvester functions
+    harvesters = harvester.setup_daq_harvesters(dashboard_info, test_args["run_number"], test_args["host"], time_range, test_args["dunedaq_version"], name, out_dir, datasources)
 
-    harvester.setup_node_exporter_harvesters(test_args["host"], time_range, name, out_dir, datasources)
-    exit()
+    harvesters.extend(harvester.setup_node_exporter_harvesters(test_args["host"], time_range, name, out_dir, datasources))
 
-    # convert csv data to hdf5
-    if "uprof_file" in test_args:
-        harvester.extract_uprof_data(test_args["uprof_file"], time_range, name, out_dir)
+    # if uprof csv was provided
+    if ("uprof_file" in test_args) and (len(test_args["uprof_file"]) > 0):
+        harvesters.extend(harvester.setup_uprof_harvesters(test_args["uprof_file"], time_range, name, out_dir))
+
+    harvester.extract_data(harvesters) # extract the data in parallel
 
     if type(args) == argparse.Namespace:
         new_args["data_path"] = out_dir

@@ -20,7 +20,7 @@ def generate_config_template(name : str | pathlib.Path):
     cfg = {
         "dunedaq_version" : "version of DUNEDAQ used to perform tests e.g. v5.3.0",
         "time_range" : [0, -1], # time range for plots
-        "host" : "server being tested e.g. np02-srv-003. Can also be a list of servers if you want to capture data for multiple hosts",
+        "host" : ["servers to test e.g. np02-srv-003"],
         "data_source" : "source of the data, crp, apa or emu",
         "socket_num" : "socket number tested on the host machine, 0, 1 or 01 for both",
         "test_name" : "short test name",
