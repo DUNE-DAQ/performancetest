@@ -8,7 +8,7 @@ Description: Get information about a server and store it for a given test.
 """
 
 import argparse
-import os
+import multiprocessing
 
 import xml.etree.ElementTree as ET
 
@@ -16,18 +16,26 @@ import files, utils, shell
 
 from rich import print
 
-def server_info(test_args : dict):
-    lshw_out = shell.run("sudo lshw -xml", capture = True, host = test_args['host'])
+def run(host : str, data_path : str):
+    lshw_out = shell.run("sudo lshw -xml", capture = True, host = host)
 
     if lshw_out.returncode > 0:
         print("could not get lshw output. See above for reason.")
         exit()
 
     tree = ET.ElementTree(ET.fromstring(lshw_out.stdout))
-    out_path = f"{test_args['data_path']}lshw_{test_args['host']}.xml"
+    out_path = f"{data_path}lshw_{host}.xml"
 
     print(f"file saved to: {out_path}")
     files.write_xml(tree, out_path)
+    return
+
+
+def server_info(test_args : dict):
+    args = [[test_args["host"][i], test_args["data_path"]] for i in range(len(test_args["host"]))]
+    pool = multiprocessing.Pool(len(test_args["host"]))
+    result = pool.starmap_async(run, args)
+    result.get()
     return
 
 
