@@ -8,9 +8,8 @@ Description: Basic plot of metrics from hdf5 files.
 """
 import argparse
 import multiprocessing
-import os
 
-import files, plotting, shell, utils, times
+import files, plotting, utils, times
 
 import pandas as pd
 
@@ -58,42 +57,11 @@ class plotter(plotting.PlotEngine):
         return
 
 
-def search_hdf5(search_term : str, path : str) -> list[utils.pathlib.Path]:
-    """ Search for hdf5 files with a specific term in a directory.
-        Authors: Shyam Bhuller (University of Oxford)
-
-    Args:
-        search_term (str): Term to search for.
-        path (str): Directory.
-
-    Returns:
-        str | None: hdf5 file path if found.
-    """
-    files = []
-    for file in shell.search_data_file(search_term, path):
-        if "hdf5" in file.suffix: files.append(file)
-    return files
-
-
 def plot(args : argparse.Namespace, display : bool = False):
     plotting.set_plot_style()
     out_dir = utils.make_plot_dir(args)
 
-    dashboard_config = files.read_json(f"{os.environ['PERFORMANCE_TEST_PATH']}/config/dashboard_info.json")
-
-    hdf_files = {}
-    for n in dashboard_config["dashboard_uid"] + ["uprof-pcm", "uprof-power", "node-exporter"]:
-        search_result = search_hdf5(n, args["data_path"])
-        if len(search_result) > 1:            
-            blocks = [set(s.stem.split("-")) for s in search_result] # break file name into its components
-            diffs = ["-".join(blocks[b] - blocks[b - 1]) for b in range(len(blocks))] # get the unqiue signatrue of the file name
-            for i, d in enumerate(diffs):
-                hdf_files[n + f"_{d}"] = search_result[i]
-
-        elif len(search_result) == 1:
-            hdf_files[n] = search_result[0]
-        else:
-            hdf_files[n] = None
+    hdf_files = utils.search_hdf5_data(args["data_path"])
 
     blacklist = ["Highest TP rates per channel"] # blacklist data that should not be plotted e.g. takes too long
 

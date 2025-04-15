@@ -14,6 +14,8 @@ import xml.etree.ElementTree as ET
 
 import pathlib
 
+import files, shell
+
 def timer(func):
     """ Decorator which times a function.
 
@@ -202,6 +204,46 @@ def add_to_dict(dictionary : dict, item : list, key : any):
     else:
         dictionary[key] = dictionary[key] + item
     return
+
+
+def search_hdf5(search_term : str, path : str) -> list[pathlib.Path]:
+    """ Search for hdf5 files with a specific term in a directory.
+        Authors: Shyam Bhuller (University of Oxford)
+
+    Args:
+        search_term (str): Term to search for.
+        path (str): Directory.
+
+    Returns:
+        str | None: hdf5 file path if found.
+    """
+    files = []
+    for file in shell.search_data_file(search_term, path):
+        if "hdf5" in file.suffix: files.append(file)
+    return files
+
+
+def get_unique_string_elements(strs : list[str], separator : str) -> list[str]:
+    blocks = [set(s.split(separator)) for s in strs] # break file name into its components
+    return [separator.join(blocks[b] - blocks[b - 1]) for b in range(len(blocks))] # get the unqiue signatrue of the file name    
+
+
+def search_hdf5_data(data_path : str) -> dict[str]:
+    dashboard_config = files.read_json(f"{os.environ['PERFORMANCE_TEST_PATH']}/config/dashboard_info.json")
+    
+    hdf_files = {}
+    for n in dashboard_config["dashboard_uid"] + ["uprof-pcm", "uprof-power", "node-exporter"]:
+        search_result = search_hdf5(n, data_path)
+        if len(search_result) > 1:            
+            unique_name = get_unique_string_elements([s.stem for s in search_result], "-")
+            for i, j in enumerate(unique_name):
+                hdf_files[n + f"_{j}"] = search_result[i]
+
+        elif len(search_result) == 1:
+            hdf_files[n] = search_result[0]
+        else:
+            hdf_files[n] = None
+    return hdf_files
 
 
 def xml_match_attrib(elem : ET.Element, attrib : str, value : str) -> bool:

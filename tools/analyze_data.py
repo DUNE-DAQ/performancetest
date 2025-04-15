@@ -23,16 +23,6 @@ import pandas as pd
 
 from rich import print
 
-"""
-cache hits and misses:
- - done already, are there requirements for the fraction of hits?
- 
-Memory bandwidth should be bewlow 80%:
- - need to figure out the maximum bandwidth
- - same as above, but per node
-  
-"""
-
 class ReadoutPlane(Enum):
     APA = 4
     CRP = 2
@@ -122,7 +112,7 @@ def calculate_maximum_memory_bw(hardware_info : str) -> float:
     return (data_width//8) * clock_speed * n_channels / n_sockets
 
 
-def process_memory_info(ne : pd.DataFrame, intel : pd.DataFrame | None, amd : pd.DataFrame | None, out : str, hw_info : str, test_args : dict):
+def process_memory_info(ne : pd.DataFrame, intel : pd.DataFrame | None, amd : pd.DataFrame | None, out : str, hw_info : str, test_args : dict, host : str):
     """ Process metrics for system memory and plot them.
 
     Args:
@@ -134,18 +124,20 @@ def process_memory_info(ne : pd.DataFrame, intel : pd.DataFrame | None, amd : pd
     """
     intel_data = None
     amd_data = None
+
     if intel is not None:
         if all([i.empty for i in utils.search_dict(intel, f"(?=Mem)").values()]):
             print("no Intel PCM data captured")
         else:
             intel_data = memory_bw_info_Intel(intel)
     
-    if amd is not None: # does not need as much careful chekcing as uprof is optional in the metrics logging
-        amd_data = memory_bw_info_AMD(amd)
+    if amd is not None:
+        if all([i.empty for i in utils.search_dict(amd, f"(?=Mem)").values()]):
+            print("no AMD uProf data captured")
+        else:
+            amd_data = memory_bw_info_AMD(amd)
 
-
-    with plotting.PlotBook(out + "memory_plots.pdf") as book:
-
+    with plotting.PlotBook(out + f"memory_plots_{host}.pdf") as book:
         mem_usg = ne["Memory Usage (%)"]
         if mem_usg.empty:
             print("Warning : no system memory information was found.")
@@ -154,7 +146,7 @@ def process_memory_info(ne : pd.DataFrame, intel : pd.DataFrame | None, amd : pd
             plotting.plot(times.relative_time(mem_usg), mem_usg, None, tlabel, "Memory Usage (%)")
             plotting.plt.axhline(80, color = "k", linestyle = "--")
             plotting.plt.ylim(0, 100)
-            plotting.add_metadata(test_args, int(mem_usg.index[0]))
+            plotting.add_metadata(test_args, int(mem_usg.index[0]), host = host)
             book.save()
 
         for i in [intel_data, amd_data]:
@@ -258,7 +250,7 @@ def cache_info_AMD(df : pd.DataFrame) -> list[pd.DataFrame]:
     return access, access_percent
 
 
-def process_cache_info(intel : pd.DataFrame | None, amd : pd.DataFrame | None, out : str, test_args : dict):
+def process_cache_info(intel : pd.DataFrame | None, amd : pd.DataFrame | None, out : str, test_args : dict, host : str):
     """ Process L2 and L3 cache info for either AMD or Intel servers and plot them.
 
     Args:
@@ -270,15 +262,20 @@ def process_cache_info(intel : pd.DataFrame | None, amd : pd.DataFrame | None, o
     amd_data = None
     if intel is not None:
         if all([i.empty for i in utils.search_dict(intel, f"(?=L2|L3)").values()]):
-            print("no Intel PCM data captured")
+            print("No Intel PCM data captured")
+            return
         else:
             intel_data = cache_info_Intel(intel)
     
-    if amd is not None: # does not need as much careful chekcing as uprof is optional in the metrics logging
-        amd_data = cache_info_AMD(amd)
+    if amd is not None:
+        if all([i.empty for i in utils.search_dict(amd, f"(?=L2|L3)").values()]):
+            print("No AMD uProf data captured")
+            return
+        else:
+            amd_data = cache_info_AMD(amd)
 
 
-    with plotting.PlotBook(out + "cache_plots.pdf") as book:
+    with plotting.PlotBook(out + f"cache_plots_{host}.pdf") as book:
         for i in [intel_data, amd_data]:
             if i is None: continue
             acc = i[0]
@@ -287,11 +284,11 @@ def process_cache_info(intel : pd.DataFrame | None, amd : pd.DataFrame | None, o
             relative_time = times.relative_time(list(acc.values())[0])
             for k in acc:# acc and acc_perc should have the same keys
                 plotting.plot(relative_time, acc[k], acc[k].columns, "Relative time (s)", f"L{k} cache access")
-                plotting.add_metadata(test_args, t0)
+                plotting.add_metadata(test_args, t0, host = host)
                 book.save()
 
                 plotting.plot(relative_time, acc_perc[k], acc_perc[k].columns, "Relative time (s)", f"L{k} cache access (%)")
-                plotting.add_metadata(test_args, t0)
+                plotting.add_metadata(test_args, t0, host = host)
                 book.save()
     return
 
@@ -326,20 +323,21 @@ def parse_pinning_file(pinning_file : dict, ru_host : str) -> dict[list]:
     Returns:
         dict[list]: Parsed pinning file.
     """
-    target = ru_host.replace("-", "")
+    parsed_pinning_files = {}
 
-    parsed_pinning_file = {}
-
-    for k, v in pinning_file.items():
-        if k == "_comment" : continue
-        if k == "daq_application":
-            for name, application in v.items():
-                if target in name:
-                    print(name)
-                    utils.add_to_dict(parsed_pinning_file, get_thread_nums(application["parent"]), key = "parent")
-                    for tname, threads in application["threads"].items():
-                        utils.add_to_dict(parsed_pinning_file, get_thread_nums(threads), tname)
-    return parsed_pinning_file
+    for t in ru_host:
+        pinning = {}
+        key = t.replace("-", "")
+        for k, v in pinning_file.items():
+            if k == "_comment" : continue
+            if k == "daq_application":
+                for name, application in v.items():
+                    if key in name:
+                        utils.add_to_dict(pinning, get_thread_nums(application["parent"]), key = "parent")
+                        for tname, threads in application["threads"].items():
+                            utils.add_to_dict(pinning, get_thread_nums(threads), tname)
+        parsed_pinning_files[key] = pinning
+    return parsed_pinning_files
 
 
 def fill_zeros_with_last(arr : np.ndarray, axis : int) -> np.ndarray:
@@ -407,7 +405,7 @@ def cpu_usage(idle : float | np.ndarray, total : float | np.ndarray) -> float | 
     return 100 * (1 - (idle/total))
 
 
-def process_cpu_info(data : dict[pd.DataFrame], out : str, test_args : dict, max_util : float = 80, pinning_file : dict = None):
+def process_cpu_info(data : dict[pd.DataFrame], out : str, test_args : dict, host : str, max_util : float = 80, pinning_file : dict = None):
     """ Analyse CPU information and plot the results.
         Calculates maximum, minimum and various quantiles for each core and across all cores.
 
@@ -470,12 +468,12 @@ def process_cpu_info(data : dict[pd.DataFrame], out : str, test_args : dict, max
             ], axis = 1, keys = ["50% percentile", "99% percentile", "99.9% percentile", "Maximum", "Minimum"])
 
     # plotting
-    with plotting.PlotBook(out + "cpu_plots.pdf") as book:
+    with plotting.PlotBook(out + f"cpu_plots_{host}.pdf") as book:
         for c in cpu_metrics:
             plotting.bar(cpu_metrics[c].index, cpu_metrics[c], "Core", "Utilization (%)", c)
             if max(cpu_metrics[c]) > 50:
                 plotting.plt.axhline(max_util, color  = "k", linestyle = "--")
-            plotting.add_metadata(test_args, time[0], True)
+            plotting.add_metadata(test_args, time[0], True, host = host)
             plotting.plt.tight_layout()
             plotting.plt.subplots_adjust(top=0.9)
             book.save()
@@ -488,7 +486,7 @@ def process_cpu_info(data : dict[pd.DataFrame], out : str, test_args : dict, max
                     plotting.plt.axvline(max_util, color  = "k", linestyle = "--")
 
                 plotting.plt.xlim(0, 100)
-                plotting.add_metadata(test_args, time[0], True)
+                plotting.add_metadata(test_args, time[0], True, host = host)
                 plotting.plt.tight_layout()
                 plotting.plt.subplots_adjust(top=0.9)
                 book.save()
@@ -497,13 +495,13 @@ def process_cpu_info(data : dict[pd.DataFrame], out : str, test_args : dict, max
         plotting.plt.axhline(max_util, color  = "k", linestyle = "--")
         plotting.plt.ylim(0, 100)
         plotting.plt.tight_layout()
-        plotting.add_metadata(test_args, time[0], False)
+        plotting.add_metadata(test_args, time[0], False, host = host)
         plotting.plt.subplots_adjust(top=1)
         book.save()
     return
 
 
-def process_disk_info(data : dict[pd.DataFrame], out : str, readout_plane : ReadoutPlane, test_args : dict):
+def process_disk_info(data : dict[pd.DataFrame], out : str, readout_plane : ReadoutPlane, test_args : dict, host : str):
     """ Analyse disk information for the NVME and RAID devices and plots the results.
         Calculates total IO time, disk write rate during the test and total amount written to disk.
 
@@ -545,52 +543,52 @@ def process_disk_info(data : dict[pd.DataFrame], out : str, readout_plane : Read
     max_tw = total_written.max()
 
 
-    with plotting.PlotBook(out + "disk_plots.pdf") as book:
+    with plotting.PlotBook(out + f"disk_plots_{host}.pdf") as book:
         # line plots
         plotting.plot(time, io_time, io_time.columns, tlabel, "Disk time spent during IO (s)")
         plotting.plt.axhline(rp.snb_readout_time, color = "k", linestyle = "--", label = "Expected\nwrite time (100 s)")
         plotting.plt.legend(fontsize="x-small")
-        plotting.add_metadata(test_args, t0)
+        plotting.add_metadata(test_args, t0, host = host)
         book.save()
 
         plotting.plot(time, write_rate, write_rate.columns, tlabel, "Disk write rate (Gb/s)")
         plotting.hline(data_input, "Data input rate", "k", "--", "Gb/s")
         plotting.hline(8 * rp.max_disk_write, "Maximum RAID write rate", "red", "--", "Gb/s")
         plotting.plt.legend(fontsize="x-small")
-        plotting.add_metadata(test_args, t0)
+        plotting.add_metadata(test_args, t0, host = host)
         book.save()
         
         plotting.plot(time, total_written, total_written.columns, tlabel, "Total written to disk (GB)")
         plotting.plt.axhline(max_write_rp, color = "k", linestyle = "--", label = f"Expected data written\nper {readout_plane.name} ({max_write_rp} GB)")
         plotting.plt.axhline(max_write_disk, color = "red", linestyle = "--", label = f"Maximum data writable to disk ({max_write_disk/1000} TB)")
         plotting.plt.legend(fontsize="x-small")
-        plotting.add_metadata(test_args, t0)
+        plotting.add_metadata(test_args, t0, host = host)
         book.save()
 
         # bar plots
         plotting.bar(max_io.index, max_io.values, "Device", ylabel = "Total IO time (s)", rotation = 30, bar_label = True)
         plotting.plt.axhline(rp.snb_readout_time, color = "k", linestyle = "--", label = "Expected\nwrite time (100 s)")
         plotting.plt.legend(fontsize="x-small")
-        plotting.add_metadata(test_args, t0)
+        plotting.add_metadata(test_args, t0, host = host)
         book.save()
 
         plotting.bar(max_wr.index, max_wr.values, "Device", ylabel = "Maximum Disk write rate (Gb/s)", rotation = 30, bar_label = True)
         plotting.hline(data_input, "Data input rate", "k", "--", "Gb/s")
         plotting.hline(8 * rp.max_disk_write, "Maximum RAID write rate", "red", "--", "Gb/s")
         plotting.plt.legend(fontsize="x-small")
-        plotting.add_metadata(test_args, t0)
+        plotting.add_metadata(test_args, t0, host = host)
         book.save()
 
         plotting.bar(max_tw.index, max_tw.values, "Device", ylabel = "Total written to disk (GB)", rotation = 30, bar_label = True)
         plotting.plt.axhline(max_write_rp, color = "k", linestyle = "--", label = f"Expected data written\nper {readout_plane.name} ({max_write_rp} GB)")
         plotting.plt.axhline(max_write_disk, color = "red", linestyle = "--", label = f"Maximum data writable to disk ({max_write_disk/1000} TB)")
         plotting.plt.legend(fontsize="x-small")
-        plotting.add_metadata(test_args, t0)
+        plotting.add_metadata(test_args, t0, host = host)
         book.save()
     return
 
 
-def process_network_info(data : dict[pd.DataFrame], out : str, test_args : dict):
+def process_network_info(data : dict[pd.DataFrame], out : str, test_args : dict, host : str):
     """ Process system network traffic information and make plots.
 
     Args:
@@ -603,16 +601,16 @@ def process_network_info(data : dict[pd.DataFrame], out : str, test_args : dict)
         print("Warning: no network data found.")
         return
 
-    with plotting.PlotBook(out + "network_plots") as book:
+    with plotting.PlotBook(out + f"network_plots_{host}") as book:
         for k, v in network_rt.items():
             plotting.plot(times.relative_time(v), v.values, v.columns, "Time (s)", k.split(" (")[0], autofmt = "B/s")
-            plotting.add_metadata(test_args, int(v.index[0]))
+            plotting.add_metadata(test_args, int(v.index[0]), host = host)
             book.save()
 
             total_net = v.sum(axis=0)
             plotting.bar(total_net.index, total_net/1E6, "", "Total " + k.split(" (")[0] + " (MB)", rotation=30, bar_label = True)
             plotting.plt.yscale("log")
-            plotting.add_metadata(test_args, int(v.index[0]))
+            plotting.add_metadata(test_args, int(v.index[0]), host = host)
             book.save()
     return
 
@@ -875,6 +873,13 @@ def process_daq_overview_info(data : dict[pd.DataFrame], out : str, test_args : 
     return
 
 
+def simplify_dict_name(dictionary : dict):
+    unique_names = utils.get_unique_string_elements(list(dictionary.keys()), "_")
+    for old, new in zip(list(dictionary.keys()), unique_names):
+        dictionary[new] = dictionary.pop(old)
+    return
+
+
 def analyse_data(test_args : dict):
     plotting.set_plot_style()
 
@@ -887,8 +892,6 @@ def analyse_data(test_args : dict):
     if pinning_file:
         pinning_file = parse_pinning_file(pinning_file, test_args["host"])
 
-    data_files = shell.search_data_file("hdf5", test_args["data_path"])
-
     hw_info = shell.search_data_file("xml", test_args["data_path"])
     if len(hw_info) > 0:
         hw_info = hw_info[0]
@@ -898,13 +901,12 @@ def analyse_data(test_args : dict):
 
     tr = time_range(*test_args["time_range"])
 
-    data = {}
-    for d in ["node-exporter", "trigger_primitives", "frontend_ethernet", "readout", "overview", "A_CvwTCWk", "uprof-pcm"]:
-        file = search_file(data_files,d+"-")
-        if file:
-            data[d] = times.slice_time_range(files.read_hdf5(file), tr)
-        else:
-            data[d] = None
+    data = utils.search_hdf5_data(test_args["data_path"])
+    print(data)
+
+    for d in data:
+        if data[d]:
+            data[d] = times.slice_time_range(files.read_hdf5(data[d]), tr)
 
     if test_args["plot_path"]:
         out = test_args["plot_path"] + "analysis/"
@@ -921,15 +923,33 @@ def analyse_data(test_args : dict):
         print(f"cannot infer readout plane type based on data_source: {test_args['data_source']}, default to APA.")
         readout_plane = ReadoutPlane.APA
 
-    process_cache_info(data["A_CvwTCWk"], data["uprof-pcm"], out, test_args)
+    intel_pcm = utils.search_dict(data, "A_CvwTCWk")
+    simplify_dict_name(intel_pcm)
+    uprof = utils.search_dict(data, "uprof-pcm")
+    simplify_dict_name(uprof)
+    node_exporter = utils.search_dict(data, "node-exporter")
+    simplify_dict_name(node_exporter)
 
-    process_cpu_info(data["node-exporter"], out, test_args, pinning_file = pinning_file)
+    for k, v in intel_pcm.items():
+        process_cache_info(v, None, out, test_args, k.replace("srv", "-srv-"))
 
-    process_disk_info(data["node-exporter"], out, readout_plane, test_args)
+    for k, v in uprof.items():
+        process_cache_info(None, v, out, test_args, k.replace("srv", "-srv-"))
 
-    process_memory_info(data["node-exporter"], data["A_CvwTCWk"], data["uprof-pcm"], out, hw_info, test_args)
+    for k, v in node_exporter.items():
+        h = k.replace("srv", "-srv-")
+        process_cpu_info(v, out, test_args, k, pinning_file = pinning_file.get(k))
 
-    process_network_info(data["node-exporter"], out, test_args)
+        process_disk_info(v, out, readout_plane, test_args, h)
+
+        process_network_info(v, out, test_args, h)
+
+    for h in test_args["host"]:
+        k = h.replace("-", "")
+        if k not in node_exporter:
+            print(f"Warning: no node exporter data captured for {h}")
+            continue
+        process_memory_info(node_exporter.get(k), intel_pcm.get(k), uprof.get(k), out, hw_info, test_args, h)
 
     for d, func in zip(["trigger_primitives", "frontend_ethernet"], [process_tp_info, process_frontend_info]):
         func(data[d], out, readout_plane, test_args)
