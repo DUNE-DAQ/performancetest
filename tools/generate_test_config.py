@@ -31,13 +31,13 @@ def generate_config_template(name : str | pathlib.Path):
         "data_path" : None,
         "plot_path" : None,
         "documentation" : {
-            "purpose" : "state the purpose of your test, if not provided, default text will be added instead",
-            "goals" : "state the goals of this sepcific test, if not provided, default text will be added instead",
-            "method" : "state how you will attempt to reach the goal, if not provided, default text will be added instead",
-            "control plane" : "how was the system controlled during the test i.e. proceess manager configuration",
-            "configuration" : "path to configuration or git commit hash from ehn1configs",
-            "concurrancy" : "active users on the readout machine during the time of the run, what applications were run in parallel on the machine",
-            "summary" : "summary/conclusions of the test"
+            "purpose" : None, # "state the purpose of your test, if not provided, default text will be added instead",
+            "goals" : None, # "state the goals of this sepcific test, if not provided, default text will be added instead",
+            "method" : None, # "state how you will attempt to reach the goal, if not provided, default text will be added instead",
+            "control_plane" : None, # "how was the system controlled during the test i.e. proceess manager configuration",
+            "configuration" : None, # "path to configuration or git commit hash from ehn1configs",
+            "concurrancy" : None, # "active users on the readout machine during the time of the run, what applications were run in parallel on the machine",
+            "summary" : None, # "summary/conclusions of the test"
         }
     }
     files.write_json(name, cfg)

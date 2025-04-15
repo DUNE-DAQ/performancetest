@@ -31,9 +31,6 @@ def create_urls(args : dict) -> dict:
     """
     paths = {"data" : args["data_path"], "plots" : args["plot_path"]}
 
-    # for head_name in paths["data"].split("/"):
-    #     if args["test_name"] in head_name:
-    #         break
     head_name = str(utils.test_path(args)).split(args["out_path"])[-1]
 
     urls = {"data" : {}, "plots" : {}}
@@ -117,7 +114,7 @@ def performance_report(test_args : dict):
     html = html_to_str(os.environ["PERFORMANCE_TEST_PATH"] + "/html/report_template.html")
 
     html = html.replace("&run", str(run))
-    html = html.replace("&host", host)
+    html = html.replace("&host", str(host))
     html = html.replace("&topology", test_args["data_source"])
 
     if test_args["workarea"] is not None:
@@ -138,6 +135,7 @@ def performance_report(test_args : dict):
             text = v
         else:
             text = defaults.get(k, "")
+        print(k, text)
         html = html.replace(f"&{k}", text)
 
 
@@ -158,7 +156,7 @@ def performance_report(test_args : dict):
 
     html = html.replace("&environment", environment)
 
-    file_path = str(utils.test_path(test_args)) + "/" + f"performance_report-run{run}-{host.replace('-', '')}.pdf"
+    file_path = str(utils.test_path(test_args)) + "/" + f"performance_report-run{run}.pdf"
 
     weasyprint.HTML(string = html).write_pdf(file_path)
 
