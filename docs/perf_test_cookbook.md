@@ -113,7 +113,9 @@ To generate the performance report:
             0,
             -1
         ],
-        "host": "server being tested e.g. np02-srv-003",
+        "host": [
+            "server being tested e.g. np02-srv-003"
+        ],
         "data_source": "source of the data, crp, apa or emu",
         "test_name": "short test name",
         "run_number": "run number of the test",
@@ -142,7 +144,9 @@ To generate the performance report:
             0,
             -1
         ],
-        "host": <host_name_of_server_tested>,
+        "host": [
+            <host_name_of_server_tested>
+        ],
         "data_source": "emu",
         "test_name": "exmaple_perf_test",
         "run_number": <your_run_number>,

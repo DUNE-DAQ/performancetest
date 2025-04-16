@@ -78,7 +78,7 @@ Below is an example configuration file with the minimal information required:
         0,
         60
     ],
-    "host": "np04-srv-031",
+    "host": ["np04-srv-031"],
     "data_source": "4xAPA",
     "test_name": "test_fixes",
     "run_number": 32852,
