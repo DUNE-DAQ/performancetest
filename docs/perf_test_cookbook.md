@@ -124,13 +124,13 @@ To generate the performance report:
         "data_path": null,
         "plot_path": null,
         "documentation": {
-            "purpose": "state the purpose of your test, if not provided, default text will be added instead",
-            "goals": "state the goals of this sepcific test, if not provided, default text will be added instead",
-            "method": "state how you will attempt to reach the goal, if not provided, default text will be added instead",
-            "control plane": "how was the system controlled during the test i.e. proceess manager configuration",
-            "configuration": "path to configuration or git commit hash from ehn1configs",
-            "concurrancy": "active users on the readout machine during the time of the run, what applications were run in parallel on the machine",
-            "summary": "summary/conclusions of the test"
+            "purpose": null,
+            "goals": null,
+            "method": null,
+            "control_plane": null,
+            "configuration": null,
+            "concurrancy": null,
+            "summary": null
         }
     }
     ```
@@ -153,13 +153,13 @@ To generate the performance report:
         "data_path": null,
         "plot_path": null,
         "documentation": {
-            "purpose": "state the purpose of your test, if not provided, default text will be added instead",
-            "goals": "state the goals of this sepcific test, if not provided, default text will be added instead",
-            "method": "state how you will attempt to reach the goal, if not provided, default text will be added instead",
-            "control plane": "how was the system controlled during the test i.e. proceess manager configuration",
-            "configuration": "path to configuration or git commit hash from ehn1configs",
-            "concurrancy": "active users on the readout machine during the time of the run, what applications were run in parallel on the machine",
-            "summary": "summary/conclusions of the test"
+            "purpose": null,
+            "goals": null,
+            "method": null,
+            "control_plane": null,
+            "configuration": null,
+            "concurrancy": null,
+            "summary": null
         }
     }
     ```
