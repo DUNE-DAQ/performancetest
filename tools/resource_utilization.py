@@ -5,6 +5,7 @@ Created on: 12/12/2024 11:25
 Authors: Shyam Bhuller (University of Oxford), Matthew Man (University of Toronto), Danaisis Vargas Oliva (University of Toronto)
 
 Description: Create plots for resource utilization metrics.
+#! Deprecated.
 """
 import argparse
 

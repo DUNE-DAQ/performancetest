@@ -6,16 +6,14 @@ Author: Shyam Bhuller (University of Oxford)
 
 Description: Creates performance reports from existing plots and provided documentation in the configuration.
 """
-import os
-
-import pathlib
-import weasyprint
-
 import argparse
+import os
+import pathlib
 
 import files, shell, utils
-
 import workarea_info
+
+import weasyprint
 
 from rich import print
 
@@ -24,10 +22,10 @@ def create_urls(args : dict) -> dict:
     """ Create cernbox urls for the files in the performance report directory.
 
     Args:
-        args (dict): performance test configuration.
+        args (dict): Performance test configuration.
 
     Returns:
-        dict: created urls.
+        dict: Created urls.
     """
     paths = {"data" : args["data_path"], "plots" : args["plot_path"]}
 
@@ -63,7 +61,7 @@ def get_defaults() -> dict:
     """ Get html files that contain defualt text for certain entries in the performance report.
 
     Returns:
-        dict: default text read as html strings.
+        dict: Default text read as html strings.
     """
     defs = {}
     for p in pathlib.Path(os.environ["PERFORMANCE_TEST_PATH"] + "/html/defaults/").glob("**/*"):
@@ -76,7 +74,7 @@ def write_url(url : str, link_text : str) -> str:
 
     Args:
         url (str): url string.
-        link_text (str): text the url appears as.
+        link_text (str): Text the url appears as.
 
     Returns:
         str: html formatted url string.
@@ -88,7 +86,7 @@ def create_url_list(urls : dict) -> str:
     """ Create a bullet point list of urls in html.
 
     Args:
-        urls (dict): dictionary of urls, where the key is the link text.
+        urls (dict): Dictionary of urls, where the key is the link text.
 
     Returns:
         str: html string of the url list.
@@ -104,7 +102,7 @@ def performance_report(test_args : dict):
     """ Create the performance report.
 
     Args:
-        test_args (dict): performance test configuration.
+        test_args (dict): Performance test configuration.
     """
     defaults = get_defaults()
 

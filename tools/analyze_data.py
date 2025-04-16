@@ -9,7 +9,6 @@ Description: Calculate key value metrics for the performance tests and create pl
 import argparse
 import ast
 import os
-import pathlib
 
 from collections import namedtuple
 from enum import Enum
@@ -120,6 +119,8 @@ def process_memory_info(ne : pd.DataFrame, intel : pd.DataFrame | None, amd : pd
         intel (pd.DataFrame | None): Intel pcm data.
         amd (pd.DataFrame | None): AMD uProf data.
         out (str): Output plot directory.
+        hw_info (str): Hardware information file path about the host machine.
+        test_args (dict): Test configuration arguments.
         host (str): Host machine name.
     """
     intel_data = None
@@ -257,6 +258,8 @@ def process_cache_info(intel : pd.DataFrame | None, amd : pd.DataFrame | None, o
         intel (pd.DataFrame | None): pcm data.
         amd (pd.DataFrame | None): uProf data.
         out (str): Output plot directory.
+        test_args (dict): Test configuration arguments.
+        host (str): Host machine name.
     """
     intel_data = None
     amd_data = None
@@ -297,10 +300,10 @@ def get_thread_nums(thread_str : str) -> list[int]:
     """ Get CPU numbers from the formatted strings used in a CPU pinning file. Example is "0,10-54".
 
     Args:
-        thread_str (str): formatted string.
+        thread_str (str): Formatted string.
 
     Returns:
-        list[int]: list of CPUs.
+        list[int]: List of CPUs.
     """
     split = thread_str.split(",")
 
@@ -345,10 +348,10 @@ def fill_zeros_with_last(arr : np.ndarray, axis : int) -> np.ndarray:
 
     Args:
         arr (np.ndarray): 1 or 2 dimensional array.
-        axis (int): axis to loop over.
+        axis (int): Axis to loop over.
 
     Returns:
-        np.ndarray: array with the zeroes filled.
+        np.ndarray: Array with the zeroes filled.
     """
     if len(arr.shape) == 1:
         return fill_zeros_with_last(np.expand_dims(arr, axis = 1), 1).flatten() # convert flat array to 2d, then flatten again.
@@ -363,27 +366,11 @@ def fill_zeros_with_last(arr : np.ndarray, axis : int) -> np.ndarray:
     return new
 
 
-def search_file(data_files : list, signature : str) -> pathlib.Path | None:
-    """ Return first file in a list which contains the signature.
-
-    Args:
-        data_files (list): list of files.
-        signature (str): signature to search for.
-
-    Returns:
-        pathlib.Path | None: found file path or None.
-    """
-    for f in data_files:
-        if signature in str(f):
-            return f
-    return
-
-
 def cpu_usage_rate(idle : pd.DataFrame | pd.Series, total : pd.DataFrame | pd.Series) -> np.ndarray:
     """ Compute the CPU usage as a rate per time.
 
     Args:
-        idle (pd.DataFrame | pd.Series): Time cpu spends not doing any tasks
+        idle (pd.DataFrame | pd.Series): Time cpu spends not doing any tasks.
         total (pd.DataFrame | pd.Series): Total cpu time.
 
     Returns:
@@ -396,7 +383,7 @@ def cpu_usage(idle : float | np.ndarray, total : float | np.ndarray) -> float | 
     """ CPU usage, defined as the pecrent of cpu time not idling.
 
     Args:
-        idle (float | np.ndarray): Time cpu spends not doing any tasks
+        idle (float | np.ndarray): Time cpu spends not doing any tasks.
         total (float | np.ndarray): Total cpu time.
 
     Returns:
@@ -405,14 +392,17 @@ def cpu_usage(idle : float | np.ndarray, total : float | np.ndarray) -> float | 
     return 100 * (1 - (idle/total))
 
 
-def process_cpu_info(data : dict[pd.DataFrame], out : str, test_args : dict, host : str, max_util : float = 80, pinning_file : dict = None):
+def process_cpu_info(data : dict[pd.DataFrame], out : str, test_args : dict, host : str, max_util : float = 80, pinning_file : dict | None = None):
     """ Analyse CPU information and plot the results.
         Calculates maximum, minimum and various quantiles for each core and across all cores.
 
     Args:
         data (dict[pd.DataFrame]): Node exporter data.
         out (str): Output directory.
+        test_args (dict): Test configuration arguments.
+        host (str): Host machine name.
         max_util (float): Maximum acceptable utilistation. Defaults to 80
+        pinning_file (dict | None): Pinning file used for the readout application on the given host. Defaults to None.
     """
 
     total_time_per_core = sum(utils.search_dict(data, "(?=.*CPU)(?!.*Usage)").values()) # total time per core
@@ -509,6 +499,8 @@ def process_disk_info(data : dict[pd.DataFrame], out : str, readout_plane : Read
         data (dict[pd.DataFrame]): Node exporter data.
         out (str): Output directory.
         readout_plane (ReadoutPlane): The readout plane tested with.
+        test_args (dict): Test configuration arguments.
+        host (str): Host machine name.
     """
     rp = readout_plane_values[readout_plane]
 
@@ -592,8 +584,10 @@ def process_network_info(data : dict[pd.DataFrame], out : str, test_args : dict,
     """ Process system network traffic information and make plots.
 
     Args:
-        data (dict[pd.DataFrame]): node exporter data.
-        out (str): output file diretory.
+        data (dict[pd.DataFrame]): Node exporter data.
+        out (str): Output file diretory.
+        test_args (dict): Test configuration arguments.
+        host (str): Host machine name.
     """
     network_rt = utils.search_dict(data, "Network.*\(Bps\)")
 
@@ -622,6 +616,7 @@ def process_tp_info(data : dict[pd.DataFrame], out : str, readout_plane : Readou
         data (dict[pd.DataFrame]): TP data.
         out (str): Output file edirectory.
         readout_plane (ReadoutPlane): The readout plane tested with.
+        test_args (dict): Test configuration arguments.
     """
     rp = readout_plane_values[readout_plane]
 
@@ -714,9 +709,10 @@ def process_frontend_info(data : dict[pd.DataFrame], out : str, readout_plane : 
     """ Process frontend readout information and make plots.
 
     Args:
-        data (dict[pd.DataFrame]): node exporter data.
-        out (str): output file diretory.
+        data (dict[pd.DataFrame]): Node exporter data.
+        out (str): Output file diretory.
         readout_plane (ReadoutPlane): The readout plane tested with.
+        test_args (dict): Test configuration arguments.
     """
     rx_throughput = list(utils.search_dict(data, "Throughput").values())[0] # bytes recevied from each queue in a readout application
     if rx_throughput.empty:
@@ -738,7 +734,6 @@ def process_frontend_info(data : dict[pd.DataFrame], out : str, readout_plane : 
     unique_queue_num = np.unique([c.queue for c in rx_throughput.columns])
 
     n_queues_per_app = len(unique_queue_num)
-    n_applications = len(unique_applications)
 
     rx_throughput_apps = {}
     for app in unique_applications:
@@ -792,8 +787,9 @@ def process_readout_info(data : dict[pd.DataFrame], out : str, test_args : dict)
     """ Process frontend readout information and make plots.
 
     Args:
-        data (dict[pd.DataFrame]): node exporter data.
-        out (str): output file diretory.
+        data (dict[pd.DataFrame]): Node exporter data.
+        out (str): Output file diretory.
+        test_args (dict): Test configuration arguments.
     """
     request_rates_total = list(utils.search_dict(data, "(?=.*Request rates)(?!.*for)").values())[0]
 
@@ -829,8 +825,9 @@ def process_daq_overview_info(data : dict[pd.DataFrame], out : str, test_args : 
     """ Process daq overview information and make plots.
 
     Args:
-        data (dict[pd.DataFrame]): node exporter data.
-        out (str): output file diretory.
+        data (dict[pd.DataFrame]): Node exporter data.
+        out (str): Output file diretory.
+        test_args (dict): Test configuration arguments.
     """
     global_trigger_rate = data["Global Trigger Rate"]
     dataflow_written_rate = data["Data Writers Information"].sort_index() # not sure what happened here
@@ -874,6 +871,11 @@ def process_daq_overview_info(data : dict[pd.DataFrame], out : str, test_args : 
 
 
 def simplify_dict_name(dictionary : dict):
+    """ Simplify keys in the loaded data dictionary.
+
+    Args:
+        dictionary (dict): Data dictionary.
+    """
     unique_names = utils.get_unique_string_elements(list(dictionary.keys()), "_")
     for old, new in zip(list(dictionary.keys()), unique_names):
         dictionary[new] = dictionary.pop(old)
@@ -894,7 +896,7 @@ def analyse_data(test_args : dict):
 
     hw_info = shell.search_data_file("xml", test_args["data_path"])
     if len(hw_info) > 0:
-        hw_info = hw_info[0]
+        hw_info = {k : v for v, k in zip(hw_info, utils.get_unique_string_elements([s.stem for s in hw_info], "_"))}
     else:
         print("Warning: hardware information not found.")
         hw_info = None
@@ -949,7 +951,7 @@ def analyse_data(test_args : dict):
         if k not in node_exporter:
             print(f"Warning: no node exporter data captured for {h}")
             continue
-        process_memory_info(node_exporter.get(k), intel_pcm.get(k), uprof.get(k), out, hw_info, test_args, h)
+        process_memory_info(node_exporter.get(k), intel_pcm.get(k), uprof.get(k), out, hw_info[h], test_args, h)
 
     for d, func in zip(["trigger_primitives", "frontend_ethernet"], [process_tp_info, process_frontend_info]):
         func(data[d], out, readout_plane, test_args)

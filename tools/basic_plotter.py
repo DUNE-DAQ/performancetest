@@ -8,6 +8,7 @@ Description: Basic plot of metrics from hdf5 files.
 """
 import argparse
 import multiprocessing
+import os
 
 import files, plotting, utils, times
 
@@ -27,6 +28,11 @@ class plotter(plotting.PlotEngine):
 
 
     def plot_metric(self, metric: str):
+        """ Plot a performance metric 
+
+        Args:
+            metric (str): Metric to plot.
+        """
         tlabel = "Relative time (s)"
  
         df = self.data[metric]
@@ -59,7 +65,8 @@ class plotter(plotting.PlotEngine):
 
 def plot(args : argparse.Namespace, display : bool = False):
     plotting.set_plot_style()
-    out_dir = utils.make_plot_dir(args)
+    out_dir = utils.make_plot_dir(args) + "basic_plots/"
+    os.makedirs(out_dir, exist_ok = True)
 
     hdf_files = utils.search_hdf5_data(args["data_path"])
 

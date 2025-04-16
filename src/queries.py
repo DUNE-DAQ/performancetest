@@ -23,10 +23,10 @@ async def request(session : aiohttp.ClientSession, url : str, extension : str = 
     """ Make a http request.
 
     Args:
-        session (aiohttp.ClientSession): open ClientSession from which to make the http request.
+        session (aiohttp.ClientSession): Open ClientSession from which to make the http request.
         url (str): http url
         extension (str): url extension, such as a query.
-        data (dict, optional): data to pass if the exentsion takes data as input. Defaults to None.
+        params (dict[str], optional): Parameters to pass if the extension takes data as input. Defaults to None.
 
     Returns:
         dict | None: http repsonse.
@@ -49,10 +49,10 @@ async def query_prometheus(cs : aiohttp.ClientSession, url : str, query_str : st
         Authors: Shyam Bhuller (University of Oxford), Matthew Man (University of Toronto), Danaisis Vargas Oliva (University of Toronto)
 
     Args:
-        cs (aiohttp.ClientSession): open ClientSession from which to make the http request.
-        url (str): datasource url.
-        query_str (str): query to make.
-        time_range (time_range): time range to make query in.
+        cs (aiohttp.ClientSession): Open ClientSession from which to make the http request.
+        url (str): Datasource url.
+        query_str (str): Query to make.
+        time_range (time_range): Time range to make query in.
 
     Returns:
         dict | None: http response
@@ -71,11 +71,11 @@ async def query_influx(cs : aiohttp.ClientSession, url : str, datasource : dict,
         Authors: Shyam Bhuller (University of Oxford)
 
     Args:
-        cs (aiohttp.ClientSession): open ClientSession from which to make the http request.
+        cs (aiohttp.ClientSession): Open ClientSession from which to make the http request.
         url (str): Grafana url.
-        datasources (dict): influx datasource.
+        datasources (dict): Influx datasource.
         query_str (str): Query string.
-        ds_id (int) : dashboard id
+        ds_id (int) : Dashboard id.
 
     Returns:
         dict | None: data from the response if successful, otherwise None.
@@ -92,11 +92,11 @@ async def make_query(cs : aiohttp.ClientSession, datasource : dict, url : str, q
         Authors: Shyam Bhuller (University of Oxford), Matthew Man (University of Toronto), Danaisis Vargas Oliva (University of Toronto)
 
     Args:
-        cs (aiohttp.ClientSession): open ClientSession from which to make the http request.
-        datasource (dict): datasource to query from.
+        cs (aiohttp.ClientSession): Open ClientSession from which to make the http request.
+        datasource (dict): Datasource to query from.
         url (str): Grafana url to make the query through.
-        query (str): query string.
-        time (time_range): time range to make the query within (required for Prometheus queries, but not InfluxDB as the string contains the time range).
+        query (str): Query string.
+        time (time_range): Time range to make the query within (required for Prometheus queries, but not InfluxDB as the string contains the time range).
 
     Returns:
         dict | None: data from the response if the query was successful or None if the query fails.
@@ -137,9 +137,9 @@ async def get_grafana_panels(cs : aiohttp.ClientSession, url : str, uid : str) -
         Authors: Shyam Bhuller (University of Oxford)
 
     Args:
-        cs (aiohttp.ClientSession): open ClientSession from which to make the http request.
-        grafana_url (str): Grafana url.
-        dashboard_uid (str): Dashboard uid.
+        cs (aiohttp.ClientSession): Open ClientSession from which to make the http request.
+        url (str): Grafana url.
+        uid (str): Dashboard uid.
 
     Returns:
         list[dict]: List of each panel on the dashboard containing information required to make queries.
@@ -152,10 +152,11 @@ def aquery_single(func : callable, **kwargs) -> any:
     """ Make a single async query.
 
     Args:
-        func (callable): coroutine to call.
+        func (callable): Coroutine to call.
+        kwargs : Arguments to pass to the coroutine.
 
     Returns:
-        any: output of the coroutine.
+        any: Output of the coroutine.
     """
     async def af():
         async with aiohttp.ClientSession() as cs:
@@ -168,7 +169,7 @@ def make_names_str(names : list) -> str:
         Authors: Shyam Bhuller (University of Oxford)
 
     Args:
-        names (list): list of values
+        names (list): List of values.
 
     Returns:
         str: Formatted list.
@@ -188,11 +189,11 @@ def get_datasources(cs : aiohttp.ClientSession, url : str) -> list[dict]:
         Authors: Shyam Bhuller (University of Oxford)
 
     Args:
-        cs (aiohttp.ClientSession): open ClientSession from which to make the http request.
+        cs (aiohttp.ClientSession): Open ClientSession from which to make the http request.
         url (str): Grafana url.
 
     Returns:
-        list[dict]: list of each datasource used.
+        list[dict]: List of each datasource used.
     """
     data = request(cs, url, "api/datasources")
     if data is None:
@@ -208,7 +209,7 @@ def get_queries(panel : dict) -> dict:
         panel (dict): Grafana panel.
 
     Returns:
-        dict: query along with its name/description.
+        dict: Query along with its name/description.
     """
 
     targets = panel.get('targets', [])
@@ -230,12 +231,12 @@ def get_queries(panel : dict) -> dict:
     return queries
 
 
-def search_panel(d, action : callable, args : dict) -> dict:
+def search_panel(d : dict | list | str, action : callable, args : dict) -> dict:
     """ Recusrively search for each value in the panel, and perform a function on the value. Panel passed is modified.
         Authors: Shyam Bhuller (University of Oxford)
 
     Args:
-        d: the panel or an element in the panel.
+        d (dict | list | str): the panel or an element in the panel.
         action (callable): function to apply to the values found. 
         args (dict): arguments for the action.
 

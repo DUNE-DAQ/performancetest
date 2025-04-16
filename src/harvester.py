@@ -37,13 +37,10 @@ def get_influx_db_id(dunedaq_version : str) -> int:
         Authors: Shyam Bhuller (University of Oxford)
 
     Args:
-        dunedaq_version (str): version string (format is vX.Y.Z).
-
-    Raises:
-        Exception: dunedaq version is not supported by performenace test tools.
+        dunedaq_version (str): Version string (format is vX.Y.Z).
 
     Returns:
-        int: influxdb id number.
+        int: Influxdb id number.
     """
     mv = utils.dunedaq_major_version(dunedaq_version)
     if mv == 4:
@@ -60,9 +57,11 @@ def get_run_time(dashboard_info : dict[str], run_number : int, test_session : st
         Authors: Shyam Bhuller (University of Oxford)
 
     Args:
-        url (str): Grafana url.
-        datasources (list[dict]): influx datasource.
-        run_number (int): run number of the test.
+        dashboard_info (dict[str]): Dictionary of daq dashboards to extact data from.
+        run_number (int): Run number of the test.
+        session (str): Run session.
+        dunedaq_version (str): Version string (format is vX.Y.Z).
+        datasources (dict): List of datasources to query from.
 
     Returns:
         time_range: start and end times in unix time.
@@ -90,11 +89,11 @@ async def collect_vars(cs : aiohttp.ClientSession, url : str, datasource : dict,
         Authors: Shyam Bhuller (University of Oxford)
 
     Args:
-        cs (aiohttp.ClientSession): open ClientSession from which to make the http request.
+        cs (aiohttp.ClientSession): Open ClientSession from which to make the http request.
         url (str): Grafana url.
-        datasource (dict): influx datasource.
+        datasource (dict): Influx datasource.
         time (time_range): Time range of the test.
-        run_number (int) : run number.
+        run_number (int) : Run number.
         partition (str): Partition/session name.
         host (str): Host machine name.
 
@@ -134,14 +133,14 @@ async def get_dpdk_vars(cs : aiohttp.ClientSession, url : str, datasource : dict
         Authors: Shyam Bhuller (University of Oxford)
 
     Args:
-        cs (aiohttp.ClientSession): open ClientSession from which to make the http request.
+        cs (aiohttp.ClientSession): Open ClientSession from which to make the http request.
         url (str): Grafana url.
-        datasources (dict): influx datasource.
-        time (time_range): time range of test.
-        partition (str): partition/session name.
+        datasources (dict): Influx datasource.
+        time (time_range): Time range of test.
+        partition (str): Partition/session name.
 
     Returns:
-        dict[str]: variables and their possible values.
+        dict[str]: Variables and their possible values.
     """
     #* query string is unique to the dashboard
     query_str = f'SELECT "bytes", application, queue FROM "dunedaq.dpdklibs.opmon.QueueEthXStats" WHERE session = \'{partition}\' AND time >= {time.start}s and time <= {time.end}s'
@@ -172,14 +171,14 @@ async def get_fe_eth_vars(cs : aiohttp.ClientSession, url : str, datasource : di
         Authors: Shyam Bhuller (University of Oxford)
 
     Args:
-        cs (aiohttp.ClientSession): open ClientSession from which to make the http request.
+        cs (aiohttp.ClientSession): Open ClientSession from which to make the http request.
         url (str): Grafana url.
-        datasources (dict): influx datasource.
-        time (time_range): time range of test.
-        partition (str): partition/session name.
+        datasources (dict): Influx datasource.
+        time (time_range): Time range of test.
+        partition (str): Partition/session name.
 
     Returns:
-        dict[str]: variables and their possible values.
+        dict[str]: Variables and their possible values.
     """
     query_str = f"SELECT \"sent_udp_count\", application, element, detector, crate, slot, queue FROM \"dunedaq.hermesmodules.opmon.LinkInfo\" WHERE session = '{partition}' AND time >= {time.start}s and time <= {time.end}s"
 
@@ -203,14 +202,14 @@ async def get_dhs(cs : aiohttp.ClientSession, url : str, datasource : dict, time
         Authors: Shyam Bhuller (University of Oxford)
 
     Args:
-        cs (aiohttp.ClientSession): open ClientSession from which to make the http request.
+        cs (aiohttp.ClientSession): Open ClientSession from which to make the http request.
         url (str): Grafana url.
-        datasources (dict): influx datasource.
-        time (time_range): time range of test.
-        partition (str): partition/session name.
+        datasources (dict): Influx datasource.
+        time (time_range): Time range of test.
+        partition (str): Partition/session name.
 
     Returns:
-        dict[str]: variables and their possible values.
+        dict[str]: Variables and their possible values.
     """
     query_str = f"SELECT element FROM (SELECT \"sum_payloads\", element FROM \"dunedaq.datahandlinglibs.opmon.DataHandlerInfo\" WHERE time >= {time.start}s and time <= {time.end}s)"
 
@@ -241,10 +240,10 @@ def parse_result_influx(response_data : dict, name : str) -> pd.DataFrame:
 
     Args:
         response_data (dict): API response in json format.
-        name (str): information from the panel the data was extracted from.
+        name (str): Information from the panel the data was extracted from.
 
     Returns:
-        pd.DataFrame: data in pandas DataFrame.
+        pd.DataFrame: Fata in pandas DataFrame.
     """
     parsed_results = {}
 
@@ -287,7 +286,7 @@ def parse_result_prometheus(response_data : dict, name : str) -> pd.DataFrame:
         name (str): Name of metric retreived.
 
     Returns:
-        pd.DataFrame: data in pandas DataFrame.
+        pd.DataFrame: Data in pandas DataFrame.
     """
     parsed = {}
 
@@ -316,10 +315,10 @@ def format_panels(panels: list[dict], var_map : dict) -> tuple[list[dict], list[
 
     Args:
         panels (list[dict]): Grafana panels
-        var_map (dict): map of variable names to the possible values.
+        var_map (dict): Map of variable names to the possible values.
 
     Returns:
-        tuple[list[dict], list[str]]: formatted panels and a record of the original query strings.
+        tuple[list[dict], list[str]]: Formatted panels and a record of the original query strings.
     """
     new_panels = []
 
@@ -354,7 +353,7 @@ def format_hdf_keys(dashboard_data : dict[pd.DataFrame]):
         Authors: Shyam Bhuller (University of Oxford)
 
     Args:
-        dashboard_data (dict[pd.DataFrame]): dashboard data to be written to hdf5.
+        dashboard_data (dict[pd.DataFrame]): Dashboard data to be written to hdf5.
     """
     for k in list(dashboard_data):
         if "/" in k: # / is used to break items in to subdirectories in hdf5.
@@ -371,11 +370,11 @@ def extract_datasources(url : str, dunedaq_version : str) -> dict:
         Authors: Shyam Bhuller (University of Oxford)
 
     Args:
-        datasources (list[dict]): list of all datasources.
-        dunedaq_version (str): version string (format is vX.Y.Z).
+        url (str): Grafana url.
+        dunedaq_version (str): Version string (format is vX.Y.Z).
 
     Returns:
-        dict[dict]: datsources that can be queried
+        dict: Datasources that can be queried.
     """
     datasources = queries.aquery_single(queries.get_datasources, url = url)
     inf_id = get_influx_db_id(dunedaq_version)
@@ -386,7 +385,7 @@ def extract_datasources(url : str, dunedaq_version : str) -> dict:
     return valid_datasources
 
 
-def setup_daq_harvesters(dashboard_info : dict[str], run_number : int, hosts : list[str], time : times.time_range, dunedaq_version : str, output_file : str, out_dir : str, datasources : dict) -> list[callable, list]:
+def setup_daq_harvesters(dashboard_info : dict[str], run_number : int, hosts : list[str], time : times.time_range, output_file : str, out_dir : str, datasources : dict) -> list[callable, list]:
     """ Prepare the arguments for harvesting daq dashboards.
 
     Args:
@@ -394,7 +393,6 @@ def setup_daq_harvesters(dashboard_info : dict[str], run_number : int, hosts : l
         run_number (int): Run number of test.
         hosts (list[str]): Hosts to extract performance metrics for (Intel PCM).
         time (times.time_range): Time range of the test.
-        dunedaq_version (str): DUNEDAQ version tested.
         output_file (str): Output file name.
         out_dir (str): Output directory for files.
         datasources (list[dict]): List of all datasources for the grafana dashboard.
@@ -439,7 +437,7 @@ def setup_uprof_harvesters(uprof_output : dict[str], time : times.time_range, ou
     """ Prepare the arguments for harvesting uprof data.
 
     Args:
-        uprof_output (dict[str]): uprof csv file paths for each host.
+        uprof_output (dict[str]): uProf csv file paths for each host.
         time (times.time_range): Time range of the test.
         output_file (str): Output file name.
         out_dir (str): Output directory for files.
@@ -458,7 +456,7 @@ def run_harvester(func : callable, args : tuple):
 
     Args:
         func (callable): Function to run.
-        args (tuple): Arguments for the function
+        args (tuple): Arguments for the function.
     """
     if inspect.iscoroutinefunction(func):
         asyncio.run(func(*args))
@@ -597,12 +595,11 @@ async def harvest_node_exporter_data(host : str, time : times.time_range, output
         Authors: Shyam Bhuller (University of Oxford)
 
     Args:
-        cs (aiohttp.ClientSession): open ClientSession from which to make the http request.
         host (str): Host name.
         time (times.time_range): Time elapsed during the run.
         output_file (str): Output file name.
         out_dir (str): Directory to write files to.
-        datasources (dict): datasources to make queries from.
+        datasources (dict): Datasources to make queries from.
     """
     query_dict = {
         "CPU Usage (%)" : f"100 * (1 - irate(node_cpu_seconds_total{{nodename=\"{host}\", mode=\"idle\"}}[10m]))",
@@ -845,6 +842,7 @@ def harvest_uprof_data(uprof_output : str, run_time : times.time_range, output_f
 
     Args:
         uprof_output (str): uProf output file.
+        run_time (times.time_range): Time elapsed during a run.
         output_file (str): Output file name.
         out_dir (str): Output diretory.
     """

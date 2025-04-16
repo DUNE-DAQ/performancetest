@@ -17,6 +17,12 @@ import files, utils, shell
 from rich import print
 
 def run(host : str, data_path : str):
+    """ Run lshw on the host machine, capture the output as an xml tree and save the output.
+
+    Args:
+        host (str): Host name.
+        data_path (str): Output data path.
+    """
     lshw_out = shell.run("sudo lshw -xml", capture = True, host = host)
 
     if lshw_out.returncode > 0:

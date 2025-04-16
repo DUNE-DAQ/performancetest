@@ -22,6 +22,14 @@ from matplotlib.backends.backend_pdf import PdfPages
 import times
 
 def isinteger(x : np.ndarray) -> np.ndarray:
+    """ Check if elements are an integer or decimal. 
+
+    Args:
+        x (np.ndarray): Array of numbers.
+
+    Returns:
+        np.ndarray: Boolean mask of values that are integers.
+    """
     return np.equal(np.mod(x, 1), 0)
 
 
@@ -37,8 +45,10 @@ def add_metadata(test_args : dict, start_timestamp : int, suptitle : bool = Fals
     """ Add metadata from a performance test to the title of a plot.
 
     Args:
-        test_args (dict): test args for a performance test.
-        start_timestamp (int): start time of the test, in unix timestamp.
+        test_args (dict): Test args for a performance test.
+        start_timestamp (int): Start time of the test, in unix timestamp.
+        suptitle (bool, optional): Add the metadata to the super title . Defaults to False.
+        host (str, optional): Include a host name in the metadata. Defaults to None.
     """
     start = times.dt.fromtimestamp(start_timestamp).strftime('%Y-%m-%d %H:%M:%S')
     if suptitle:
@@ -57,8 +67,8 @@ def figure_dimensions(x : int, orientation : str = "horizontal") -> tuple[int]:
     """ Compute dimensions for a multiplot which makes the grid as "square" as possible.
 
     Args:
-        x (int): number of plots in multiplot
-        orientation (str, optional): which axis of the grid is longer. Defaults to "horizontal".
+        x (int): Number of plots in multiplot
+        orientation (str, optional): Which axis of the grid is longer. Defaults to "horizontal".
 
     Returns:
         tuple[int]: length of each grid axes
@@ -78,6 +88,15 @@ def figure_dimensions(x : int, orientation : str = "horizontal") -> tuple[int]:
 
 
 def hline(v, label : str = None, color = "k", linestyle = "-", autofmt : str = None):
+    """ Draw a horizontal line, assigning a value with units to the label.
+
+    Args:
+        v : Value the line represents.
+        label (str, optional): Label of the line. Defaults to None.
+        color (str, optional): Colour of the line. Defaults to "k".
+        linestyle (str, optional): Style of the line. Defaults to "-".
+        autofmt (str, optional): Format the value and label based on the units provided. Defaults to None.
+    """
     if autofmt:
         formatter, units = autoscale(v, autofmt, "2f")
         if label:
@@ -92,6 +111,7 @@ def autoscale(data : float, units : str, style : str = "2g") -> tuple[FuncFormat
     Args:
         data (float): Sample data.
         units (str): Unit of measure.
+        style (str): string formatter. Defaults to "2g"
 
     Returns:
         tuple[FuncFormatter, str]: Formatter function for matplotlib and the modified unit of measure.
@@ -129,6 +149,12 @@ class PlotBook:
         self.is_open = False
 
     def save(self, figure : matplotlib.figure.Figure | None = None):
+        """ Save the plot to the pdf file. If no figure is provided the last open figure
+            is saved.
+
+        Args:
+            figure (matplotlib.figure.Figure | None, optional): Figure to save. Defaults to None.
+        """
         if hasattr(self, "pdf"):
             try:
                 self.pdf.savefig(figure = figure, bbox_inches='tight')
@@ -137,6 +163,8 @@ class PlotBook:
                 pass
 
     def open(self):
+        """ Open the pdf file.
+        """
         if not hasattr(self, "pdf"):
             self.pdf = PdfPages(self.name)
             print(f"pdf {self.name} has been opened")
@@ -145,6 +173,8 @@ class PlotBook:
         return
 
     def close(self):
+        """ Close the pdf file.
+        """
         if hasattr(self, "pdf"):
             self.pdf.close()
             delattr(self, "pdf")
@@ -156,6 +186,11 @@ class PlotBook:
     @classmethod
     @property
     def null(cls):
+        """ Proxy for a "null" value for PlotBook.
+
+        Returns:
+            PlotBook: PlotBook with no name and that is not open.
+        """
         return cls(name = "", open = False)
 
 
@@ -170,7 +205,7 @@ def plot(x, y, label : str, xlabel : str, ylabel : str, newFigure : bool = True,
         ylabel (str): y label.
         newFigure (bool, optional): Option to create a new figure. Defaults to True.
         book (PlotBook, optional): PlotBook to save the plot to. Defaults to None.
-        autofmt (str, optional): automatically scale y axis if a unit of measure is given. Defaults to None.
+        autofmt (str, optional): Automatically scale y axis if a unit of measure is given. Defaults to None.
     """
     if newFigure: plt.figure()
     plt.plot(x, y, label = label)
@@ -192,6 +227,20 @@ def plot(x, y, label : str, xlabel : str, ylabel : str, newFigure : bool = True,
 
 
 def bar(x, y, xlabel : str, ylabel : str, title : str = None, rotation : int = 0, bar_label : bool = False, horizontal : bool = False, newFigure : bool = True, book : PlotBook = None):
+    """ Make a bar plot.
+
+    Args:
+        x : x data.
+        y : y data.
+        xlabel (str): x label.
+        ylabel (str): y label.
+        title (str, optional): Title. Defaults to None.
+        rotation (int, optional): xlabel rotations. Defaults to 0.
+        bar_label (bool, optional): Show bar labels. Defaults to False.
+        horizontal (bool, optional): Make a horizontal bar plot (note that the x and y values should be provided as normal). Defaults to False.
+        newFigure (bool, optional): Option to create a new figure. Defaults to True.
+        book (PlotBook, optional): PlotBook to save the plot to. Defaults to None.
+    """
     if newFigure: plt.figure()
 
     if horizontal:
@@ -222,6 +271,8 @@ def bar(x, y, xlabel : str, ylabel : str, title : str = None, rotation : int = 0
 
 
 class PlotEngine(ABC):
+    """ Class that plots data based on the type of data it is supposed to plot.
+    """
     def __init__(self, metrics : list[str], data : dict[pd.DataFrame]) -> None:
         self.metrics = metrics
         self.data = data
@@ -229,6 +280,11 @@ class PlotEngine(ABC):
 
     @abstractmethod
     def plot_metric(self, metric : str):
+        """ How the data should be plotted
+
+        Args:
+            metric (str): Metric to plot.
+        """
         pass
 
 
@@ -269,8 +325,9 @@ class PlotEngine(ABC):
         """ Plot metrics and append figure to a multiprocessing queue.
 
         Args:
-            metric (str): metric to plot
-            queue (Queue): queue to append figure to.
+            index (int): Index of the plot.
+            metric (str): Metric to plot.
+            queue (Queue): Queue to append figure to.
         """
         plt.clf()
         fig = plt.figure(figsize=(8*1.2, 6*1.2))

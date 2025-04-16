@@ -64,7 +64,7 @@ def collect_metrics(args : argparse.Namespace | dict) -> None | dict:
         time_range = time_range
 
     # setup harvester functions
-    harvesters = harvester.setup_daq_harvesters(dashboard_info, test_args["run_number"], test_args["host"], time_range, test_args["dunedaq_version"], name, out_dir, datasources)
+    harvesters = harvester.setup_daq_harvesters(dashboard_info, test_args["run_number"], test_args["host"], time_range, name, out_dir, datasources)
 
     harvesters.extend(harvester.setup_node_exporter_harvesters(test_args["host"], time_range, name, out_dir, datasources))
 
