@@ -467,6 +467,12 @@ def fill_pinning_map_cache(pinning : dict, cpu_alloc : ChainMap, core_map : Core
 
 
 def validate_cpu_resource_map(cpu_map : CoreMap, resource_alloc : list[dict]):
+    """ Check some properties of the resource allocation and print some information if resource allocation is not optimal.
+
+    Args:
+        cpu_map (CoreMap): Map of CPU resources.
+        resource_alloc (list[dict]): Provided resource allocation.
+    """
     has_multiple_caches = len(cpu_map.numa.elements[0].children) > 1
 
     if not has_multiple_caches and len(resource_alloc.maps) > 1:
@@ -478,6 +484,16 @@ def validate_cpu_resource_map(cpu_map : CoreMap, resource_alloc : list[dict]):
 
 
 def create_cpu_pinning(threads : dict, cpu_map : CoreMap, resource_alloc : ChainMap) -> tuple[dict, dict]:
+    """ Assign processing units to threads for provided daq applications.
+
+    Args:
+        threads (dict): Threads for each daq application.
+        cpu_map (CoreMap): Map of CPU resources from the given host machine.
+        resource_alloc (ChainMap): Provided resource allocation.
+
+    Returns:
+        tuple[dict, dict]: pinning that is use while running and while configuring.
+    """
     print(rule.Rule("CPU map"))
     cpu_map.print()
 
