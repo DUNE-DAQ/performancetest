@@ -211,7 +211,7 @@ async def get_dhs(cs : aiohttp.ClientSession, url : str, datasource : dict, time
     Returns:
         dict[str]: variables and their possible values.
     """
-    query_str = f"SELECT element FROM (SELECT \"sum_payloads\", element FROM \"dunedaq.datahandlinglibs.opmon.DataHandlerInfo\" WHERE time >= {time.start}s and time <= {time.end}s)"
+    query_str = f"SELECT element FROM (SELECT \"sum_payloads\", element FROM \"dunedaq.datahandlinglibs.opmon.DataHandlerInfo\" WHERE session = '{partition}' AND time >= {time.start}s and time <= {time.end}s)"
 
     response = await queries.query_influx(cs, url, datasource, query_str)
 
