@@ -37,7 +37,7 @@ async def request(session : aiohttp.ClientSession, url : str, extension : str = 
         async with session.get(full_url, params = params) as resp:
             data = await resp.json()
         if resp.status != 200:
-            print(f"Request for {full_url} got respone {resp.status}, {data}")
+            print(f"Request for {full_url} got respone {resp.status}, {data},\nparameters sent were: {params}")
             data = None
     except Exception as e:
         print(e)
@@ -57,11 +57,12 @@ async def query_prometheus(cs : aiohttp.ClientSession, url : str, query_str : st
     Returns:
         dict | None: http response
     """
+    auto_step = 1 + int((time_range.end - time_range.start) / 11000) # maximum number of data points in a query is 11,000
     data = {
         'query': query_str,
         'start': time_range.start,
         'end': time_range.end,
-        'step': 2 # make this configurable?
+        'step': auto_step
     }
     return await request(cs, url, "api/v1/query_range", data)
 
@@ -111,12 +112,13 @@ async def make_query(cs : aiohttp.ClientSession, datasource : dict, url : str, q
             "db" : datasource["jsonData"]["dbName"]
         }
     elif datasource["type"] == "prometheus":
+        auto_step = 1 + int((time.end - time.start) / 11000) # maximum number of data points in a query is 11,000
         # data for prometheus
         data = {
             'query': query,
             'start': time.start,
             'end': time.end,
-            'step': 2 # make this configurable?
+            'step': auto_step
         }
         url_extension = "api/v1/query_range"
     elif datasource["type"] == "postgres":

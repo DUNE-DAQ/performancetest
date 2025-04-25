@@ -71,7 +71,7 @@ def get_run_time(dashboard_info : dict[str], run_number : int, test_session : st
     if utils.dunedaq_major_version(dunedaq_version) == 4:
         query_str = f"SELECT \"runno\" FROM \"dunedaq.rcif.runinfo.Info\" WHERE (\"partition_id\" = '{test_session}' AND \"runno\" = {run_number})"
     elif utils.dunedaq_major_version(dunedaq_version) == 5:
-        query_str = f"SELECT \"run_number\" FROM \"dunedaq.rcif.opmon.RunInfo\" WHERE \"run_number\" = {run_number}"
+        query_str = f"SELECT \"run_number\" FROM \"dunedaq.rcif.opmon.RunInfo\" WHERE \"session\" = '{test_session}' AND \"run_number\" = {run_number}"
     else:
         raise Exception(f"version {dunedaq_version} is not supported.")
 
