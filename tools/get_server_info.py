@@ -17,7 +17,12 @@ import files, utils, shell
 from rich import print
 
 def server_info(test_args : dict):
-    lshw_out = shell.run("sudo lshw -xml", capture = True, host = test_args['host'])
+    cmd = "lshw -xml"
+    if shell.is_sudo(test_args["host"]):
+        cmd = "sudo " + cmd
+    else:
+        print("Warning: user does not have sudo permissions, lshw output will be limited.")
+    lshw_out = shell.run(cmd, capture = True, host = test_args['host'])
 
     if lshw_out.returncode > 0:
         print("could not get lshw output. See above for reason.")
