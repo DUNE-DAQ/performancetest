@@ -146,6 +146,7 @@ def performance_report(test_args : dict):
     urls = create_urls(test_args)
 
     data = create_url_list(urls["data"])
+    os.system("python ../influxdb-tools/hdf5_to_annocsv_test.py -d " + data + " -v False")
     plots = create_url_list(urls["plots"])
 
     html = html.replace("&data-urls", data)

@@ -7,11 +7,11 @@ import re
 import sys
 import os
 
-#def configure():
-#    parser = argparse.ArgumentParser()
-#    parser.add_argument('-d', '--directories', type=str, required=True, help='Comma delimited list of directories with hdf5 data.')
-#    parser.add_argument('-v', '--verbose', type=bool, required=False, help="For debugging print which keys are being written to the annotated csvs.")
-#    return parser.parse_args()
+def configure():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-d', '--directories', type=str, required=True, help='Comma delimited list of directories with hdf5 data.')
+    parser.add_argument('-v', '--verbose', type=bool, required=False, help="For debugging print which keys are being written to the annotated csvs.")
+    return parser.parse_args()
 
 def infer_field_from_fname(fname):
     field = None
@@ -68,9 +68,10 @@ def convert_hdf5_to_annocsv(in_file, table_num, field_name, verbose):
 
 
 
-def convert_hdf5_and_upload(data):
-    #verbose=args.verbose
-    dir_list = data.split(",")
+def convert_hdf5_and_upload(args):
+    directories = args.directories
+    verbose=args.verbose
+    dir_list = directories.split(",")
     for dir in dir_list:
         run_num = re.search(r'run\d\d*', dir)[0] 
         print("Processing and uploading all hdf5 files for " + str(run_num))
@@ -95,9 +96,9 @@ def convert_hdf5_and_upload(data):
     
 
 
-#if __name__ == '__main__':
-#    args = configure()
-#    convert_hdf5_and_upload(args)
+if __name__ == '__main__':
+    args = configure()
+    convert_hdf5_and_upload(args)
 
 
 
