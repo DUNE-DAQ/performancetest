@@ -146,7 +146,6 @@ def performance_report(test_args : dict):
     urls = create_urls(test_args)
 
     data = create_url_list(urls["data"])
-    os.system("python ../influxdb-tools/hdf5_to_annocsv_test.py -d " + data + " -v False")
     plots = create_url_list(urls["plots"])
 
     html = html.replace("&data-urls", data)
@@ -164,6 +163,12 @@ def performance_report(test_args : dict):
     weasyprint.HTML(string = html).write_pdf(file_path)
 
     print(f"performance report written to {file_path}")
+
+    print(f"Writing data to the performance test database")
+
+    os.system("python " + os.environ["PERFORMANCE_TEST_PATH"] + "/influxdb-tools/hdf5_to_annocsv.py -d " + str(utils.test_path(test_args)) + "/" + "data" + " -v False")
+    
+    print(f"Finished wrting data to the performance test database")
     return
 
 
