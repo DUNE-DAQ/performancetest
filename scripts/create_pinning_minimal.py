@@ -403,7 +403,7 @@ def fill_pinning_map_cache(pinning : dict, cpu_alloc : ChainMap, core_map : Core
                 continue
 
             # infer the thread type
-            if ("cleanup" in t) or ("consumer" in t) or ("periodic" in t):
+            if ("cleanup" in t) or ("consumer" in t) or ("periodic" in t) or ("dpostproc" in t):
                 prefix = "ccp"
             else:
                 prefix = t.split("-")[0]
