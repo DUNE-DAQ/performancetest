@@ -19,22 +19,25 @@ from times import time_range
 from rich import print
 
 
-async def request(session : aiohttp.ClientSession, url : str, extension : str = None, params : dict[str] = None) -> dict | None:
+async def request(session : aiohttp.ClientSession, style : str, url : str, extension : str = None, params : dict[str] = None, json : dict = None) -> dict | None:
     """ Make a http request.
 
     Args:
         session (aiohttp.ClientSession): Open ClientSession from which to make the http request.
+        style (str): type of request to make, either "get" or "set".
         url (str): http url
         extension (str): url extension, such as a query.
         params (dict[str], optional): Parameters to pass if the extension takes data as input. Defaults to None.
+        json (dict, optional): json complient data to pass to the query. Defaults to None.
 
     Returns:
         dict | None: http repsonse.
     """
+    func = getattr(session, style)
     data = None
     try:
         full_url = urljoin(url, extension)
-        async with session.get(full_url, params = params) as resp:
+        async with func(full_url, json = json, params = params) as resp:
             data = await resp.json()
         if resp.status != 200:
             print(f"Request for {full_url} got respone {resp.status}, {data},\nparameters sent were: {params}")
@@ -44,7 +47,39 @@ async def request(session : aiohttp.ClientSession, url : str, extension : str = 
     return data
 
 
-async def query_prometheus(cs : aiohttp.ClientSession, url : str, query_str : str, time_range : time_range) -> dict | None:
+def get_request(session : aiohttp.ClientSession, url : str, extension : str = None, params : dict[str] = None, json : dict = None) -> dict | None:
+    """ Make a get request
+
+    Args:
+        session (aiohttp.ClientSession): Open ClientSession from which to make the http request.
+        url (str): http url
+        extension (str): url extension, such as a query.
+        params (dict[str], optional): Parameters to pass if the extension takes data as input. Defaults to None.
+        json (dict, optional): json complient data to pass to the query. Defaults to None.
+
+    Returns:
+        dict | None: http repsonse.
+    """
+    return request(session, "get", url, extension, params, json)
+
+
+def post_request(session : aiohttp.ClientSession, url : str, extension : str = None, params : dict[str] = None, json : dict = None) -> dict | None:
+    """ Make a post request.
+
+    Args:
+        session (aiohttp.ClientSession): Open ClientSession from which to make the http request.
+        url (str): http url
+        extension (str): url extension, such as a query.
+        params (dict[str], optional): Parameters to pass if the extension takes data as input. Defaults to None.
+        json (dict, optional): json complient data to pass to the query. Defaults to None.
+
+    Returns:
+        dict | None: http repsonse.
+    """
+    return request(session, "post", url, extension, params, json)
+
+
+def query_prometheus(cs : aiohttp.ClientSession, url : str, datasource : dict, query_str : str, time_range : time_range, direct : bool = False) -> dict | None:
     """ Make a query from a prometheus database.
         Authors: Shyam Bhuller (University of Oxford), Matthew Man (University of Toronto), Danaisis Vargas Oliva (University of Toronto)
 
@@ -53,6 +88,7 @@ async def query_prometheus(cs : aiohttp.ClientSession, url : str, query_str : st
         url (str): Datasource url.
         query_str (str): Query to make.
         time_range (time_range): Time range to make query in.
+        direct (bool): set to true to directly query through, prometheus otherwise query through the grafana proxy. Defaults to False
 
     Returns:
         dict | None: http response
@@ -64,10 +100,14 @@ async def query_prometheus(cs : aiohttp.ClientSession, url : str, query_str : st
         'end': time_range.end,
         'step': auto_step
     }
-    return await request(cs, url, "api/v1/query_range", data)
+
+    extension = "api/v1/query_range"
+    if not direct:
+        extension = f"api/datasources/proxy/uid/{datasource['uid']}/" + extension # if using the grafana proxy
+    return get_request(cs, url, extension, params = data)
 
 
-async def query_influx(cs : aiohttp.ClientSession, url : str, datasource : dict, query_str : str) -> dict | None:
+def query_influx(cs : aiohttp.ClientSession, url : str, datasource : dict, query_str : str) -> dict | None:
     """ Query from specifically the opmon influxdb datasource used for the daq applications.
         Authors: Shyam Bhuller (University of Oxford)
 
@@ -85,7 +125,11 @@ async def query_influx(cs : aiohttp.ClientSession, url : str, datasource : dict,
         "q"  : query_str,
         "db" : datasource["jsonData"]["dbName"]
     } 
-    return await request(cs, url, f"api/datasources/proxy/uid/{datasource['uid']}/query", data)
+    return get_request(cs, url, f"api/datasources/proxy/uid/{datasource['uid']}/query", data)
+
+
+async def query_postgres(cs : aiohttp.ClientSession) -> dict | None:
+    return
 
 
 async def make_query(cs : aiohttp.ClientSession, datasource : dict, url : str, query : str, time : time_range) -> dict | None:
@@ -104,33 +148,18 @@ async def make_query(cs : aiohttp.ClientSession, datasource : dict, url : str, q
     """
     response_data = None
 
-    url_extension = "query" # extension to make queries from the api
     if datasource["type"] == "influxdb":
         # data for influxdb v1
-        data = {
-            "q" : query,
-            "db" : datasource["jsonData"]["dbName"]
-        }
+        response_data = await query_influx(cs, url, datasource, query)
     elif datasource["type"] == "prometheus":
-        auto_step = 1 + int((time.end - time.start) / 11000) # maximum number of data points in a query is 11,000
         # data for prometheus
-        data = {
-            'query': query,
-            'start': time.start,
-            'end': time.end,
-            'step': auto_step
-        }
-        url_extension = "api/v1/query_range"
+        response_data = await query_prometheus(cs, url, datasource, query, time)
     elif datasource["type"] == "postgres":
-        #! not 100% if this is correct.
-        data = {
-            "query" : query,
-        }
+        # query_postgres()
+        pass
     else:
         warn(f"unknown database type: {datasource['type']}")
-        return response_data
 
-    response_data = await request(cs, url, f"api/datasources/proxy/uid/{datasource['uid']}/{url_extension}", data) # attempt to make the query, and stop if it is successful
     return response_data
 
 
@@ -146,7 +175,7 @@ async def get_grafana_panels(cs : aiohttp.ClientSession, url : str, uid : str) -
     Returns:
         list[dict]: List of each panel on the dashboard containing information required to make queries.
     """
-    panels = await request(cs, urljoin(url, f"api/dashboards/uid/{uid}"))
+    panels = await get_request(cs, urljoin(url, f"api/dashboards/uid/{uid}"))
     return panels['dashboard']['panels'] # Extract panels data
 
 
@@ -197,7 +226,7 @@ def get_datasources(cs : aiohttp.ClientSession, url : str) -> list[dict]:
     Returns:
         list[dict]: List of each datasource used.
     """
-    data = request(cs, url, "api/datasources")
+    data = get_request(cs, url, "api/datasources")
     if data is None:
         raise Exception(f"datasources could not be found by querying {url}")
     return data

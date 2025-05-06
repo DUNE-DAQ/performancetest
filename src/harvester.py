@@ -662,7 +662,7 @@ async def harvest_node_exporter_data(host : str, time : times.time_range, output
     dfs = {}
     async with aiohttp.ClientSession() as cs:
         for query in query_dict:
-            response = await queries.query_prometheus(cs, prometheus_url, query_dict[query], time)
+            response = await queries.query_prometheus(cs, prometheus_url, datasources["prometheus"], query_dict[query], time, True)
             metrics = {}
             values = []
 
