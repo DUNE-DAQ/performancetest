@@ -230,8 +230,23 @@ async def get_dhs(cs : aiohttp.ClientSession, url : str, datasource : dict, time
 
 
 def parse_result_postgres(response_data : dict, name : str) -> pd.DataFrame:
-    warnings.warn("postgres data not yet implemented.")
-    return pd.DataFrame({})
+    """ Parse the Grafana api reponse from the postgres database and write the data into a dataframe.
+        Authors: Shyam Bhuller (University of Oxford)
+
+    Args:
+        response_data (dict): API response in json format.
+        name (str): Information from the panel the data was extracted from.
+
+    Returns:
+        pd.DataFrame: Fata in pandas DataFrame.
+    """
+    fields = [f["name"] for f in response_data["results"]["host"]["frames"][0]["schema"]["fields"]]
+    values = response_data["results"]["host"]["frames"][0]["data"]["values"]
+
+    data = {k : v for k, v in zip(fields, values)}
+    data = pd.DataFrame(data)
+    data = data.set_index("time")
+    return data
 
 
 def parse_result_influx(response_data : dict, name : str) -> pd.DataFrame:

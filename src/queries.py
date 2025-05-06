@@ -128,8 +128,24 @@ def query_influx(cs : aiohttp.ClientSession, url : str, datasource : dict, query
     return get_request(cs, url, f"api/datasources/proxy/uid/{datasource['uid']}/query", data)
 
 
-async def query_postgres(cs : aiohttp.ClientSession) -> dict | None:
-    return
+def query_postgres(cs : aiohttp.ClientSession, url : str, datasource : dict, query : str, time : time_range) -> dict | None:
+    str_time = time_range(start = str(time.start) + "000", end = str(time.end) + "000") # need higher precision times for postgres queries.
+    payload = {
+        "from" : str_time.start,
+        "to" : str_time.end,
+        "queries" : [
+            {
+                "refId" : "host",
+                "datasource" : {
+                    "type" : "postgres",
+                    "uid" : datasource["uid"]
+                },
+                "rawSql" : query.replace(str(time.start), str_time.start).replace(str(time.end), str_time.end),
+                "format" : "table"
+            }
+        ]
+    }
+    return post_request(cs, url, "/api/ds/query", json = payload)
 
 
 async def make_query(cs : aiohttp.ClientSession, datasource : dict, url : str, query : str, time : time_range) -> dict | None:
@@ -155,8 +171,7 @@ async def make_query(cs : aiohttp.ClientSession, datasource : dict, url : str, q
         # data for prometheus
         response_data = await query_prometheus(cs, url, datasource, query, time)
     elif datasource["type"] == "postgres":
-        # query_postgres()
-        pass
+        response_data = await query_postgres(cs, url, datasource, query, time)
     else:
         warn(f"unknown database type: {datasource['type']}")
 
@@ -256,7 +271,6 @@ def get_queries(panel : dict) -> dict:
                 name = panel["title"]
             queries[name] = target["query"]
         elif 'rawSql' in target:
-            print(target)
             queries[target["table"]] = target["rawSql"]
 
     return queries
