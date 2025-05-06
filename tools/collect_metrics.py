@@ -58,10 +58,8 @@ def collect_metrics(args : argparse.Namespace | dict) -> None | dict:
 
     # get run time (or time range from arguments)
     time_range = times.parse_time_range(times.time_range(*test_args["time_range"]))
-    if type(time_range.start) == int:  
+    if (time_range.start == 0) and (time_range.end == -1): # default range was provided
         time_range = harvester.get_run_time(dashboard_info, test_args["run_number"], test_args["session"], test_args["dunedaq_version"], datasources)
-    else:
-        time_range = time_range
 
     # setup harvester functions
     harvesters = harvester.setup_daq_harvesters(dashboard_info, test_args["run_number"], test_args["host"], time_range, name, out_dir, datasources)
