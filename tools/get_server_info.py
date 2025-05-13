@@ -23,7 +23,12 @@ def run(host : str, data_path : str):
         host (str): Host name.
         data_path (str): Output data path.
     """
-    lshw_out = shell.run("sudo lshw -xml", capture = True, host = host)
+    cmd = "lshw -xml"
+    if shell.is_sudo(host):
+        cmd = "sudo " + cmd
+    else:
+        print("Warning: user does not have sudo permissions, lshw output will be limited.")
+    lshw_out = shell.run(cmd, capture = True, host = host)
 
     if lshw_out.returncode > 0:
         print("could not get lshw output. See above for reason.")

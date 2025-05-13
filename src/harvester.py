@@ -245,7 +245,8 @@ def parse_result_postgres(response_data : dict, name : str) -> pd.DataFrame:
 
     data = {k : v for k, v in zip(fields, values)}
     data = pd.DataFrame(data)
-    data = data.set_index("time")
+    if not data.empty:
+        data = data.set_index("time")
     return data
 
 
