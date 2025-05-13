@@ -27,7 +27,7 @@ def chdir(dire : str):
         os.chdir(cwd)
 
 
-def run(cmd : str, new_env : bool = False, capture : bool = False, host : str = None) -> subprocess.CompletedProcess:
+def run(cmd : str, new_env : bool = False, capture : bool = False, host : str = None, suppress : bool = False) -> subprocess.CompletedProcess:
     """ Run a bash command.
 
     Args:
@@ -35,16 +35,24 @@ def run(cmd : str, new_env : bool = False, capture : bool = False, host : str = 
         env (bool, optional): Whether to run the command without the enviromnent variables. Defaults to False.
         capture (bool, optional): Capture output of command to a string. Defaults to False.
         host (str, optional): if provided, runs command on a specified remote host.
+        suppress (bool, optional): Suppress all output from the command, Defaults to False.
 
     Returns:
-        subprocess.CompletedProcess: _description_
+        subprocess.CompletedProcess: 
     """
     if host:
-        cmd = f"ssh {os.environ['USER']}@{host} {cmd}"    
-    pipe = subprocess.PIPE if capture is True else None
+        cmd = f"ssh {os.environ['USER']}@{host} {cmd}"
+
+    if suppress:
+        pipe = subprocess.DEVNULL
+    elif capture:
+        pipe = subprocess.PIPE
+    else:
+        pipe = None
+
     out = subprocess.run(cmd, env = {} if new_env is True else None, shell = True, stdout = pipe, stderr = pipe)
-    if out.stderr:
-        print(f"Error running '{cmd}': {out.stderr}")
+    if out.stderr and (not suppress):
+        print(f"Could not execute command '{cmd}',\nReason: {out.stderr}.")
     return out
 
 
@@ -105,3 +113,15 @@ def clone(repo : str, sha : str) -> str:
     cmd += f"cd {dire};"
     cmd += f"git checkout {sha}"
     return cmd
+
+
+def is_sudo(host : str = None) -> bool:
+    """ Check the user has sudo permissions.
+
+    Args:
+        host (str, optional): Check the user has sudo permissions. Defaults to None.
+
+    Returns:
+        bool: If the user has sudo permissions.
+    """
+    return not bool(run("sudo -n -l", host = host, capture = False, suppress = True).returncode)
