@@ -113,9 +113,10 @@ To generate the performance report:
             0,
             -1
         ],
-        "host": "server being tested e.g. np02-srv-003",
+        "host": [
+            "server being tested e.g. np02-srv-003"
+        ],
         "data_source": "source of the data, crp, apa or emu",
-        "socket_num": "socket number tested on the host machine, 0, 1 or 01 for both",
         "test_name": "short test name",
         "run_number": "run number of the test",
         "session": "grafana partition name for the given test",
@@ -125,13 +126,13 @@ To generate the performance report:
         "data_path": null,
         "plot_path": null,
         "documentation": {
-            "purpose": "state the purpose of your test, if not provided, default text will be added instead",
-            "goals": "state the goals of this sepcific test, if not provided, default text will be added instead",
-            "method": "state how you will attempt to reach the goal, if not provided, default text will be added instead",
-            "control plane": "how was the system controlled during the test i.e. proceess manager configuration",
-            "configuration": "path to configuration or git commit hash from ehn1configs",
-            "concurrancy": "active users on the readout machine during the time of the run, what applications were run in parallel on the machine",
-            "summary": "summary/conclusions of the test"
+            "purpose": null,
+            "goals": null,
+            "method": null,
+            "control_plane": null,
+            "configuration": null,
+            "concurrancy": null,
+            "summary": null
         }
     }
     ```
@@ -143,9 +144,10 @@ To generate the performance report:
             0,
             -1
         ],
-        "host": <host_name_of_server_tested>,
+        "host": [
+            <host_name_of_server_tested>
+        ],
         "data_source": "emu",
-        "socket_num": "01",
         "test_name": "exmaple_perf_test",
         "run_number": <your_run_number>,
         "session": <your_session_name>,
@@ -155,13 +157,13 @@ To generate the performance report:
         "data_path": null,
         "plot_path": null,
         "documentation": {
-            "purpose": "state the purpose of your test, if not provided, default text will be added instead",
-            "goals": "state the goals of this sepcific test, if not provided, default text will be added instead",
-            "method": "state how you will attempt to reach the goal, if not provided, default text will be added instead",
-            "control plane": "how was the system controlled during the test i.e. proceess manager configuration",
-            "configuration": "path to configuration or git commit hash from ehn1configs",
-            "concurrancy": "active users on the readout machine during the time of the run, what applications were run in parallel on the machine",
-            "summary": "summary/conclusions of the test"
+            "purpose": null,
+            "goals": null,
+            "method": null,
+            "control_plane": null,
+            "configuration": null,
+            "concurrancy": null,
+            "summary": null
         }
     }
     ```

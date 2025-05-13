@@ -12,6 +12,14 @@ import utils, files, shell, harvester
 from rich import print
 
 def fix_keys(file_list : list[str]):
+    """ Correct incorrectly created keys which were created with / included in the string.
+
+    Args:
+        file_list (list[str]): hdf5 files. 
+
+    Raises:
+        Exception: Attempted correction of the key name was unsuccesful.
+    """
     bad_keys = []
     for f in file_list:
         with tables.open_file(pathlib.Path(f), driver = "H5FD_CORE") as hdf5file:
@@ -39,6 +47,11 @@ def fix_keys(file_list : list[str]):
 
 
 def fix_indices(file_list : list[str]):
+    """ Correct the indices (unix time) of the dataframes in the hdf5 files to ensure they are in order and have the correct type.
+
+    Args:
+        file_list (list[str]): hdf5 files.
+    """
     for f in file_list:
         data = files.read_hdf5(f)
         print(f)

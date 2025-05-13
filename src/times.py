@@ -84,13 +84,13 @@ def parse_time_range(times : time_range) -> time_range:
         Authors: Shyam Bhuller (University of Oxford), Matthew Man (University of Toronto), Danaisis Vargas Oliva (University of Toronto)
 
     Args:
-        times (time_range): times from a configuration.
+        times (time_range): Times from a configuration.
 
     Raises:
         Exception: type of start and end time (relative or absolute) are not the same.
 
     Returns:
-        time_range: formatted time range.
+        time_range: Formatted time range.
     """
     if type(times.start) != type(times.end):
         raise Exception("Time start and time end must be the same type")
@@ -103,18 +103,18 @@ def slice_time_range(data : dict[pd.DataFrame], times : time_range) -> dict[pd.D
         Authors: Shyam Bhuller (University of Oxford), Matthew Man (University of Toronto), Danaisis Vargas Oliva (University of Toronto)
 
     Args:
-        data (dict[pd.DataFrame]): performance metric data.
-        times (time_range): time range to slice in. Allowed input:
+        data (dict[pd.DataFrame]): Performance metric data.
+        times (time_range): Time range to slice in. Allowed input:
         [0, x] # first x seconds
         [0, -1] # whole time range
         [x, -1] # from x to end time
         [x, y] # from x to y in seconds
 
     Raises:
-        Exception: requested time range is out of bounds of the data.
+        Exception: Requested time range is out of bounds of the data.
 
     Returns:
-        dict[pd.DataFrame]: performance metric Dataframes in the specified time range.
+        dict[pd.DataFrame]: Performance metric Dataframes in the specified time range.
     """    
     fmt_times = parse_time_range(times)
     for k, df in data.items():
@@ -137,6 +137,19 @@ def slice_time_range(data : dict[pd.DataFrame], times : time_range) -> dict[pd.D
 
 
 def match_times(df : pd.DataFrame, run_time : time_range) -> pd.DataFrame:
+    """ Match the time range of indices in a Dataframe (assuming time is index)
+        and truncate/pad the dataframe if necessary.
+
+    Args:
+        df (pd.DataFrame): Dataframe with unix time as the indices.
+        run_time (time_range): Time range to match.
+
+    Returns:
+        pd.DataFrame: Modified Dataframe.
+    """
+    if len(df) == 0:
+        print("Warning: Dataframe is empty.")
+        return df
     recorded_times = time_range(min(df.index), max(df.index))
     
     if recorded_times.start == recorded_times.end:

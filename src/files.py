@@ -87,7 +87,7 @@ def read_hdf5(file : str | pathlib.Path) -> pd.DataFrame | dict[pd.DataFrame]:
 
 
 def read_json(file : str | pathlib.Path) -> dict:
-    """Open json file as dictionary.
+    """ Open json file as dictionary.
 
     Args:
         file (str | pathlib.Path): json file to open.
@@ -100,7 +100,7 @@ def read_json(file : str | pathlib.Path) -> dict:
 
 
 def write_json(file : str | pathlib.Path, data : dict):
-    """Save dictionary to json file.
+    """ Save dictionary to json file.
 
     Args:
         file (str | pathlib.Path): path to save dictonary to.

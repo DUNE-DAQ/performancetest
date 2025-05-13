@@ -34,35 +34,37 @@ or add this to `env.sh` in your dunedaq workspace.
 First generate a json file describing all the necessary information for the test:
 
 ```[bash]
-generate_test_config.py -n <json filep path>
+generate_test_config.py -n <json file path>
 ```
 
 which should create a configuration which looks like:
 ```[json]
 {
-    "dunedaq_version": "version of DUNEDAQ used to perform tests e.g. v4.4.8",
+    "dunedaq_version": "version of DUNEDAQ used to perform tests e.g. v5.3.0",
     "time_range": [
         0,
         -1
     ],
-    "host": "server being tested e.g. np02-srv-003",
+    "host": [
+        "servers to test e.g. np02-srv-003"
+    ],
     "data_source": "source of the data, crp, apa or emu",
-    "socket_num": "socket number tested on the host machine, 0, 1 or 01 for both",
     "test_name": "short test name",
-    "run_number": "run number of the test",
+    "run_number": "run number of the test (without quotes!)",
     "session": "grafana partition name for the given test",
     "workarea": "path to dunedaq directory, can be left as null",
+    "config_repo": "v5 configuration repo used in this test e.g. ehn1-daqconfigs",
     "out_path": "/nfs/rscratch/sbhuller/perftest/",
     "data_path": null,
     "plot_path": null,
     "documentation": {
-        "purpose": "state the purpose of your test, if not provided, default text will be added instead",
-        "goals": "state the goals of this sepcific test, if not provided, default text will be added instead",
-        "method": "state how you will attempt to reach the goal, if not provided, default text will be added instead",
-        "control plane": "how was the system controlled during the test i.e. proceess manager configuration",
-        "configuration": "path to configuration or git commit hash from ehn1configs",
-        "concurrancy": "active users on the readout machine during the time of the run, what applications were run in parallel on the machine",
-        "summary": "summary/conclusions of the test"
+        "purpose": null,
+        "goals": null,
+        "method": null,
+        "control_plane": null,
+        "configuration": null,
+        "concurrancy": null,
+        "summary": null
     }
 }
 ```
@@ -76,9 +78,8 @@ Below is an example configuration file with the minimal information required:
         0,
         60
     ],
-    "host": "np04-srv-031",
+    "host": ["np04-srv-031"],
     "data_source": "4xAPA",
-    "socket_num": "01",
     "test_name": "test_fixes",
     "run_number": 32852,
     "session": "np04-session",
@@ -134,7 +135,7 @@ Note that when you are done you shold also move the json file to the `data_path`
 It is possible to use a different the pinning file passed in the workarea config if you pass
 
 ```[json]
-"pinning": "path to your pinning file",
+"pinning": "path to your pinning file"
 ```
 
 ### AMD hardware counters
@@ -148,7 +149,9 @@ sudo $PERFORMANCE_TEST_PATH/scripts/start_uprof.sh <test_name> <duration_seconds
 to run the pcm and power profiling tools for a set time. Next in the test configuration json file the optional parameter:
 
 ```[json]
-"uprof_file": "path to your uprof csv file",
+"uprof_file": {
+    "host name" : "path to the uprof csv file for this host"
+    },
 ```
 
 can be added. Then, the performance test tools above can be re-ran to process this csv file along with the dashboard data, which is included in the performance report. Note if not running the tools from scratch, you can add the `--regen` option to redo the data harvesting (required if you add the uprof csv file to an existing test workflow.)

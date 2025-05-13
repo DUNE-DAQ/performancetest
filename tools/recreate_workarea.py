@@ -6,9 +6,8 @@ Author: Shyam Bhuller (University of Oxford)
 
 Description: Re-create a workarea provided the software and configuration information from a given performance report. 
 """
-
-import os
 import argparse
+import os
 
 import files, utils, shell
 

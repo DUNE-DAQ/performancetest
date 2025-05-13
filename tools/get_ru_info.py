@@ -5,6 +5,7 @@ Created on: 12/12/2024 11:11
 Author: Shyam Bhuller (Univetsity of Oxford)
 
 Description: Extract hardware information about a np0x machine.
+#! Deprecated.
 """
 import argparse
 import json

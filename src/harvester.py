@@ -8,6 +8,7 @@ Description: Collect and parse data from the Grafana dashboards (The spice must 
 import asyncio
 import copy
 import datetime
+import inspect
 import multiprocessing
 import re
 import shutil
@@ -36,13 +37,10 @@ def get_influx_db_id(dunedaq_version : str) -> int:
         Authors: Shyam Bhuller (University of Oxford)
 
     Args:
-        dunedaq_version (str): version string (format is vX.Y.Z).
-
-    Raises:
-        Exception: dunedaq version is not supported by performenace test tools.
+        dunedaq_version (str): Version string (format is vX.Y.Z).
 
     Returns:
-        int: influxdb id number.
+        int: Influxdb id number.
     """
     mv = utils.dunedaq_major_version(dunedaq_version)
     if mv == 4:
@@ -59,9 +57,11 @@ def get_run_time(dashboard_info : dict[str], run_number : int, test_session : st
         Authors: Shyam Bhuller (University of Oxford)
 
     Args:
-        url (str): Grafana url.
-        datasources (list[dict]): influx datasource.
-        run_number (int): run number of the test.
+        dashboard_info (dict[str]): Dictionary of daq dashboards to extact data from.
+        run_number (int): Run number of the test.
+        session (str): Run session.
+        dunedaq_version (str): Version string (format is vX.Y.Z).
+        datasources (dict): List of datasources to query from.
 
     Returns:
         time_range: start and end times in unix time.
@@ -89,11 +89,11 @@ async def collect_vars(cs : aiohttp.ClientSession, url : str, datasource : dict,
         Authors: Shyam Bhuller (University of Oxford)
 
     Args:
-        cs (aiohttp.ClientSession): open ClientSession from which to make the http request.
+        cs (aiohttp.ClientSession): Open ClientSession from which to make the http request.
         url (str): Grafana url.
-        datasource (dict): influx datasource.
+        datasource (dict): Influx datasource.
         time (time_range): Time range of the test.
-        run_number (int) : run number.
+        run_number (int) : Run number.
         partition (str): Partition/session name.
         host (str): Host machine name.
 
@@ -110,7 +110,7 @@ async def collect_vars(cs : aiohttp.ClientSession, url : str, datasource : dict,
             print(f"cannot get {k} for session {partition}, Reason: {e}")
     # some variables whose values can be populated from the test configuration file
     var_map = {
-        "host" : host, # only true is expr in target?
+        "host" : host, # only true if expr in target?
         "node" : host, # ""
         "runno" : str(run_number),
         "run_number" : str(run_number),
@@ -133,14 +133,14 @@ async def get_dpdk_vars(cs : aiohttp.ClientSession, url : str, datasource : dict
         Authors: Shyam Bhuller (University of Oxford)
 
     Args:
-        cs (aiohttp.ClientSession): open ClientSession from which to make the http request.
+        cs (aiohttp.ClientSession): Open ClientSession from which to make the http request.
         url (str): Grafana url.
-        datasources (dict): influx datasource.
-        time (time_range): time range of test.
-        partition (str): partition/session name.
+        datasources (dict): Influx datasource.
+        time (time_range): Time range of test.
+        partition (str): Partition/session name.
 
     Returns:
-        dict[str]: variables and their possible values.
+        dict[str]: Variables and their possible values.
     """
     #* query string is unique to the dashboard
     query_str = f'SELECT "bytes", application, queue FROM "dunedaq.dpdklibs.opmon.QueueEthXStats" WHERE session = \'{partition}\' AND time >= {time.start}s and time <= {time.end}s'
@@ -171,14 +171,14 @@ async def get_fe_eth_vars(cs : aiohttp.ClientSession, url : str, datasource : di
         Authors: Shyam Bhuller (University of Oxford)
 
     Args:
-        cs (aiohttp.ClientSession): open ClientSession from which to make the http request.
+        cs (aiohttp.ClientSession): Open ClientSession from which to make the http request.
         url (str): Grafana url.
-        datasources (dict): influx datasource.
-        time (time_range): time range of test.
-        partition (str): partition/session name.
+        datasources (dict): Influx datasource.
+        time (time_range): Time range of test.
+        partition (str): Partition/session name.
 
     Returns:
-        dict[str]: variables and their possible values.
+        dict[str]: Variables and their possible values.
     """
     query_str = f"SELECT \"sent_udp_count\", application, element, detector, crate, slot, queue FROM \"dunedaq.hermesmodules.opmon.LinkInfo\" WHERE session = '{partition}' AND time >= {time.start}s and time <= {time.end}s"
 
@@ -202,14 +202,14 @@ async def get_dhs(cs : aiohttp.ClientSession, url : str, datasource : dict, time
         Authors: Shyam Bhuller (University of Oxford)
 
     Args:
-        cs (aiohttp.ClientSession): open ClientSession from which to make the http request.
+        cs (aiohttp.ClientSession): Open ClientSession from which to make the http request.
         url (str): Grafana url.
-        datasources (dict): influx datasource.
-        time (time_range): time range of test.
-        partition (str): partition/session name.
+        datasources (dict): Influx datasource.
+        time (time_range): Time range of test.
+        partition (str): Partition/session name.
 
     Returns:
-        dict[str]: variables and their possible values.
+        dict[str]: Variables and their possible values.
     """
     query_str = f"SELECT element FROM (SELECT \"sum_payloads\", element FROM \"dunedaq.datahandlinglibs.opmon.DataHandlerInfo\" WHERE session = '{partition}' AND time >= {time.start}s and time <= {time.end}s)"
 
@@ -230,8 +230,24 @@ async def get_dhs(cs : aiohttp.ClientSession, url : str, datasource : dict, time
 
 
 def parse_result_postgres(response_data : dict, name : str) -> pd.DataFrame:
-    warnings.warn("postgres data not yet implemented.")
-    return pd.DataFrame({})
+    """ Parse the Grafana api reponse from the postgres database and write the data into a dataframe.
+        Authors: Shyam Bhuller (University of Oxford)
+
+    Args:
+        response_data (dict): API response in json format.
+        name (str): Information from the panel the data was extracted from.
+
+    Returns:
+        pd.DataFrame: Fata in pandas DataFrame.
+    """
+    fields = [f["name"] for f in response_data["results"]["host"]["frames"][0]["schema"]["fields"]]
+    values = response_data["results"]["host"]["frames"][0]["data"]["values"]
+
+    data = {k : v for k, v in zip(fields, values)}
+    data = pd.DataFrame(data)
+    if not data.empty:
+        data = data.set_index("time")
+    return data
 
 
 def parse_result_influx(response_data : dict, name : str) -> pd.DataFrame:
@@ -240,10 +256,10 @@ def parse_result_influx(response_data : dict, name : str) -> pd.DataFrame:
 
     Args:
         response_data (dict): API response in json format.
-        name (str): information from the panel the data was extracted from.
+        name (str): Information from the panel the data was extracted from.
 
     Returns:
-        pd.DataFrame: data in pandas DataFrame.
+        pd.DataFrame: Fata in pandas DataFrame.
     """
     parsed_results = {}
 
@@ -286,7 +302,7 @@ def parse_result_prometheus(response_data : dict, name : str) -> pd.DataFrame:
         name (str): Name of metric retreived.
 
     Returns:
-        pd.DataFrame: data in pandas DataFrame.
+        pd.DataFrame: Data in pandas DataFrame.
     """
     parsed = {}
 
@@ -315,10 +331,10 @@ def format_panels(panels: list[dict], var_map : dict) -> tuple[list[dict], list[
 
     Args:
         panels (list[dict]): Grafana panels
-        var_map (dict): map of variable names to the possible values.
+        var_map (dict): Map of variable names to the possible values.
 
     Returns:
-        tuple[list[dict], list[str]]: formatted panels and a record of the original query strings.
+        tuple[list[dict], list[str]]: Formatted panels and a record of the original query strings.
     """
     new_panels = []
 
@@ -348,141 +364,12 @@ def format_panels(panels: list[dict], var_map : dict) -> tuple[list[dict], list[
     return new_panels, original_queries
 
 
-async def extract_node_exporter_data(cs : aiohttp.ClientSession, host : str, time : times.time_range, output_file : str, out_dir : str, datasources : dict):
-    """ Extract node exporter data form the prometheus database directly i.e. not through the Grafana api.
-        Authors: Shyam Bhuller (University of Oxford)
-
-    Args:
-        cs (aiohttp.ClientSession): open ClientSession from which to make the http request.
-        host (str): Host name.
-        time (times.time_range): Time elapsed during the run.
-        output_file (str): Output file name.
-        out_dir (str): Directory to write files to.
-        datasources (dict): datasources to make queries from.
-    """
-    query_dict = {
-        "CPU Usage (%)" : f"100 * (1 - irate(node_cpu_seconds_total{{nodename=\"{host}\", mode=\"idle\"}}[10m]))",
-
-        "Total Memory (B)" : f"node_memory_MemTotal_bytes{{nodename=\"{host}\"}}",
-        "Available Memory (B)" : f"node_memory_MemAvailable_bytes{{nodename=\"{host}\"}}",
-        "Memory Usage (%)" : f"100 * (node_memory_MemTotal_bytes{{nodename=\"{host}\"}} - node_memory_MemAvailable_bytes{{nodename=\"{host}\"}}) / node_memory_MemTotal_bytes{{nodename=\"{host}\"}}",
-
-        "Network Speed (B) " : f"node_network_speed_bytes{{nodename=\"{host}\"}}",
-        "Network MTU (B)" : f" node_network_mtu_bytes{{nodename=\"{host}\"}}",
-        "Softnet Packets Processed (pps)" : f"irate(node_softnet_processed_total{{nodename=\"{host}\"}}[10m])",
-        "Softnet Packets Dropped (pps) "  : f"irate(node_softnet_dropped_total{{nodename=\"{host}\"}}[10m])",
-        "Softnet Packets Squeezed (pps)"  : f"irate(node_softnet_times_squeezed_total{{nodename=\"{host}\"}}[10m])",
-
-        "Disk Total Written (B)" : f"node_disk_written_bytes_total{{nodename=\"{host}\"}}",
-        "Disk Written (Bps)" : f"irate(node_disk_written_bytes_total{{nodename=\"{host}\"}}[10m])",
-        "Disk IO time (s)"   : f"node_disk_io_time_seconds_total{{nodename=\"{host}\"}}",
-        "Disk Read (Bps) "   : f"irate(node_disk_read_bytes_total{{nodename=\"{host}\"}}[10m])",
-    }
-
-    rt = ["bytes", "packets", "fifo", "errs", "drop", "compressed"]
-    t = ["queue_length", "carrier", "colls"]
-    r = ["frame"]
-
-    cpu_times = ["idle", "iowait", "irq", "nice", "softirq", "steal", "system", "user"]
-    for i in cpu_times:
-        query_dict[f"CPU {i} (s)"] = f"node_cpu_seconds_total{{nodename=\"{host}\", mode=\"{i}\"}}"
-
-    names = {
-        "bytes" : "(Bps)",
-        "packets" : "(pps)",
-        "fifo" : "FIFO (pps)",
-        "errs" : "Errors (pps)",
-        "drop" : "Dropped (pps)",
-        "colls" : "Colls (counter)",
-        "compressed" : "Compressed (pps)",
-        "carrier" : "Carrier (counts)",
-        "queue_length" : "Queue Length (pps)",
-        "frame" : "Frame (pps)",
-    }
-
-    for i in ["receive", "transmit"]:
-        if i == "receive":
-            metrics = rt + r
-            suffix = "received"
-        if i == "transmit":
-            metrics = rt + t
-            suffix = "transmitted"
-        for m in metrics:
-            name = f"Network {suffix} {names[m]}"
-            query = f"node_network_{i}_{m}_total{{nodename=\"{host}\"}}"
-            if "ps" in name:
-                query = f"irate({query}[10m])"
-            query_dict[name] = query
-
-    prometheus_url = datasources["prometheus"]["url"]
-
-    print(f"{time=}")
-
-    dfs = {}
-    for query in query_dict:
-        response = await queries.query_prometheus(cs, prometheus_url, query_dict[query], time)
-        metrics = {}
-        values = []
-
-        # get the metrics and values for each sample
-        if len(response["data"]["result"]) == 0:
-            dfs[query] = pd.DataFrame()
-
-        for r in response["data"]["result"]:
-            for k in r["metric"]:
-                if k not in metrics:
-                    metrics[k] = [r["metric"][k]]
-                else:
-                    metrics[k].append(r["metric"][k])
-            values.append(np.array(r["values"]))
-
-        # construct a sample name from the metrics
-        tags = {}
-        for k in metrics:
-            if len(np.unique(metrics[k])) > 1:
-                tags[k] = metrics[k]
-
-        sample_label = None
-        name = None
-        for k, v in tags.items():
-            if sample_label is None:
-                sample_label = np.array(v)
-                name = k
-            else:
-                sample_label = np.char.add(np.char.add(sample_label, "_"), np.array(v))
-                name = name + "_" + k
-
-        if sample_label is None: sample_label = ["total"]
-
-        # construct the dataframe
-        parsed = {}
-        for s, v in zip(sample_label, values):
-            parsed["time"] = v[:, 0]
-            parsed[s] = v[:, 1]
-
-        if len(parsed) != 0:
-            dfs[query] = pd.DataFrame(parsed).set_index("time").astype(float)
-            dfs[query].set_index(dfs[query].index.astype(int), inplace = True)
-        else:
-            warnings.warn(f"no data found for {query}")
-            dfs[query] = pd.DataFrame()
-
-    # print(dfs)
-    output = str(out_dir) + f"node-exporter-{output_file}.hdf5"
-    try:
-        files.write_dict_hdf5(dfs, output)
-        print(f'Data saved to HDF5 successfully: {output}')
-    except Exception as e:
-        print(f'Exception Error: Failed to save data to HDF5: {str(e)}')
-    return
-
-
 def format_hdf_keys(dashboard_data : dict[pd.DataFrame]):
     """ Format keys so they do not break the file structure in hdf5.
         Authors: Shyam Bhuller (University of Oxford)
 
     Args:
-        dashboard_data (dict[pd.DataFrame]): dashboard data to be written to hdf5.
+        dashboard_data (dict[pd.DataFrame]): Dashboard data to be written to hdf5.
     """
     for k in list(dashboard_data):
         if "/" in k: # / is used to break items in to subdirectories in hdf5.
@@ -499,11 +386,11 @@ def extract_datasources(url : str, dunedaq_version : str) -> dict:
         Authors: Shyam Bhuller (University of Oxford)
 
     Args:
-        datasources (list[dict]): list of all datasources.
-        dunedaq_version (str): version string (format is vX.Y.Z).
+        url (str): Grafana url.
+        dunedaq_version (str): Version string (format is vX.Y.Z).
 
     Returns:
-        dict[dict]: datsources that can be queried
+        dict: Datasources that can be queried.
     """
     datasources = queries.aquery_single(queries.get_datasources, url = url)
     inf_id = get_influx_db_id(dunedaq_version)
@@ -514,44 +401,99 @@ def extract_datasources(url : str, dunedaq_version : str) -> dict:
     return valid_datasources
 
 
-def run_mp(args : tuple):
-    """ Simple function to run extract_grafana_data (as multiprocessing will not allow nested functions).
+def setup_daq_harvesters(dashboard_info : dict[str], run_number : int, hosts : list[str], time : times.time_range, output_file : str, out_dir : str, datasources : dict) -> list[callable, list]:
+    """ Prepare the arguments for harvesting daq dashboards.
 
     Args:
-        args (tuple): Function arguments.
-    """
-    asyncio.run(extract_grafana_data(*args))
-    return
-
-@utils.timer
-def extract_daq_dashboards(dashboard_info : dict[str], run_number : int, host : str, time : times.time_range, dunedaq_version : str, output_file : str, out_dir : str, datasources : dict):
-    """ Extract data from the DAQ grafana dashboards.
-
-    Args:
-        dashboard_info (str): url, uid and sesssion names for the grafana page.
-        run_number (int): run number of specific test.
-        host (str): Host name.
-        partition (str): Partition/session name of the test.
+        dashboard_info (dict[str]): Dictionary of daq dashboards to extact data from.
+        run_number (int): Run number of test.
+        hosts (list[str]): Hosts to extract performance metrics for (Intel PCM).
+        time (times.time_range): Time range of the test.
         output_file (str): Output file name.
-        out_dir (str): Directory to write files to.
-        datasources (dict): datasources to make queries from.
+        out_dir (str): Output directory for files.
+        datasources (list[dict]): List of all datasources for the grafana dashboard.
+
+    Returns:
+        list[callable, list]: List containing the function to call and its arguments.
     """
-    print(f"{time=}")
     url = dashboard_info["grafana_url"]
 
     ds_parser = {"influxdb" : parse_result_influx, "prometheus" : parse_result_prometheus, "postgres" : parse_result_postgres}
 
-    pool = multiprocessing.Pool(len(dashboard_info["dashboard_uid"]))
     args = []
     for dashboard, session in zip(dashboard_info["dashboard_uid"], dashboard_info["session"]):
-        args.append([[dashboard, session, url, run_number, host, time, datasources, ds_parser, output_file, out_dir]])
+        if dashboard == "A_CvwTCWk": # Intel PCM dashboard, should be run per server
+            for h in hosts:
+                args.append([harvest_grafana_data, [dashboard, session, url, run_number, h, time, datasources, ds_parser, output_file + f'-{h.replace("-", "")}', out_dir]])
+        else:
+            args.append([harvest_grafana_data, [dashboard, session, url, run_number, hosts[0], time, datasources, ds_parser, output_file, out_dir]])
+    return args
 
-    result = pool.starmap_async(run_mp, args)
+
+def setup_node_exporter_harvesters(hosts : list[str], time : times.time_range, output_file : str, out_dir : str, datasources : dict) -> list[callable, list]:
+    """ Prepare the arguments for harvesting node exporter data.
+
+    Args:
+        hosts (list[str]): Hosts to extract performance metrics for (Intel PCM).
+        time (times.time_range): Time range of the test.
+        output_file (str): Output file name.
+        out_dir (str): Output directory for files.
+        datasources (list[dict]): List of all datasources for the grafana dashboard.
+
+    Returns:
+        list[callable, list]: List containing the function to call and its arguments.
+    """
+    args = []
+    for h in hosts:
+        args.append([harvest_node_exporter_data, [h, time, output_file + f'-{h.replace("-", "")}', out_dir, datasources]])
+    return args
+
+
+def setup_uprof_harvesters(uprof_output : dict[str], time : times.time_range, output_file : str, out_dir : str) -> list[callable, list]:
+    """ Prepare the arguments for harvesting uprof data.
+
+    Args:
+        uprof_output (dict[str]): uProf csv file paths for each host.
+        time (times.time_range): Time range of the test.
+        output_file (str): Output file name.
+        out_dir (str): Output directory for files.
+
+    Returns:
+        list[callable, list]: List containing the function to call and its arguments.
+    """
+    args = []
+    for k, v in uprof_output.items():
+        args.append([harvest_uprof_data, [v, time, output_file + f'-{k.replace("-", "")}', out_dir]])
+    return args
+
+
+def run_harvester(func : callable, args : tuple):
+    """ Run a harvester function.
+
+    Args:
+        func (callable): Function to run.
+        args (tuple): Arguments for the function.
+    """
+    if inspect.iscoroutinefunction(func):
+        asyncio.run(func(*args))
+    else:
+        func(*args)
+    return
+
+@utils.timer
+def extract_data(args : list[callable, list]):
+    """ Run all the harverster functions in parallel.
+
+    Args:
+        args (list[callable, list]): Arguments for the run_harvester function.
+    """
+    pool = multiprocessing.Pool(len(args))
+    result = pool.starmap_async(run_harvester, args)
     result.get()
     return
 
 
-async def extract_grafana_data(dashboard : str, session : str, url : str, run_number : int, host : str, time : times.time_range, valid_ds : dict, ds_parser : dict[callable], output_file : str, out_dir : str):
+async def harvest_grafana_data(dashboard : str, session : str, url : str, run_number : int, host : str, time : times.time_range, valid_ds : dict, ds_parser : dict[callable], output_file : str, out_dir : str):
     """ Extract data from grafana dashboards.
         Authors: Shyam Bhuller (University of Oxford), Matthew Man (University of Toronto), Danaisis Vargas Oliva (University of Toronto)
 
@@ -661,6 +603,135 @@ async def extract_grafana_data(dashboard : str, session : str, url : str, run_nu
     except Exception as e:
         print(f'Exception Error: Failed to save data to HDF5: {str(e)}')
 
+    return
+
+
+async def harvest_node_exporter_data(host : str, time : times.time_range, output_file : str, out_dir : str, datasources : dict):
+    """ Extract node exporter data form the prometheus database directly i.e. not through the Grafana api.
+        Authors: Shyam Bhuller (University of Oxford)
+
+    Args:
+        host (str): Host name.
+        time (times.time_range): Time elapsed during the run.
+        output_file (str): Output file name.
+        out_dir (str): Directory to write files to.
+        datasources (dict): Datasources to make queries from.
+    """
+    query_dict = {
+        "CPU Usage (%)" : f"100 * (1 - irate(node_cpu_seconds_total{{nodename=\"{host}\", mode=\"idle\"}}[10m]))",
+
+        "Total Memory (B)" : f"node_memory_MemTotal_bytes{{nodename=\"{host}\"}}",
+        "Available Memory (B)" : f"node_memory_MemAvailable_bytes{{nodename=\"{host}\"}}",
+        "Memory Usage (%)" : f"100 * (node_memory_MemTotal_bytes{{nodename=\"{host}\"}} - node_memory_MemAvailable_bytes{{nodename=\"{host}\"}}) / node_memory_MemTotal_bytes{{nodename=\"{host}\"}}",
+
+        "Network Speed (B) " : f"node_network_speed_bytes{{nodename=\"{host}\"}}",
+        "Network MTU (B)" : f" node_network_mtu_bytes{{nodename=\"{host}\"}}",
+        "Softnet Packets Processed (pps)" : f"irate(node_softnet_processed_total{{nodename=\"{host}\"}}[10m])",
+        "Softnet Packets Dropped (pps) "  : f"irate(node_softnet_dropped_total{{nodename=\"{host}\"}}[10m])",
+        "Softnet Packets Squeezed (pps)"  : f"irate(node_softnet_times_squeezed_total{{nodename=\"{host}\"}}[10m])",
+
+        "Disk Total Written (B)" : f"node_disk_written_bytes_total{{nodename=\"{host}\"}}",
+        "Disk Written (Bps)" : f"irate(node_disk_written_bytes_total{{nodename=\"{host}\"}}[10m])",
+        "Disk IO time (s)"   : f"node_disk_io_time_seconds_total{{nodename=\"{host}\"}}",
+        "Disk Read (Bps) "   : f"irate(node_disk_read_bytes_total{{nodename=\"{host}\"}}[10m])",
+    }
+
+    rt = ["bytes", "packets", "fifo", "errs", "drop", "compressed"]
+    t = ["queue_length", "carrier", "colls"]
+    r = ["frame"]
+
+    cpu_times = ["idle", "iowait", "irq", "nice", "softirq", "steal", "system", "user"]
+    for i in cpu_times:
+        query_dict[f"CPU {i} (s)"] = f"node_cpu_seconds_total{{nodename=\"{host}\", mode=\"{i}\"}}"
+
+    names = {
+        "bytes" : "(Bps)",
+        "packets" : "(pps)",
+        "fifo" : "FIFO (pps)",
+        "errs" : "Errors (pps)",
+        "drop" : "Dropped (pps)",
+        "colls" : "Colls (counter)",
+        "compressed" : "Compressed (pps)",
+        "carrier" : "Carrier (counts)",
+        "queue_length" : "Queue Length (pps)",
+        "frame" : "Frame (pps)",
+    }
+
+    for i in ["receive", "transmit"]:
+        if i == "receive":
+            metrics = rt + r
+            suffix = "received"
+        if i == "transmit":
+            metrics = rt + t
+            suffix = "transmitted"
+        for m in metrics:
+            name = f"Network {suffix} {names[m]}"
+            query = f"node_network_{i}_{m}_total{{nodename=\"{host}\"}}"
+            if "ps" in name:
+                query = f"irate({query}[10m])"
+            query_dict[name] = query
+
+    prometheus_url = datasources["prometheus"]["url"]
+
+    print(f"{time=}")
+
+    dfs = {}
+    async with aiohttp.ClientSession() as cs:
+        for query in query_dict:
+            response = await queries.query_prometheus(cs, prometheus_url, datasources["prometheus"], query_dict[query], time, True)
+            metrics = {}
+            values = []
+
+            # get the metrics and values for each sample
+            if len(response["data"]["result"]) == 0:
+                dfs[query] = pd.DataFrame()
+
+            for r in response["data"]["result"]:
+                for k in r["metric"]:
+                    if k not in metrics:
+                        metrics[k] = [r["metric"][k]]
+                    else:
+                        metrics[k].append(r["metric"][k])
+                values.append(np.array(r["values"]))
+
+            # construct a sample name from the metrics
+            tags = {}
+            for k in metrics:
+                if len(np.unique(metrics[k])) > 1:
+                    tags[k] = metrics[k]
+
+            sample_label = None
+            name = None
+            for k, v in tags.items():
+                if sample_label is None:
+                    sample_label = np.array(v)
+                    name = k
+                else:
+                    sample_label = np.char.add(np.char.add(sample_label, "_"), np.array(v))
+                    name = name + "_" + k
+
+            if sample_label is None: sample_label = ["total"]
+
+            # construct the dataframe
+            parsed = {}
+            for s, v in zip(sample_label, values):
+                parsed["time"] = v[:, 0]
+                parsed[s] = v[:, 1]
+
+            if len(parsed) != 0:
+                dfs[query] = pd.DataFrame(parsed).set_index("time").astype(float)
+                dfs[query].set_index(dfs[query].index.astype(int), inplace = True)
+            else:
+                warnings.warn(f"no data found for {query}")
+                dfs[query] = pd.DataFrame()
+
+    # print(dfs)
+    output = str(out_dir) + f"node-exporter-{output_file}.hdf5"
+    try:
+        files.write_dict_hdf5(dfs, output)
+        print(f'Data saved to HDF5 successfully: {output}')
+    except Exception as e:
+        print(f'Exception Error: Failed to save data to HDF5: {str(e)}')
     return
 
 
@@ -782,11 +853,12 @@ def uprof_to_df(file : str) -> pd.DataFrame:
     return df
 
 
-def extract_uprof_data(uprof_output : str, run_time : times.time_range, output_file : str, out_dir : str):
+def harvest_uprof_data(uprof_output : str, run_time : times.time_range, output_file : str, out_dir : str):
     """ Write uProf output to hdf5 file.
 
     Args:
         uprof_output (str): uProf output file.
+        run_time (times.time_range): Time elapsed during a run.
         output_file (str): Output file name.
         out_dir (str): Output diretory.
     """
