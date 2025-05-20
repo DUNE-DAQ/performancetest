@@ -976,7 +976,6 @@ def analyse_data(test_args : dict):
         process_network_info(v, out, test_args, h)
 
     for h in test_args["host"]:
-        print(h)
         k = h.replace("-", "")
         if k not in node_exporter:
             print(f"Warning: no node exporter data captured for {h}")
