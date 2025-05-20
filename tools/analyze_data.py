@@ -875,7 +875,19 @@ def process_daq_overview_info(data : dict[pd.DataFrame], out : str, test_args : 
     return
 
 
-def simplify_dict_name(dictionary : dict):
+def proces_message_report(data : dict[pd.DataFrame], out : str, test_args : dict):
+    with plotting.PlotBook(out + "message_reporting") as book:
+        _, ax = plotting.plt.subplots()
+        ax.axis('off')
+        mr = data["Message Reporting"]
+        mr.index = pd.to_datetime(pd.to_datetime(mr.index.values, unit = "s", origin = "unix"))
+        pd.plotting.table(ax, mr, loc='center', cellLoc='center')
+        plotting.add_metadata(test_args, int(data["Global Trigger Rate"].index[0]))
+        book.save()
+    return
+
+
+def simplify_dict_name(dictionary : dict, default : dict):
     """ Simplify keys in the loaded data dictionary.
 
     Args:
@@ -883,7 +895,11 @@ def simplify_dict_name(dictionary : dict):
     """
     unique_names = utils.get_unique_string_elements(list(dictionary.keys()), "_")
     for old, new in zip(list(dictionary.keys()), unique_names):
-        dictionary[new] = dictionary.pop(old)
+        if len(new) == 0:
+            k = default
+        else:
+            k = new
+        dictionary[k] = dictionary.pop(old)
     return
 
 
@@ -921,7 +937,6 @@ def analyse_data(test_args : dict):
         out = utils.make_plot_dir(test_args) + "analysis/"
     os.makedirs(out, exist_ok = True)
 
-
     if ("crp" in test_args["data_source"].lower()) or ("np02" in test_args["data_source"].lower()):
         readout_plane = ReadoutPlane.CRP
     elif ("apa" in test_args["data_source"].lower()) or ("np04" in test_args["data_source"].lower()):
@@ -930,12 +945,17 @@ def analyse_data(test_args : dict):
         print(f"cannot infer readout plane type based on data_source: {test_args['data_source']}, default to APA.")
         readout_plane = ReadoutPlane.APA
 
+    if len(test_args["host"]) == 1:
+        def_name = test_args["host"][0].replace("-", "")
+        hw_info = {test_args["host"][0] : list(hw_info.values())[0]}
+    else:
+        def_name = None
     intel_pcm = utils.search_dict(data, "A_CvwTCWk")
-    simplify_dict_name(intel_pcm)
+    simplify_dict_name(intel_pcm, def_name)
     uprof = utils.search_dict(data, "uprof-pcm")
-    simplify_dict_name(uprof)
+    simplify_dict_name(uprof, def_name)
     node_exporter = utils.search_dict(data, "node-exporter")
-    simplify_dict_name(node_exporter)
+    simplify_dict_name(node_exporter, def_name)
 
     for k, v in intel_pcm.items():
         process_cache_info(v, None, out, test_args, k.replace("srv", "-srv-"))
@@ -956,6 +976,7 @@ def analyse_data(test_args : dict):
         process_network_info(v, out, test_args, h)
 
     for h in test_args["host"]:
+        print(h)
         k = h.replace("-", "")
         if k not in node_exporter:
             print(f"Warning: no node exporter data captured for {h}")
@@ -965,7 +986,7 @@ def analyse_data(test_args : dict):
     for d, func in zip(["trigger_primitives", "frontend_ethernet"], [process_tp_info, process_frontend_info]):
         func(data[d], out, readout_plane, test_args)
 
-    for d, func in zip(["readout", "overview"], [process_readout_info, process_daq_overview_info]):
+    for d, func in zip(["readout", "overview", "overview"], [process_readout_info, process_daq_overview_info, proces_message_report]):
         func(data[d], out, test_args)
     return
 

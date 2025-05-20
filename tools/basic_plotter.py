@@ -70,7 +70,7 @@ def plot(args : argparse.Namespace, display : bool = False):
 
     hdf_files = utils.search_hdf5_data(args["data_path"])
 
-    blacklist = ["Highest TP rates per channel"] # blacklist data that should not be plotted e.g. takes too long
+    blacklist = ["Highest TP rates per channel", "Message Reporting"] # blacklist data that should not be plotted e.g. takes too long or cant be represented in a line plot
 
     for f in hdf_files:
         keys = []
@@ -96,18 +96,30 @@ def plot(args : argparse.Namespace, display : bool = False):
                 values[k] = data[k]
         plt = plotter(keys, values, args, host)
 
-        procs = []
-        q = multiprocessing.Queue()
+
         if display is False:
+            cpu_count = multiprocessing.cpu_count() - 1
+            q = multiprocessing.Queue()
+
+            # create processes
+            procs = []
             for i, m in enumerate(plt.metrics):
                 proc = multiprocessing.Process(target = plt.plot_book_fig, args = [i, m, q])
                 procs.append(proc)
-                proc.start()
 
+            # create batches of processes
+            batches = []
+            for i in range(0, len(procs), cpu_count):
+                batches.append(procs[i : i + cpu_count])
+
+            # start and retreive job outputs
             output = [None]*len(procs)
-            for proc in procs:
-                o = q.get()
-                output[o[0]] = o[1]
+            for b in batches:
+                for p in b:
+                    p.start()
+                for p in b:
+                    o = q.get()
+                    output[o[0]] = o[1]
 
             with plotting.PlotBook(out_dir + f, True) as book:
                 for o in output:

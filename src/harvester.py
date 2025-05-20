@@ -246,6 +246,7 @@ def parse_result_postgres(response_data : dict, name : str) -> pd.DataFrame:
     data = {k : v for k, v in zip(fields, values)}
     data = pd.DataFrame(data)
     if not data.empty:
+        data["time"] = data["time"] // 1000 # convert timestamp from ms to s, in order to match the other datasources.
         data = data.set_index("time")
     return data
 
@@ -487,7 +488,7 @@ def extract_data(args : list[callable, list]):
     Args:
         args (list[callable, list]): Arguments for the run_harvester function.
     """
-    pool = multiprocessing.Pool(len(args))
+    pool = multiprocessing.Pool(min(len(args), multiprocessing.cpu_count() - 1))
     result = pool.starmap_async(run_harvester, args)
     result.get()
     return
@@ -564,7 +565,8 @@ async def harvest_grafana_data(dashboard : str, session : str, url : str, run_nu
 
                     if single_elements:
                         for k, v in data_from_panel.items():
-                            v.rename(columns = {element_names[0] : k}, inplace = True)
+                            if v is not None:
+                                v.rename(columns = {element_names[0] : k}, inplace = True)
 
             # condense data for panels which returned multiple DataFrames
             merged_df = None
@@ -582,18 +584,22 @@ async def harvest_grafana_data(dashboard : str, session : str, url : str, run_nu
                 except ValueError:
                     dashboard_data[panel_title] = merged_df.sort_index()
 
+    empty = True
     for data in dashboard_data.values():
         if type(data) == "dict":
             for v in data.values():
                 if not v.empty:
+                    empty = False
                     break
         elif (type(data) == pd.DataFrame) and (not data.empty):
+            empty = False
             break
         else:
-            warnings.warn(f"no data was extracted from the dashboard {dashboard}. Check the data has not expired!")
+            continue
+    if empty:
+        warnings.warn(f"no data was extracted from the dashboard {dashboard}. Check the data has not expired!")
 
     format_hdf_keys(dashboard_data)
-    # print(dashboard_data)
 
     # Save the dataframes
     output = str(out_dir) + f"grafana-{dashboard}-{output_file}.hdf5"

@@ -133,7 +133,6 @@ def performance_report(test_args : dict):
             text = v
         else:
             text = defaults.get(k, "")
-        print(k, text)
         html = html.replace(f"&{k}", text)
 
 

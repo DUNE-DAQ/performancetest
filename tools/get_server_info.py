@@ -44,7 +44,7 @@ def run(host : str, data_path : str):
 
 def server_info(test_args : dict):
     args = [[test_args["host"][i], test_args["data_path"]] for i in range(len(test_args["host"]))]
-    pool = multiprocessing.Pool(len(test_args["host"]))
+    pool = multiprocessing.Pool(min(len(test_args["host"]), multiprocessing.cpu_count() - 1))
     result = pool.starmap_async(run, args)
     result.get()
     return
