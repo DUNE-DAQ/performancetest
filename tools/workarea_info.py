@@ -6,16 +6,15 @@ Author: Shyam Bhuller (University of Oxford)
 
 Description: Information about the workarea used to perform the test.
 """
-
 import argparse
 import os
 
 from contextlib import contextmanager
 
+import files, shell, utils
+
 import tabulate
 import yaml
-
-import files, shell, utils
 
 from rich import print
 
@@ -45,7 +44,7 @@ def verbprint(i : any):
     """ controlled printout.
 
     Args:
-        i (any): item to print.
+        i (any): Item to print.
     """
     if printout is True: print(i)
     return
@@ -58,7 +57,7 @@ def get_repo_info(repo : str) -> list[str]:
         repo (str): Path to github repo.
 
     Returns:
-        list: branch name, short commit hash.
+        list: Branch name, short commit hash.
     """
     with shell.chdir(repo):
         result = shell.run("echo -n \"$(git rev-parse --abbrev-ref HEAD),$( git rev-parse --short HEAD )\"", capture = True)
@@ -72,7 +71,7 @@ def check_repos(dire : str) -> dict[list]:
         dire (str): Sourcecode directory.
 
     Returns:
-        dict[list]: repos and their branch name and commit hash.
+        dict[list]: Repos and their branch name and commit hash.
     """
     repo_info = {}
 
@@ -86,7 +85,7 @@ def check_configs(dire : str, out : str, repo : str | None = "ehn1-daqconfigs") 
     """ Check workarea for ehn1-configurations, and return information about the repo.
 
     Args:
-        dire (str | None): dunedaq directory.
+        dire (str | None): DUNEDAQ software directory.
 
     Returns:
         tabulate.JupyterHTMLStr | None: HTML table of repo info.
@@ -116,7 +115,7 @@ def make_release_table(release_info : dict) -> tabulate.JupyterHTMLStr:
         release_info (dict): Release information from the yaml file. 
 
     Returns:
-        tabulate.JupyterHTMLStr: HTML table of the information.
+        tabulate.JupyterHTMLStr: html table of the information.
     """
     verbprint(tabulate.tabulate(release_info.items(), tablefmt = "fancy"))
     return tabulate.tabulate(release_info.items(), tablefmt = "html")
@@ -129,7 +128,7 @@ def make_repo_table(repos : dict) -> tabulate.JupyterHTMLStr:
         repos (dict): Dictionary where key is repo name and value is output from get_repo_info.
 
     Returns:
-        tabulate.JupyterHTMLStr: HTML table of repo infos.
+        tabulate.JupyterHTMLStr: html table of repo infos.
     """
     if repos is None: return ""
     table_headers = ["repo", "branch name", "commit"]
@@ -142,7 +141,7 @@ def get_info(path : str, out : str, repo : str = "ehn1-daqconfigs") -> dict[str]
     """ Get information about a dunedaq repository and return html formatted tables.
 
     Args:
-        path (str): dunedaq directory.
+        path (str): DUNEDAQ software directory.
         out (str): Output directory for info.
 
     Returns:

@@ -27,24 +27,32 @@ def chdir(dire : str):
         os.chdir(cwd)
 
 
-def run(cmd : str, new_env : bool = False, capture : bool = False, host : str = None) -> subprocess.CompletedProcess:
+def run(cmd : str, new_env : bool = False, capture : bool = False, host : str = None, suppress : bool = False) -> subprocess.CompletedProcess:
     """ Run a bash command.
 
     Args:
         cmd (str): Bash command.
-        env (bool, optional): Whether to run the command without the enviromnent variables. Defaults to False.
+        new_env (bool, optional): Whether to run the command without the enviromnent variables. Defaults to False.
         capture (bool, optional): Capture output of command to a string. Defaults to False.
-        host (str, optional): if provided, runs command on a specified remote host.
+        host (str, optional): Runs command on a specified remote host, otherwise localhost is used. Defaults to None.
+        suppress (bool, optional): Suppress all output from the command, Defaults to False.
 
     Returns:
-        subprocess.CompletedProcess: _description_
+        subprocess.CompletedProcess: Output of the command.
     """
     if host:
-        cmd = f"ssh {os.environ['USER']}@{host} {cmd}"    
-    pipe = subprocess.PIPE if capture is True else None
+        cmd = f"ssh {os.environ['USER']}@{host} {cmd}"
+
+    if suppress:
+        pipe = subprocess.DEVNULL
+    elif capture:
+        pipe = subprocess.PIPE
+    else:
+        pipe = None
+
     out = subprocess.run(cmd, env = {} if new_env is True else None, shell = True, stdout = pipe, stderr = pipe)
-    if out.stderr:
-        print(f"Error running '{cmd}': {out.stderr}")
+    if out.stderr and (not suppress):
+        print(f"Could not execute command '{cmd}',\nReason: {out.stderr}.")
     return out
 
 
@@ -56,7 +64,7 @@ def parse_output(output: subprocess.CompletedProcess, separator : str = None) ->
         separator (str, optional): String separator to split key-value pairs. Defaults to None.
 
     Returns:
-        list | dict: _description_
+        list | dict: Formatted output.
     """
     output_lines = str(output.stdout)[2:].split("\\n")
 
@@ -80,22 +88,21 @@ def search_data_file(s : str, path : str | pathlib.Path) -> list[pathlib.Path]:
         path (str | pathlib.Path): Directory to search in.
 
     Returns:
-        list[pathlib.Path]: list of matches for the search term.
+        list[pathlib.Path]: List of matches for the search term.
     """
     matches = []
     for p in pathlib.Path(path).glob("**/*"):
         if re.search(s, p.name): matches.append(p)
-        # if s in p.name: matches.append(p)
     return matches
 
 
 def clone(repo : str, sha : str) -> str:
     """ Set of commands to clone a git compliant repo and checkout a specific commit.
-        repo will be in a detatched HEAD state.
+        Note, the repo will be in a detatched HEAD state.
 
     Args:
-        repo (str): repo url; can be ssh, https or any other type.
-        sha (str): short commit hash.
+        repo (str): Repo url; can be ssh, https or any other type.
+        sha (str): Short commit hash.
 
     Returns:
         str: Bash commands.
@@ -105,3 +112,15 @@ def clone(repo : str, sha : str) -> str:
     cmd += f"cd {dire};"
     cmd += f"git checkout {sha}"
     return cmd
+
+
+def is_sudo(host : str = None) -> bool:
+    """ Check the user has sudo permissions.
+
+    Args:
+        host (str, optional): Check the user has sudo permissions. Defaults to None.
+
+    Returns:
+        bool: If the user has sudo permissions.
+    """
+    return not bool(run("sudo -n -l", host = host, capture = False, suppress = True).returncode)

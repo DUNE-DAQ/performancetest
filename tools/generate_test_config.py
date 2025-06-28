@@ -20,9 +20,8 @@ def generate_config_template(name : str | pathlib.Path):
     cfg = {
         "dunedaq_version" : "version of DUNEDAQ used to perform tests e.g. v5.3.0",
         "time_range" : [0, -1], # time range for plots
-        "host" : "server being tested e.g. np02-srv-003. Can also be a list of servers if you want to capture data for multiple hosts",
+        "host" : ["servers to test e.g. np02-srv-003"],
         "data_source" : "source of the data, crp, apa or emu",
-        "socket_num" : "socket number tested on the host machine, 0, 1 or 01 for both",
         "test_name" : "short test name",
         "run_number" : "run number of the test (without quotes!)",
         "session" : "grafana partition name for the given test",
@@ -32,13 +31,13 @@ def generate_config_template(name : str | pathlib.Path):
         "data_path" : None,
         "plot_path" : None,
         "documentation" : {
-            "purpose" : "state the purpose of your test, if not provided, default text will be added instead",
-            "goals" : "state the goals of this sepcific test, if not provided, default text will be added instead",
-            "method" : "state how you will attempt to reach the goal, if not provided, default text will be added instead",
-            "control plane" : "how was the system controlled during the test i.e. proceess manager configuration",
-            "configuration" : "path to configuration or git commit hash from ehn1configs",
-            "concurrancy" : "active users on the readout machine during the time of the run, what applications were run in parallel on the machine",
-            "summary" : "summary/conclusions of the test"
+            "purpose" : None, # "state the purpose of your test, if not provided, default text will be added instead",
+            "goals" : None, # "state the goals of this sepcific test, if not provided, default text will be added instead",
+            "method" : None, # "state how you will attempt to reach the goal, if not provided, default text will be added instead",
+            "control_plane" : None, # "how was the system controlled during the test i.e. proceess manager configuration",
+            "configuration" : None, # "path to configuration or git commit hash from ehn1configs",
+            "concurrancy" : None, # "active users on the readout machine during the time of the run, what applications were run in parallel on the machine",
+            "summary" : None, # "summary/conclusions of the test"
         }
     }
     files.write_json(name, cfg)

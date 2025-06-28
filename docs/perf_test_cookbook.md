@@ -1,5 +1,5 @@
 # Performance test cookbook
-This document describes how to install the daqperformancetest tools and goes through the procedure of generating a peformance test report for a given DAQ run (using an enulated system).
+This document describes how to install the DAQ performancetest tools and goes through the procedure of generating a peformance test report for a given DAQ run (using an enulated system).
 
 ## Prerequisites
 
@@ -20,14 +20,13 @@ If you have not already, run:
 Now install the performance test repo:
 
 ```
-cd sourcecode
 git clone https://github.com/DUNE-DAQ/performancetest.git
 cd performancetest
 source ~np04daq/bin/web_proxy.sh
 pip install -r requirements.txt
 source ~np04daq/bin/web_proxy.sh -u
 source setup.sh
-cd ../../
+cd ..
 ```
 
 Now, each time you want to do performance testing:
@@ -35,7 +34,7 @@ Now, each time you want to do performance testing:
 ```
 cd <your_dunedaq_workarea>
 source env.sh
-source sourcecode/performancetest/setup.sh
+source performancetest/setup.sh
 ```
 
 ## 2. Install daqsystemtest
@@ -58,6 +57,7 @@ To take the run:
 drunc-unified-shell ssh-CERN-kafka config/daqsystemtest/example-configs.data.xml ehn1-local-1x1-config $USER-local-test
 
 # Within the drunc shell
+boot
 conf
 start --run-number <run_number> # run number should be unique
 enable-triggers
@@ -108,16 +108,17 @@ To generate the performance report:
 2. The json file should look like
     ```
     {
-        "dunedaq_version": "version of DUNEDAQ used to perform tests e.g. v4.4.8",
+        "dunedaq_version": "version of DUNEDAQ used to perform tests e.g. v5.3.0",
         "time_range": [
             0,
             -1
         ],
-        "host": "server being tested e.g. np02-srv-003",
+        "host": [
+            "servers to test e.g. np02-srv-003"
+        ],
         "data_source": "source of the data, crp, apa or emu",
-        "socket_num": "socket number tested on the host machine, 0, 1 or 01 for both",
         "test_name": "short test name",
-        "run_number": "run number of the test",
+        "run_number": "run number of the test (without quotes!)",
         "session": "grafana partition name for the given test",
         "workarea": "path to dunedaq directory, can be left as null",
         "config_repo": "v5 configuration repo used in this test e.g. ehn1-daqconfigs",
@@ -125,13 +126,13 @@ To generate the performance report:
         "data_path": null,
         "plot_path": null,
         "documentation": {
-            "purpose": "state the purpose of your test, if not provided, default text will be added instead",
-            "goals": "state the goals of this sepcific test, if not provided, default text will be added instead",
-            "method": "state how you will attempt to reach the goal, if not provided, default text will be added instead",
-            "control plane": "how was the system controlled during the test i.e. proceess manager configuration",
-            "configuration": "path to configuration or git commit hash from ehn1configs",
-            "concurrancy": "active users on the readout machine during the time of the run, what applications were run in parallel on the machine",
-            "summary": "summary/conclusions of the test"
+            "purpose": null,
+            "goals": null,
+            "method": null,
+            "control_plane": null,
+            "configuration": null,
+            "concurrancy": null,
+            "summary": null
         }
     }
     ```
@@ -143,9 +144,10 @@ To generate the performance report:
             0,
             -1
         ],
-        "host": <host_name_of_server_tested>,
+        "host": [
+            <host_name_of_server_tested>
+        ],
         "data_source": "emu",
-        "socket_num": "01",
         "test_name": "exmaple_perf_test",
         "run_number": <your_run_number>,
         "session": <your_session_name>,
@@ -155,17 +157,17 @@ To generate the performance report:
         "data_path": null,
         "plot_path": null,
         "documentation": {
-            "purpose": "state the purpose of your test, if not provided, default text will be added instead",
-            "goals": "state the goals of this sepcific test, if not provided, default text will be added instead",
-            "method": "state how you will attempt to reach the goal, if not provided, default text will be added instead",
-            "control plane": "how was the system controlled during the test i.e. proceess manager configuration",
-            "configuration": "path to configuration or git commit hash from ehn1configs",
-            "concurrancy": "active users on the readout machine during the time of the run, what applications were run in parallel on the machine",
-            "summary": "summary/conclusions of the test"
+            "purpose": null,
+            "goals": null,
+            "method": null,
+            "control_plane": null,
+            "configuration": null,
+            "concurrancy": null,
+            "summary": null
         }
     }
     ```
-    *Note: if you ran on an AMD system you would need to provide the path of the uprof csv data as:*
+    *Note: if you run on an AMD system you would need to provide the path of the uprof csv data as:*
     ```[json]
     "uprof_file": <path_to_your_uprof_csv_file>,
     ```

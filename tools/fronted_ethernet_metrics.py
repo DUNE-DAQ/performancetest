@@ -5,13 +5,11 @@ Created on: 12/12/2024 11:09
 Author: Shyam Bhuller (University of Oxford)
 
 Description: Plot data collected from the frontend ethernet dashboard.
+#! Deprecated, to be removed.
 """
 import argparse
-import os
 
 import files, plotting, shell, utils, times
-
-import pandas as pd
 
 from rich import print
 

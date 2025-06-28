@@ -10,7 +10,7 @@ import argparse
 import multiprocessing
 import os
 
-import files, plotting, shell, utils, times
+import files, plotting, utils, times
 
 import pandas as pd
 
@@ -21,12 +21,18 @@ class plotter(plotting.PlotEngine):
     """ Class for handling resource utilization plotting.
         Authors: Shyam Bhuller (University of Oxford)
     """
-    def __init__(self, metrics, data, test_args):
+    def __init__(self, metrics, data, test_args, host : str | None = None):
         self.test_args = test_args
+        self.host = host
         super().__init__(metrics, data)
 
 
     def plot_metric(self, metric: str):
+        """ Plot a performance metric 
+
+        Args:
+            metric (str): Metric to plot.
+        """
         tlabel = "Relative time (s)"
  
         df = self.data[metric]
@@ -49,7 +55,7 @@ class plotter(plotting.PlotEngine):
             except:
                 v = df[c]
             plotting.plot(times.relative_time(df), v, c if make_labels else None, tlabel, metric, False)
-            plotting.add_metadata(self.test_args, int(df.index[0]))
+            plotting.add_metadata(self.test_args, int(df.index[0]), False, self.host)
         plotting.plt.ylim(0, 1.1 * max(plotting.plt.gca().get_ylim()))
 
         if "(%)" in metric:
@@ -57,39 +63,25 @@ class plotter(plotting.PlotEngine):
         return
 
 
-def search_hdf5(search_term : str, path : str) -> str | None:
-    """ Search for hdf5 files with a specific term in a directory.
-        Authors: Shyam Bhuller (University of Oxford)
-
-    Args:
-        search_term (str): Term to search for.
-        path (str): Directory.
-
-    Returns:
-        str | None: hdf5 file path if found.
-    """
-    for file in shell.search_data_file(search_term, path):
-        if "hdf5" in file.suffix: return file
-    return
-
-
 def plot(args : argparse.Namespace, display : bool = False):
     plotting.set_plot_style()
-    out_dir = utils.make_plot_dir(args)
+    out_dir = utils.make_plot_dir(args) + "basic_plots/"
+    os.makedirs(out_dir, exist_ok = True)
 
-    dashboard_config = files.read_json(f"{os.environ['PERFORMANCE_TEST_PATH']}/config/dashboard_info.json")
+    hdf_files = utils.search_hdf5_data(args["data_path"])
 
-    hdf_files = {}
-    for n in dashboard_config["dashboard_uid"] + ["uprof-pcm", "uprof-power", "node-exporter"]:
-        hdf_files[n] = search_hdf5(n, args["data_path"])
-
-
-    blacklist = ["Highest TP rates per channel"] # blacklist data that should not be plotted e.g. takes too long
+    blacklist = ["Highest TP rates per channel", "Message Reporting"] # blacklist data that should not be plotted e.g. takes too long or cant be represented in a line plot
 
     for f in hdf_files:
         keys = []
         values = {}
         if hdf_files[f] is None: continue
+
+        if any([i in f for i in ["A_CvwTCWk", "uprof-pcm", "uprof-power", "node-exporter"]]):
+            host = f.split("_")[-1].replace("srv", "-srv-")
+        else:
+            host = None
+
         data = files.read_hdf5(hdf_files[f])
         for k in data:
             if data[k].empty: continue
@@ -102,20 +94,32 @@ def plot(args : argparse.Namespace, display : bool = False):
                 values[k] = data[k].to_frame()
             else:
                 values[k] = data[k]
-        plt = plotter(keys, values, args)
+        plt = plotter(keys, values, args, host)
 
-        procs = []
-        q = multiprocessing.Queue()
+
         if display is False:
+            cpu_count = multiprocessing.cpu_count() - 1
+            q = multiprocessing.Queue()
+
+            # create processes
+            procs = []
             for i, m in enumerate(plt.metrics):
                 proc = multiprocessing.Process(target = plt.plot_book_fig, args = [i, m, q])
                 procs.append(proc)
-                proc.start()
 
+            # create batches of processes
+            batches = []
+            for i in range(0, len(procs), cpu_count):
+                batches.append(procs[i : i + cpu_count])
+
+            # start and retreive job outputs
             output = [None]*len(procs)
-            for proc in procs:
-                o = q.get()
-                output[o[0]] = o[1]
+            for b in batches:
+                for p in b:
+                    p.start()
+                for p in b:
+                    o = q.get()
+                    output[o[0]] = o[1]
 
             with plotting.PlotBook(out_dir + f, True) as book:
                 for o in output:
