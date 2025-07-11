@@ -2,7 +2,9 @@
 
 Link to CERNBox with reports, data and plots: https://cernbox.cern.ch/files/link/public/ceg2IUASsNrHSvn
 
-path to performance test work area: `/nfs/sw/dunedaq_performance_test/`. Use a low usage server for running the tools e.g. np04-srv-013.
+ 
+Use a low usage server for running the tools e.g. np04-srv-013.
+Clone latest version of the repository.
 
 In `performancetest` users can find all the resources to conduct benchmark and performance tests. Moreover, to process and present the results. In the `docs` folder users will find detailed test explanations, comprehensive instructions on how to execute these tests, and a comprehensive guide on how to effectively process the gathered data. In the `tools` folder the user can find the python3 notebooks and Python file with the basic functions needed for creating the reports.   
 
