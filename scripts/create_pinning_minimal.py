@@ -376,9 +376,6 @@ def fill_pinning_map(pinning : dict, cpu_alloc : ChainMap, core_map : CoreMap) -
                         if pu in [i.id for i in c.get_type("PU")]:
                             if rte_cache is None:
                                 rte_cache = c
-                            else:
-                                if rte_cache.id != c.id:
-                                    raise Exception("rte workers should be assigned from the same L3 cache domain!")
                     # before assigning the other cores, assign rtes first as these are provided by the configuration
                     pinning_dict[app]["threads"][t] = str(pu)
                     core_map.pu.get_id(pu)
