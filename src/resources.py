@@ -503,15 +503,10 @@ def create_cpu_pinning(threads : dict, cpu_map : CoreMap, resource_alloc : Chain
     pinning = fill_pinning_map_cache(threads, resource_alloc, cpu_map)
     print(rule.Rule("CPU pinning running"))
     print(pinning)
-
     # pinning during conf
     pinning_conf = copy.deepcopy(pinning)
     for app in pinning_conf["daq_application"]:
-        if not app[-2:].isalpha():
-            numa = int(app[-1])
-        else:
-            numa = int(app[-2])
-        pinning_conf["daq_application"][app]["parent"] = core_list_to_str(pus_numa[numa])
+        pinning_conf["daq_application"][app]["parent"] = core_list_to_str(pus_numa[threads[app]["numa"]])
     print(rule.Rule("CPU pinning all"))
     print(pinning_conf)
 

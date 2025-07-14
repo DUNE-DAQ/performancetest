@@ -71,12 +71,14 @@ class Node(Resource):
     """ a NUMA node/region. """
     numa : int
     cpus : list[int]
+    lcores : list[int]
     size : str
     devices : list[NUMADevice]
 
-    def __init__(self, name : str, numa : int, cpus : list[int], size : str, devices : list[NUMADevice]):
+    def __init__(self, name : str, numa : int, cpus : list[int], lcores : list[int], size : str, devices : list[NUMADevice]):
         self.numa = numa
         self.cpus = cpus
+        self.lcores = lcores
         self.size = size
         self.devices = devices
         super().__init__(name)
@@ -107,8 +109,9 @@ def main(args : argparse.Namespace):
         host.raid.append(RAID(r["device"].split("-> ")[-1], r["symlink"], r["drives"]))
 
     for k, v in info["numa"].items():
-        node = Node("name", int(k), v["cpus"], v["size"], [])
+        node = Node("name", int(k), v["cpus"], info["isol"], v["size"], [])
         for d in v["devices"]:
+            if type(d[1]) != dict: continue
             if "network" in d[1]["id"]:
                 mac = "not found"
                 if "serial" in d[1]:
@@ -134,6 +137,7 @@ def main(args : argparse.Namespace):
     for node in host.numa:
         print(f"{node.numa=}")
         print(f"{node.cpus=}")
+        print(f"{node.lcores=}")
         print(f"{node.name=}")
         print(f"{node.size=}")
         print("node.devices=")

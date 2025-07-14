@@ -166,8 +166,18 @@ def get_info(devices : list[str]) -> dict:
                     if numa_dict[k]["devices"][j][0] == ":".join(pci_addr.split(":")[1:]):
                         numa_dict[k]["devices"][j] = (pci_addr, i)
 
+    # Isolated cpus:
+    isol_out = run_cmd("cat /sys/devices/system/cpu/isolated")
+
+    isol_cpus = []
+    for i in isol_out[0].split(","):
+        if i.isnumeric():
+            isol_cpus.append(int(i))
+        else:
+            isol_cpus.extend(list(range(*[int(j) for j in i.split("-")])))
+
     hostname = run_cmd("hostname")[0]
-    return {"host" : hostname, "dev" : dev_dict, "raid" : raid_dict, "nvme" : nvme_dict, "numa" : numa_dict}
+    return {"host" : hostname, "dev" : dev_dict, "raid" : raid_dict, "nvme" : nvme_dict, "numa" : numa_dict, "isol" : isol_cpus}
 
 
 def main(args : argparse.Namespace):
