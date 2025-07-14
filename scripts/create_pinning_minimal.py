@@ -314,7 +314,7 @@ def assign_cores(core_map : CoreMap, cores : list[Element], max_cores : int) -> 
     return pus
 
 
-def fill_pinning_map_cache(pinning : dict, cpu_alloc : ChainMap, core_map : CoreMap) -> dict:
+def fill_pinning_map(pinning : dict, cpu_alloc : ChainMap, core_map : CoreMap) -> dict:
     """ Assign processing units to threads. Is L3 cache aware. Thread names are prioritized by order in the dictionary.
 
     Args:
@@ -334,97 +334,98 @@ def fill_pinning_map_cache(pinning : dict, cpu_alloc : ChainMap, core_map : Core
 
     pinning_dict = {k : {"threads" : {}} for k in pinning}
     for app in pinning:
-        n_rte = len([k for k in pinning[app]["threads"] if "rte" in k]) # count the number of rte workers for this daq application
+        parents = []
+        for thread_group in pinning[app]["thread_group"]:
+            n_rte = len([k for k in thread_group["threads"] if "rte" in k]) # count the number of rte workers for this daq application
 
-        for numa_region in core_map.numa.elements: # get the numa region, but do not remove it from the map yet
-            if numa_region.id == pinning[app]["numa"]: break
+            for numa_region in core_map.numa.elements: # get the numa region, but do not remove it from the map yet
+                if numa_region.id == thread_group["numa"]: break
 
-        # count the total number of cores requested to be assigned to this application, and check it is sensible
-        total_requested_cores = n_rte * cpu_alloc["rte"] + sum([v for k, v in cpu_alloc.items() if k != "rte"])
-        print(f"{total_requested_cores=}")
+            # count the total number of cores requested to be assigned to this application, and check it is sensible
+            total_requested_cores = n_rte * cpu_alloc["rte"] + sum([v for k, v in cpu_alloc.items() if k != "rte"])
+            print(f"{total_requested_cores=}")
 
-        cores_available = len(numa_region.get_type("PU"))
-        if total_requested_cores > cores_available:
-            raise Exception(f"number of cores required {total_requested_cores} exceeds the number available {cores_available}")
+            cores_available = len(numa_region.get_type("PU"))
+            if total_requested_cores > cores_available:
+                raise Exception(f"number of cores required {total_requested_cores} exceeds the number available {cores_available}")
 
-        # calculate the number of caches to assign for each thread group, and check this can also be fulfilled. 
-        requested_caches = 0
-        requested_caches_map = []
-        for i in cpu_alloc.maps:
-            n = 0
-            for k, v in i.items():
-                if k == "rte":
-                    n += n_rte
+            # calculate the number of caches to assign for each thread group, and check this can also be fulfilled. 
+            requested_caches = 0
+            requested_caches_map = []
+            for i in cpu_alloc.maps:
+                n = 0
+                for k, v in i.items():
+                    if k == "rte":
+                        n += n_rte
+                    else:
+                        n += v
+                requested_caches_map.append(int(n / pus_per_cache) + (n % pus_per_cache > 0))
+                requested_caches += int(n / pus_per_cache) + (n % pus_per_cache > 0)
+            print(f"{requested_caches=}")
+
+            caches = numa_region.get_type("Cache")
+            if requested_caches > len(caches):
+                raise Exception(f"number of cache domains required ({requested_caches}) exceeded the number available ({len(caches)})")
+
+            # Now find the cache corresponding to the rte workers, and assign the rte worker threads
+            rte_cache = None
+            for t in thread_group["threads"]:
+                if "rte-worker" in t:
+                    pu = int(t.split("-")[-1])
+                    for c in caches:
+                        if pu in [i.id for i in c.get_type("PU")]:
+                            if rte_cache is None:
+                                rte_cache = c
+                    # before assigning the other cores, assign rtes first as these are provided by the configuration
+                    pinning_dict[app]["threads"][t] = str(pu)
+                    core_map.pu.get_id(pu)
+            caches.remove(rte_cache)
+
+            # collect the cores for each cache needed in each thread group
+            groups = []
+            for n, m in zip(requested_caches_map, cpu_alloc.maps):
+                g = []
+                if "rte" in m:
+                    g = [*rte_cache.children] # need to make a new list otherwise the core map will be incorrectly updated.
+                    for i in range(n-1):
+                        g.extend(caches.pop(0).children)
+                    groups.append(g)
                 else:
-                    n += v
-            requested_caches_map.append(int(n / pus_per_cache) + (n % pus_per_cache > 0))
-            requested_caches += int(n / pus_per_cache) + (n % pus_per_cache > 0)
-        print(f"{requested_caches=}")
+                    for i in range(n):
+                        g.extend(caches.pop(0).children)
+                    groups.append(g)
 
-        caches = numa_region.get_type("Cache")
-        if requested_caches > len(caches):
-            raise Exception(f"number of cache domains required ({requested_caches}) exceeded the number available ({len(caches)})")
+            # assign the remaining cores
+            ccps = None
+            for t in thread_group["threads"]:
+                if "rte-worker" in t: # this assignment happens before, as lcores are defined by the configuration
+                    continue
 
-        # Now find the cache corresponding to the rte workers, and assign the rte worker threads
-        rte_cache = None
-        for t in pinning[app]["threads"]:
-            if "rte-worker" in t:
-                pu = int(t.split("-")[-1])
-                for c in caches:
-                    if pu in [i.id for i in c.get_type("PU")]:
-                        if rte_cache is None:
-                            rte_cache = c
-                        else:
-                            if rte_cache.id != c.id:
-                                raise Exception("rte workers should be assigned from the same L3 cache domain!")
-                # before assigning the other cores, assign rtes first as these are provided by the configuration
-                pinning_dict[app]["threads"][t] = str(pu)
-                core_map.pu.get_id(pu)
-        caches.remove(rte_cache)
+                # infer the thread type
+                if ("cleanup" in t) or ("consumer" in t) or ("periodic" in t):
+                    prefix = "ccp"
+                else:
+                    prefix = t.split("-")[0]
 
-        # collect the cores for each cache needed in each thread group
-        groups = []
-        for n, m in zip(requested_caches_map, cpu_alloc.maps):
-            g = []
-            if "rte" in m:
-                g = [*rte_cache.children] # need to make a new list otherwise the core map will be incorrectly updated.
-                for i in range(n-1):
-                    g.extend(caches.pop(0).children)
-                groups.append(g)
-            else:
-                for i in range(n):
-                    g.extend(caches.pop(0).children)
-                groups.append(g)
+                # find the core group this thread type is within
+                cg = [g for g, m in zip(groups, cpu_alloc.maps) if prefix in m]
+                if len(cg) > 1:
+                    raise Exception("cannot have the same thread type in different cache groups.")
+                elif len(cg) == 0:
+                    raise Exception(f"do not know how to assign cores to thread {t}")
+                cg = cg[0]
 
-        # assign the remaining cores
-        ccps = None
-        for t in pinning[app]["threads"]:
-            if "rte-worker" in t: # this assignment happens before, as lcores are defined by the configuration
-                continue
-
-            # infer the thread type
-            if ("cleanup" in t) or ("consumer" in t) or ("periodic" in t):
-                prefix = "ccp"
-            else:
-                prefix = t.split("-")[0]
-
-            # find the core group this thread type is within
-            cg = [g for g, m in zip(groups, cpu_alloc.maps) if prefix in m]
-            if len(cg) > 1:
-                raise Exception("cannot have the same thread type in different cache groups.")
-            elif len(cg) == 0:
-                raise Exception(f"do not know how to assign cores to thread {t}")
-            cg = cg[0]
-
-            if prefix == "ccp": # cleanup, consumer and periodic threads are unique because they are all assigned the same cores
-                if ccps is None:
-                    ccps = assign_cores(core_map, cg, cpu_alloc["ccp"])
-                pinning_dict[app]["threads"][t] = core_list_to_str(ccps)
-            else:
-                pus = assign_cores(core_map, cg, cpu_alloc[prefix])
-                pinning_dict[app]["threads"][t] = core_list_to_str(pus)
-
-        pinning_dict[app]["parent"] = core_list_to_str(ccps)
+                if prefix == "ccp": # cleanup, consumer and periodic threads are unique because they are all assigned the same cores
+                    if ccps is None:
+                        ccps = assign_cores(core_map, cg, cpu_alloc["ccp"])
+                    pinning_dict[app]["threads"][t] = core_list_to_str(ccps)
+                else:
+                    pus = assign_cores(core_map, cg, cpu_alloc[prefix])
+                    pinning_dict[app]["threads"][t] = core_list_to_str(pus)
+                    if prefix == "rawproc":
+                        parents.extend(pus)
+            parents.extend(ccps)
+        pinning_dict[app]["parent"] = core_list_to_str(parents)
     return {"daq_application" : pinning_dict}
 
 
@@ -445,22 +446,24 @@ def main(args = argparse.Namespace):
         print('Warning: CPU has multiple cache boundaries, but only one cache region was requested. Consider using the default resource allocation (remove "resource_allocation" from the template), or define multiple cache regions')
 
     # ! this should be inferred from the oks config
-    pinning = files.read_json(args.template)["daq_application"]
-    print(pinning)
+    pinning_template = files.read_json(args.template)["daq_application"]
+    print(pinning_template)
 
     # pinnig while running
-    pinning = fill_pinning_map_cache(pinning, cpu_resource_allocation, cm)
+    pinning = fill_pinning_map(pinning_template, cpu_resource_allocation, cm)
     print(rule.Rule("CPU pinning running"))
     print(pinning)
 
     # pinning during conf
+
+    print(pinning_template)
+
     pinning_conf = copy.deepcopy(pinning)
     for app in pinning_conf["daq_application"]:
-        if not app[-2:].isalpha():
-            numa = int(app[-1])
-        else:
-            numa = int(app[-2])
-        pinning_conf["daq_application"][app]["parent"] = core_list_to_str(pus_numa[numa])
+        numa_cores = []
+        for tg in pinning_template[app]["thread_group"]:
+            numa_cores.extend(pus_numa[tg["numa"]])
+        pinning_conf["daq_application"][app]["parent"] = core_list_to_str(numa_cores)
     print(rule.Rule("CPU pinning all"))
     print(pinning_conf)
 

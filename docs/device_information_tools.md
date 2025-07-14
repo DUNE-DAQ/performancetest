@@ -691,83 +691,99 @@ and the template looks like:
 {
     "daq_application" : {
         "runp02srv004eth0" : {
-            "numa" : 0,
-            "threads" : [
-                "rte-worker-2",
-                "rte-worker-3",
-                "rte-worker-4",
-                "rte-worker-5",
-        
-                "rawproc-0-1..",
-                "tpproc-0-1..",
-        
-                "cleanup-1..",
-                "consumer-1..",
-                "recording-1..",
-        
-                "cleanup-1.",
-                "consumer-1.",
-                "periodic-1."        
+            "thread_group" : [
+                {
+                    "numa" : 0,
+                    "threads" : [
+                        "rte-worker-2",
+                        "rte-worker-3",
+                        "rte-worker-4",
+                        "rte-worker-5",
+                
+                        "rawproc-0-1..",
+                        "tpproc-0-1..",
+                
+                        "cleanup-1..",
+                        "consumer-1..",
+                        "recording-1..",
+                
+                        "cleanup-1.",
+                        "consumer-1.",
+                        "periodic-1."
+                    ]
+                }
             ]
         },
         "runp02srv004eth1": {
-            "numa" : 1,
-            "threads": [
-                "rte-worker-34",
-                "rte-worker-35",
-                "rte-worker-36",
-                "rte-worker-37",
-    
-                "rawproc-0-2..",
-                "tpproc-0-2..",
-    
-                "cleanup-2..",
-                "consumer-2..",
-                "recording-2..",
-    
-                "cleanup-2.",
-                "consumer-2.",
-                "periodic-2."  
+            "thread_group" : [
+                {
+                    "numa" : 1,
+                    "threads": [
+                        "rte-worker-34",
+                        "rte-worker-35",
+                        "rte-worker-36",
+                        "rte-worker-37",
+            
+                        "rawproc-0-2..",
+                        "tpproc-0-2..",
+            
+                        "cleanup-2..",
+                        "consumer-2..",
+                        "recording-2..",
+            
+                        "cleanup-2.",
+                        "consumer-2.",
+                        "periodic-2."  
+                    ]                    
+                }                
             ]
         },
         "runp02srv004eth2": {
-            "numa" : 2,
-            "threads": [
-                "rte-worker-66",
-                "rte-worker-67",
-                "rte-worker-68",
-                "rte-worker-69",
-    
-                "rawproc-0-3..",
-                "tpproc-0-3..",
-    
-                "cleanup-3..",
-                "consumer-3..",
-                "recording-3..",
-    
-                "cleanup-3.",
-                "consumer-3.",
-                "periodic-3."
+            "thread_group" : [
+                {                    
+                    "numa" : 2,
+                    "threads": [
+                        "rte-worker-66",
+                        "rte-worker-67",
+                        "rte-worker-68",
+                        "rte-worker-69",
+            
+                        "rawproc-0-3..",
+                        "tpproc-0-3..",
+            
+                        "cleanup-3..",
+                        "consumer-3..",
+                        "recording-3..",
+            
+                        "cleanup-3.",
+                        "consumer-3.",
+                        "periodic-3."
+                    ]
+                }
             ]
         },
         "runp02srv004eth3": {
-            "numa" : 3,
-            "threads": [
-                "rte-worker-98",
-                "rte-worker-99",
-                "rte-worker-100",
-                "rte-worker-101",
-    
-                "rawproc-0-4..",
-                "tpproc-0-4..",
-    
-                "cleanup-4..",
-                "consumer-4..",
-                "recording-4..",
-    
-                "cleanup-4.",
-                "consumer-4.",
-                "periodic-4."
+            "thread_group" : [
+                {                    
+                    "numa" : 3,
+                    "threads": [
+                        "rte-worker-98",
+                        "rte-worker-99",
+                        "rte-worker-100",
+                        "rte-worker-101",
+            
+                        "rawproc-0-4..",
+                        "tpproc-0-4..",
+            
+                        "cleanup-4..",
+                        "consumer-4..",
+                        "recording-4..",
+            
+                        "cleanup-4.",
+                        "consumer-4.",
+                        "periodic-4."
+                    ]
+                }
             ]
         }
     },
