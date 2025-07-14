@@ -422,6 +422,8 @@ def fill_pinning_map(pinning : dict, cpu_alloc : ChainMap, core_map : CoreMap) -
                 else:
                     pus = assign_cores(core_map, cg, cpu_alloc[prefix])
                     pinning_dict[app]["threads"][t] = core_list_to_str(pus)
+                    if prefix == "rawproc":
+                        parents.extend(pus)
             parents.extend(ccps)
         pinning_dict[app]["parent"] = core_list_to_str(parents)
     return {"daq_application" : pinning_dict}
