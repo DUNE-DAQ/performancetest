@@ -18,7 +18,7 @@ import argparse
 import copy
 import json
 
-import llc_domain_parser, files
+import llc_domain_parser, files, shell
 
 from collections import ChainMap
 from dataclasses import dataclass
@@ -275,6 +275,15 @@ def core_list_to_str(cores : list[int]) -> str:
     return ",".join(str(c) for c in cores)
 
 
+def get_isolated_cores():
+    out = shell.run("cat /sys/devices/system/cpu/isolated", capture = True, host = args.readout_server).stdout
+    rte_cpus = []
+    for i in out.decode().split(","):
+        int_list = [int(j) for j in i.split("-")]
+        rte_cpus.extend(list(range(min(int_list), max(int_list)+1)))
+    return rte_cpus
+
+
 def get_resource_allocation(template_file : str) -> ChainMap:
     with open(template_file, "r") as f:
         template = json.load(f)
@@ -332,14 +341,22 @@ def fill_pinning_map(pinning : dict, cpu_alloc : ChainMap, core_map : CoreMap) -
     for n in core_map.numa.elements:
         core_map.core.get_id(min([c.id for c in n.get_type("Core")]))
 
+    isolated_cores = get_isolated_cores()
+
     pinning_dict = {k : {"threads" : {}} for k in pinning}
     for app in pinning:
         parents = []
         for thread_group in pinning[app]["thread_group"]:
-            n_rte = len([k for k in thread_group["threads"] if "rte" in k]) # count the number of rte workers for this daq application
-
             for numa_region in core_map.numa.elements: # get the numa region, but do not remove it from the map yet
                 if numa_region.id == thread_group["numa"]: break
+
+            rte_cores = []
+            for i in isolated_cores:
+                if i in [i.id for i in numa_region.get_type("PU")]:
+                    rte_cores.append(i)
+            n_rte = len(rte_cores)
+            if n_rte == 0:
+                print(f"Warning: no isolated cores were found for server {args.readout_server}! Cannot assign rte worker threads.")
 
             # count the total number of cores requested to be assigned to this application, and check it is sensible
             total_requested_cores = n_rte * cpu_alloc["rte"] + sum([v for k, v in cpu_alloc.items() if k != "rte"])
@@ -369,16 +386,15 @@ def fill_pinning_map(pinning : dict, cpu_alloc : ChainMap, core_map : CoreMap) -
 
             # Now find the cache corresponding to the rte workers, and assign the rte worker threads
             rte_cache = None
-            for t in thread_group["threads"]:
-                if "rte-worker" in t:
-                    pu = int(t.split("-")[-1])
-                    for c in caches:
-                        if pu in [i.id for i in c.get_type("PU")]:
-                            if rte_cache is None:
-                                rte_cache = c
-                    # before assigning the other cores, assign rtes first as these are provided by the configuration
-                    pinning_dict[app]["threads"][t] = str(pu)
-                    core_map.pu.get_id(pu)
+
+            for pu in rte_cores:
+                for c in caches:
+                    if pu in [i.id for i in c.get_type("PU")]:
+                        if rte_cache is None:
+                            rte_cache = c
+                # before assigning the other cores, assign rtes first as these are provided by the configuration
+                pinning_dict[app]["threads"][f"rte-worker-{pu}"] = str(pu)
+                core_map.pu.get_id(pu)
             caches.remove(rte_cache)
 
             # collect the cores for each cache needed in each thread group
@@ -427,7 +443,6 @@ def fill_pinning_map(pinning : dict, cpu_alloc : ChainMap, core_map : CoreMap) -
             parents.extend(ccps)
         pinning_dict[app]["parent"] = core_list_to_str(parents)
     return {"daq_application" : pinning_dict}
-
 
 def main(args = argparse.Namespace):
     cm = CoreMap(llc_domain_parser.create_llc_domain_map(args.readout_server))
