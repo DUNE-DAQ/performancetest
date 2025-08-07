@@ -875,15 +875,19 @@ def process_daq_overview_info(data : dict[pd.DataFrame], out : str, test_args : 
     return
 
 
-def proces_message_report(data : dict[pd.DataFrame], out : str, test_args : dict):
-    with plotting.PlotBook(out + "message_reporting") as book:
-        _, ax = plotting.plt.subplots()
-        ax.axis('off')
-        mr = data["Message Reporting"]
-        mr.index = pd.to_datetime(pd.to_datetime(mr.index.values, unit = "s", origin = "unix"))
-        pd.plotting.table(ax, mr, loc='center', cellLoc='center')
-        plotting.add_metadata(test_args, int(data["Global Trigger Rate"].index[0]))
-        book.save()
+def process_message_report(data : dict[pd.DataFrame], out : str, test_args : dict):
+    mr = data["Message Reporting"]
+    if mr.empty:
+        print("Note: no ERS messages were found.")
+        return
+    else:
+        with plotting.PlotBook(out + "message_reporting") as book:
+            _, ax = plotting.plt.subplots()
+            ax.axis('off')
+            mr.index = pd.to_datetime(pd.to_datetime(mr.index.values, unit = "s", origin = "unix"))
+            pd.plotting.table(ax, mr, loc='center', cellLoc='center')
+            plotting.add_metadata(test_args, int(data["Global Trigger Rate"].index[0]))
+            book.save()
     return
 
 
@@ -958,10 +962,12 @@ def analyse_data(test_args : dict):
     simplify_dict_name(node_exporter, def_name)
 
     for k, v in intel_pcm.items():
-        process_cache_info(v, None, out, test_args, k.replace("srv", "-srv-"))
+        if v:
+            process_cache_info(v, None, out, test_args, k.replace("srv", "-srv-"))
 
     for k, v in uprof.items():
-        process_cache_info(None, v, out, test_args, k.replace("srv", "-srv-"))
+        if v:
+            process_cache_info(None, v, out, test_args, k.replace("srv", "-srv-"))
 
     for k, v in node_exporter.items():
         h = k.replace("srv", "-srv-")
@@ -985,7 +991,7 @@ def analyse_data(test_args : dict):
     for d, func in zip(["trigger_primitives", "frontend_ethernet"], [process_tp_info, process_frontend_info]):
         func(data[d], out, readout_plane, test_args)
 
-    for d, func in zip(["readout", "overview", "overview"], [process_readout_info, process_daq_overview_info, proces_message_report]):
+    for d, func in zip(["readout", "overview", "overview"], [process_readout_info, process_daq_overview_info, process_message_report]):
         func(data[d], out, test_args)
     return
 
