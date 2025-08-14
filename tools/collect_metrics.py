@@ -57,8 +57,11 @@ def collect_metrics(args : argparse.Namespace | dict) -> None | dict:
     datasources = harvester.extract_datasources(dashboard_info["grafana_url"], test_args["dunedaq_version"])
 
     # get run time (or time range from arguments)
-    time_range = times.parse_time_range(times.time_range(*test_args["time_range"]))
-    if (time_range.start == 0) and (time_range.end == -1): # default range was provided
+
+    # check if this a relative time range (integers) or a custom, aboslute time range (string, in ddmmyy)
+    # then, if an absolute time range, pass this along in unix time, otherwise, pass the default time range (what is specified in the run)
+    time_range, abs_time = times.parse_time_range(times.time_range(*test_args["time_range"]))
+    if not abs_time:
         time_range = harvester.get_run_time(dashboard_info, test_args["run_number"], test_args["session"], test_args["dunedaq_version"], datasources)
 
     # setup harvester functions

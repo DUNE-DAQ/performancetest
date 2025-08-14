@@ -79,7 +79,7 @@ def relative_time(df : pd.DataFrame) -> pd.Series:
     return time - time[0]
 
 
-def parse_time_range(times : time_range) -> time_range:
+def parse_time_range(times : time_range) -> tuple[time_range, bool]:
     """ Take a time range from a configuration and correctly format it.
         Authors: Shyam Bhuller (University of Oxford), Matthew Man (University of Toronto), Danaisis Vargas Oliva (University of Toronto)
 
@@ -90,12 +90,14 @@ def parse_time_range(times : time_range) -> time_range:
         Exception: type of start and end time (relative or absolute) are not the same.
 
     Returns:
-        time_range: Formatted time range.
+        (time_range, bool): Formatted time range, if the time range is absolute or relative.
     """
     if type(times.start) != type(times.end):
         raise Exception("Time start and time end must be the same type")
-    fmt_times = time_range(*[get_unix_timestamp(i) if (type(i) == str) else i for i in times])
-    return fmt_times
+
+    abs_time = all([(type(i) == str) for i in times])
+    fmt_times = time_range(*[get_unix_timestamp(i) if abs_time else i for i in times])
+    return fmt_times, abs_time
 
 
 def slice_time_range(data : dict[pd.DataFrame], times : time_range) -> dict[pd.DataFrame]:
@@ -116,7 +118,7 @@ def slice_time_range(data : dict[pd.DataFrame], times : time_range) -> dict[pd.D
     Returns:
         dict[pd.DataFrame]: Performance metric Dataframes in the specified time range.
     """    
-    fmt_times = parse_time_range(times)
+    fmt_times, _ = parse_time_range(times)
     for k, df in data.items():
         if len(df.index) < 2: continue
         rt = relative_time(df)
