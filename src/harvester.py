@@ -240,15 +240,20 @@ def parse_result_postgres(response_data : dict, name : str) -> pd.DataFrame:
     Returns:
         pd.DataFrame: Fata in pandas DataFrame.
     """
-    fields = [f["name"] for f in response_data["results"]["host"]["frames"][0]["schema"]["fields"]]
-    values = response_data["results"]["host"]["frames"][0]["data"]["values"]
+    if response_data is None:
+        print(f"No response for postgres query : {name}")
+        data = {}
+    else:
+        fields = [f["name"] for f in response_data["results"]["host"]["frames"][0]["schema"]["fields"]]
+        values = response_data["results"]["host"]["frames"][0]["data"]["values"]
 
-    data = {k : v for k, v in zip(fields, values)}
-    data = pd.DataFrame(data)
-    if not data.empty:
-        data["time"] = data["time"] // 1000 # convert timestamp from ms to s, in order to match the other datasources.
-        data = data.set_index("time")
-    return data
+        data = {k : v for k, v in zip(fields, values)}
+
+    parsed_result = pd.DataFrame(data)
+    if not parsed_result.empty:
+        parsed_result["time"] = parsed_result["time"] // 1000 # convert timestamp from ms to s, in order to match the other datasources.
+        parsed_result = parsed_result.set_index("time")
+    return parsed_result
 
 
 def parse_result_influx(response_data : dict, name : str) -> pd.DataFrame:
@@ -265,6 +270,7 @@ def parse_result_influx(response_data : dict, name : str) -> pd.DataFrame:
     parsed_results = {}
 
     if response_data is None:
+        print(f"No response for influx query : {name}")
         return pd.DataFrame()
 
     if "series" in response_data["results"][0]:
@@ -305,9 +311,10 @@ def parse_result_prometheus(response_data : dict, name : str) -> pd.DataFrame:
     Returns:
         pd.DataFrame: Data in pandas DataFrame.
     """
-    parsed = {}
+    parsed_result = {}
 
     if response_data is None:
+        print(f"No response for prometheus query : {name}")
         return pd.DataFrame()
 
     if len(response_data["data"]["result"]) == 0:
@@ -319,9 +326,9 @@ def parse_result_prometheus(response_data : dict, name : str) -> pd.DataFrame:
             else:
                 key = name + f"_{i}"
             v = np.array(result["values"])
-            parsed["time"] = v[:, 0]
-            parsed[key] = v[:, 1]
-        df = pd.DataFrame(parsed).set_index("time").astype(float)
+            parsed_result["time"] = v[:, 0]
+            parsed_result[key] = v[:, 1]
+        df = pd.DataFrame(parsed_result).set_index("time").astype(float)
         df.set_index(df.index.astype(int), inplace = True)
         return df
 
