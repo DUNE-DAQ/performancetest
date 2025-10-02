@@ -789,11 +789,10 @@ and the template looks like:
     },
     "resource_allocation" : [
         {
-            "rawproc" : 26,
-            "rte" : 1,
-            "recording" : 16,
-            "tpproc" : 4,
-            "ccp" : 12
+            "rawproc" : 13,
+            "recording" : 8,
+            "tpproc" : 2,
+            "ccp" : 6
         }
     ]
 }

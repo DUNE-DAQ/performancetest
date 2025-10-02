@@ -20,7 +20,7 @@ import json
 
 import llc_domain_parser, files, shell
 
-from collections import ChainMap
+from collections import ChainMap, OrderedDict
 from dataclasses import dataclass
 
 from rich import print, rule
@@ -318,7 +318,7 @@ def assign_cores(core_map : CoreMap, cores : list[Element], max_cores : int) -> 
         list[int]: assigned processing units
     """
     pus = []
-    while len(pus) < max_cores:
+    while len(pus) < (2 * max_cores):
         if len(cores) == 0:
             raise Exception("Ran out of cores to assign!")
         next_core = ElementList(cores, core_map).first
@@ -337,14 +337,12 @@ def fill_pinning_map(pinning : dict, cpu_alloc : ChainMap, core_map : CoreMap) -
     Returns:
         dict: Filled pinning map.
     """
-    # calculate the number of allowed pus per cache
-    pus_per_cache = len(core_map.cache.elements[-1].children) * len(core_map.core.elements[-1].children) # true for cache that does not have the first core in each numa, then subtract 1.
-
     # First exclude the first core (first two processing units) in each numa region
     for n in core_map.numa.elements:
         core_map.core.get_id(min([c.id for c in n.get_type("Core")]))
 
     isolated_cores = get_isolated_cores()
+    pu_list = {numa_region.id : [i.id for i in numa_region.get_type("PU")] for numa_region in core_map.numa.elements} # keep a snapshot of the numa/pu assignment
 
     pinning_dict = {k : {"threads" : {}} for k in pinning}
     for app in pinning:
@@ -356,73 +354,85 @@ def fill_pinning_map(pinning : dict, cpu_alloc : ChainMap, core_map : CoreMap) -
 
             rte_cores = []
             for i in isolated_cores:
-                if i in [i.id for i in numa_region.get_type("PU")]:
+                if i in pu_list[numa_region.id]:
                     rte_cores.append(i)
+                    if i in [j.id for j in numa_region.get_type("PU")]:
+                        core_map.pu.get_id(i) # remove the rte pus
             n_rte = len(rte_cores)
             if n_rte == 0:
                 print(f"Warning: no isolated cores were found for server {args.readout_server}! Cannot assign rte worker threads.")
 
             # count the total number of cores requested to be assigned to this application, and check it is sensible
             alloc_rte = cpu_alloc["rte"] if "rte" in cpu_alloc else 0
-            total_requested_processing_units = (n_rte * alloc_rte) + sum([v for k, v in cpu_alloc.items() if k != "rte"])
+            total_requested_processing_units = (n_rte * alloc_rte) + sum([2 * v for k, v in cpu_alloc.items() if k != "rte"])
             print(f"{total_requested_processing_units=}")
 
             processing_units_available = len(numa_region.get_type("PU"))
             if total_requested_processing_units > processing_units_available:
                 raise Exception(f"number of processing units required {total_requested_processing_units} exceeds the number available {processing_units_available}")
 
-            # calculate the number of caches to assign for each thread group, and check this can also be fulfilled. 
-            requested_caches = 0
+            # calculate the number of caches to assign for each thread group, and check this can also be fulfilled.
             requested_caches_map = []
 
-            for i in cpu_alloc.maps:
-                n = 0
-                for k, v in i.items():
-                    if k == "rte":
-                        n += n_rte
-                    else:
-                        n += v
-                n_caches = int(n / pus_per_cache) + (n % pus_per_cache > 0)
-                # print(f"{i, n_caches=}")
-                requested_caches_map.append(n_caches)
-                requested_caches += n_caches
-
             caches = numa_region.get_type("Cache")
-            # reverse sort the caches so that the next thread group uses the one with the highest number of cores
+            available_caches = len(caches)
             len_caches = [len(i.children) for i in caches]
-            caches = sorted(caches, key=lambda c: len_caches[caches.index(c)], reverse = True)
+            caches = sorted(caches, key=lambda c: len_caches[caches.index(c)], reverse = True) # sort cache domains to assign the caches with the highest core count first.
+            caches = {c.id : c for c in caches}
+            # print(caches)
 
-            if requested_caches > len(caches):
-                raise Exception(f"number of cache domains required ({requested_caches}) exceeded the number available ({len(caches)})")
+            for i in cpu_alloc.maps: # over each set of caches, compute the required cores and assign the required number of caches to do so.
+                requried_cores = 0
+                for v in i.values():
+                    requried_cores += v
+
+                n_cache = 0
+                found_caches = []
+                found_cores = 0
+                for cid in list(caches.keys()):
+                    if found_cores >= requried_cores:
+                        break
+                    else:
+                        found_caches.append(caches[cid])
+                        found_cores += len(caches[cid].get_type("Core"))
+                        del caches[cid]
+                        n_cache += 1
+                requested_caches_map.append(found_caches)
+
+            # print(cpu_alloc.maps)
+            # print(requested_caches_map)
+            # print([len(i) for i in requested_caches_map])
+            # print(requested_cores_in_caches_map)
+
+            n_cache = sum([len(i) for i in requested_caches_map])
+            if n_cache > available_caches:
+                raise Exception(f"number of cache domains required ({n_cache}) exceeded the number available ({available_caches})")
 
             if n_rte > 0:
                 # Now find the cache corresponding to the rte workers, and assign the rte worker threads
                 rte_cache = None
 
                 for pu in rte_cores:
-                    for c in caches:
+                    for c in caches.values():
                         if pu in [i.id for i in c.get_type("PU")]:
                             if rte_cache is None:
                                 rte_cache = c
                     # before assigning the other cores, assign rtes first as these are provided by the configuration
                     pinning_dict[app]["threads"][f"rte-worker-{pu}"] = str(pu)
-                    core_map.pu.get_id(pu)
-                caches.remove(rte_cache)
+                if rte_cache in caches:
+                    caches.pop(rte_cache.id)
+                    # caches.remove(rte_cache)
+
 
             # collect the cores for each cache needed in each thread group
             groups = []
             for n, m in zip(requested_caches_map, cpu_alloc.maps):
                 g = []
-                if "rte" in m:
-                    g = [*rte_cache.children] # need to make a new list otherwise the core map will be incorrectly updated.
-                    for i in range(n-1):
-                        g.extend(caches.pop(0).children)
-                    groups.append(g)
-                else:
-                    for i in range(n):
-                        g.extend(caches.pop(0).children)
-                    groups.append(g)
-            print(groups)
+                for cache in n:
+                    g.extend(cache.children)
+                    if cache.id in caches: caches.pop(cache.id)
+                groups.append(g)
+            # print(groups)
 
             # assign the remaining cores
             ccps = None
