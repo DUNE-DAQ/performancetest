@@ -990,9 +990,6 @@ def analyse_data(test_args : dict):
             continue
         process_memory_info(node_exporter.get(k), intel_pcm.get(k), uprof.get(k), out, hw_info[h], test_args, h)
 
-    print(data.keys())
-    exit()
-
     for d, func in zip(["trigger_primitives", "frontend_ethernet"], [process_tp_info, process_frontend_info]):
         if d not in expected_dashboards: continue # if did not expect to collect data from this dashboard, it should not try to process the data (it is not there.)
         func(data[d], out, readout_plane, test_args)
