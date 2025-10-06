@@ -238,7 +238,7 @@ def get_unique_string_elements(strs : list[str], separator : str) -> list[str]:
     return [separator.join(blocks[b] - blocks[b - 1]) for b in range(len(blocks))] # get the unqiue signatrue of the file name    
 
 
-def search_hdf5_data(data_path : str) -> dict[str]:
+def search_hdf5_data(data_path : str, version : str) -> dict[str]:
     """ Search a directory for hdf5 data files that contains the expected words in the filename.
 
     Args:
@@ -249,18 +249,21 @@ def search_hdf5_data(data_path : str) -> dict[str]:
     """
     dashboard_config = files.read_json(f"{os.environ['PERFORMANCE_TEST_PATH']}/config/dashboard_info.json")
     
+    dashboard_names = [f"grafana-{version}-{i}" for i in dashboard_config["dashboard_uid"]]
+
     hdf_files = {}
-    for n in dashboard_config["dashboard_uid"] + ["uprof-pcm", "uprof-power", "node-exporter"]:
+    for n in dashboard_names + ["uprof-pcm", "uprof-power", "node-exporter"]:
+        key_name = n.replace(f"grafana-{version}-", "")
         search_result = search_hdf5(n, data_path)
         if len(search_result) > 1:            
             unique_name = get_unique_string_elements([s.stem for s in search_result], "-")
             for i, j in enumerate(unique_name):
-                hdf_files[n + f"_{j}"] = search_result[i]
+                hdf_files[key_name + f"_{j}"] = search_result[i]
 
         elif len(search_result) == 1:
-            hdf_files[n] = search_result[0]
+            hdf_files[key_name] = search_result[0]
         else:
-            hdf_files[n] = None
+            hdf_files[key_name] = None
     return hdf_files
 
 

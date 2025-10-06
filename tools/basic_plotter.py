@@ -68,8 +68,7 @@ def plot(args : argparse.Namespace, display : bool = False):
     out_dir = utils.make_plot_dir(args) + "basic_plots/"
     os.makedirs(out_dir, exist_ok = True)
 
-    hdf_files = utils.search_hdf5_data(args["data_path"])
-
+    hdf_files = utils.search_hdf5_data(args["data_path"], args["dunedaq_version"])
     blacklist = ["Highest TP rates per channel", "Message Reporting"] # blacklist data that should not be plotted e.g. takes too long or cant be represented in a line plot
 
     for f in hdf_files:

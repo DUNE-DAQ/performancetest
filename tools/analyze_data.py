@@ -910,6 +910,8 @@ def simplify_dict_name(dictionary : dict, default : dict):
 def analyse_data(test_args : dict):
     plotting.set_plot_style()
 
+    expected_dashboards = files.read_json(f"{os.environ['PERFORMANCE_TEST_PATH']}/config/dashboard_info.json")["dashboard_uid"]
+
     pinning_file = shell.search_data_file("cpupin-all-running", test_args["data_path"])
     if len(pinning_file) == 0:
         pinning_file = None
@@ -928,7 +930,7 @@ def analyse_data(test_args : dict):
 
     tr = time_range(*test_args["time_range"])
 
-    data = utils.search_hdf5_data(test_args["data_path"])
+    data = utils.search_hdf5_data(test_args["data_path"], test_args["dunedaq_version"])
     print(data)
 
     for d in data:
@@ -988,10 +990,15 @@ def analyse_data(test_args : dict):
             continue
         process_memory_info(node_exporter.get(k), intel_pcm.get(k), uprof.get(k), out, hw_info[h], test_args, h)
 
+    print(data.keys())
+    exit()
+
     for d, func in zip(["trigger_primitives", "frontend_ethernet"], [process_tp_info, process_frontend_info]):
+        if d not in expected_dashboards: continue # if did not expect to collect data from this dashboard, it should not try to process the data (it is not there.)
         func(data[d], out, readout_plane, test_args)
 
     for d, func in zip(["readout", "overview", "overview"], [process_readout_info, process_daq_overview_info, process_message_report]):
+        if d not in expected_dashboards: continue
         func(data[d], out, test_args)
     return
 
