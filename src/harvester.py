@@ -853,8 +853,11 @@ def uprof_to_df(file : str) -> pd.DataFrame:
             df[k].append(f.split(","))
 
     for k, v in df.items():
-        df[k] = pd.DataFrame(v[1:], columns=v[0])
-        df[k].set_index("Timestamp", inplace = True)
+        if len(df[k]) == 0:
+            df[k] = pd.DataFrame()
+        else:
+            df[k] = pd.DataFrame(v[1:], columns=v[0])
+            df[k].set_index("Timestamp", inplace = True)
 
         # hack to ensure timezones matches the timezone from gafana (timezone of the server).
         tz = datetime.datetime.now(datetime.timezone.utc).astimezone().tzinfo

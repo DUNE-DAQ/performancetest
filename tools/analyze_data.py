@@ -964,11 +964,11 @@ def analyse_data(test_args : dict):
     simplify_dict_name(node_exporter, def_name)
 
     for k, v in intel_pcm.items():
-        if v:
+        if v is not None:
             process_cache_info(v, None, out, test_args, k.replace("srv", "-srv-"))
 
     for k, v in uprof.items():
-        if v:
+        if v is not None:
             process_cache_info(None, v, out, test_args, k.replace("srv", "-srv-"))
 
     for k, v in node_exporter.items():
