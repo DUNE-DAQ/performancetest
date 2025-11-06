@@ -17,6 +17,7 @@ Description: Create a cpu pinning file for a readout server.
 import argparse
 import copy
 import json
+import os
 
 import llc_domain_parser, files, shell
 
@@ -507,7 +508,15 @@ def main(args = argparse.Namespace):
     cm.print()
 
     for p, n in zip([pinning, pinning_conf],["cpupin-all-running.json", "cpupin-all.json"]):
-        files.write_json(n, p)
+        if os.path.isfile(n):
+            # file exists, append/update
+            pin_file = files.read_json(n)
+            for k, v in p["daq_application"].items():
+                pin_file["daq_application"][k] = v
+            files.write_json(n, pin_file)
+        else:
+            files.write_json(n, p)
+        
         print(f"pinning has been written to {n}")
     return
 
