@@ -514,15 +514,15 @@ def main(args = argparse.Namespace):
 if __name__ == "__main__":
     cpu_resource_allocation_default = ChainMap(*[
         {
-            "rawproc" : 16,
+            "rawproc" : 8,
             "rte" : 1
         },
         {
-            "recording" : 6,
+            "recording" : 3,
         },
         {
-            "tpproc" : 2,
-            "ccp" : 6,
+            "tpproc" : 1,
+            "ccp" : 3,
         }
     ])
 
