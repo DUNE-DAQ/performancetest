@@ -990,9 +990,11 @@ def analyse_data(test_args : dict):
             continue
         process_memory_info(node_exporter.get(k), intel_pcm.get(k), uprof.get(k), out, hw_info[h], test_args, h)
 
-    for d, func in zip(["trigger_primitives", "frontend_ethernet"], [process_tp_info, process_frontend_info]):
-        if d not in expected_dashboards: continue # if did not expect to collect data from this dashboard, it should not try to process the data (it is not there.)
-        func(data[d], out, readout_plane, test_args)
+    # for d, func in zip(["trigger_primitives", "frontend_ethernet"], [process_tp_info, process_frontend_info]):
+    #     if d not in expected_dashboards: continue # if did not expect to collect data from this dashboard, it should not try to process the data (it is not there.)
+    #     func(data[d], out, readout_plane, test_args)
+    process_frontend_info(data["frontend_ethernet"], out, readout_plane, test_args)
+    process_tp_info(data["trigger_primitives"] | data["tp_handlers"], out, readout_plane, test_args)
 
     for d, func in zip(["readout", "overview", "overview"], [process_readout_info, process_daq_overview_info, process_message_report]):
         if d not in expected_dashboards: continue
