@@ -143,8 +143,9 @@ async def get_dpdk_vars(cs : aiohttp.ClientSession, url : str, datasource : dict
         dict[str]: Variables and their possible values.
     """
     #* query string is unique to the dashboard
-    query_str = f'SELECT "bytes", application, queue FROM "dunedaq.dpdklibs.opmon.QueueEthXStats" WHERE session = \'{partition}\' AND time >= {time.start}s and time <= {time.end}s'
+    query_str = f'SELECT "bytes", application, element, subelement, queue FROM "dunedaq.dpdklibs.opmon.QueueEthXStats" WHERE session = \'{partition}\' AND time >= {time.start}s and time <= {time.end}s'
     # 'SELECT "bytes", application, queue FROM "dunedaq.dpdklibs.opmon.QueueEthXStats" WHERE session = 'partition' AND time >= 1730819865s and time <= 1730820290s'
+    # query_str_alt = f"SELECT \"ipackets\", application, element, subelement FROM  \"dunedaq.dpdklibs.opmon.EthStats\"  WHERE session = '{partition}' AND time >= {time.start}s and time <= {time.end}s",
 
     response = await queries.query_influx(cs, url, datasource, query_str)
 
@@ -152,7 +153,9 @@ async def get_dpdk_vars(cs : aiohttp.ClientSession, url : str, datasource : dict
 
     values = {
         "application" : values[:, 2],
-        "queue" : values[:, 3],
+        "module" : values[:, 3],
+        "wrapper" : values[:, 4],
+        "queue" : values[:, 5],
     }
     values = {k : np.unique(v) for k, v in values.items()}
 
@@ -162,7 +165,6 @@ async def get_dpdk_vars(cs : aiohttp.ClientSession, url : str, datasource : dict
             rx_queue_num.append(re.findall(r"\d+", i))
 
     values["queue"] = np.array(rx_queue_num).flatten() # replace queues with just the rx variant
-
     return values
 
 
@@ -555,7 +557,7 @@ async def harvest_grafana_data(dashboard : str, session : str, url : str, run_nu
             query_strs = queries.get_queries(panel) # get the query strings from the panel
 
             if len(query_strs) == 0: continue
-            
+
             data_from_panel = {}
             for query_name, query in query_strs.items(): # loop over all queries
                 response_data = await queries.make_query(cs, valid_ds[data_type], url, query, time) # make the query
