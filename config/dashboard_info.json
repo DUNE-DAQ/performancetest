@@ -5,7 +5,8 @@
         "overview",
         "readout",
         "trigger_primitives",
+        "tp_handlers",
         "A_CvwTCWk"
     ],
-    "session" : [null, null, null, null, "np04-daq"]
+    "session" : [null, null, null, null, null, "np04-daq"]
 }

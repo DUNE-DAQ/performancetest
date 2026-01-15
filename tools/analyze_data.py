@@ -724,7 +724,7 @@ def process_frontend_info(data : dict[pd.DataFrame], out : str, readout_plane : 
         print("Warning: no frontend ethernet data was found!")
         return
     start_time = int(rx_throughput.index[0])
-    UDPQueue = namedtuple("UDPQueue", ["application", "queue"])
+    UDPQueue = namedtuple("UDPQueue", ["element", "subelement", "queue"])
     dict_cols = {c : UDPQueue(**ast.literal_eval(c)) for c in rx_throughput.columns}
     rx_throughput = rx_throughput.rename(columns = dict_cols)
 
@@ -735,17 +735,17 @@ def process_frontend_info(data : dict[pd.DataFrame], out : str, readout_plane : 
 
     max_rate_per_stream = ch_per_queue * adc_data_stream_rate_per_ch # B/s
 
-    unique_applications = np.unique([c.application for c in rx_throughput.columns])
+    unique_element = np.unique([c.element for c in rx_throughput.columns])
     unique_queue_num = np.unique([c.queue for c in rx_throughput.columns])
 
-    n_queues_per_app = len(unique_queue_num)
+    n_queues_per_elem = len(unique_queue_num)
 
-    rx_throughput_apps = {}
-    for app in unique_applications:
-        app_queues = sum([rx_throughput[c] for c in rx_throughput.columns if c.application == app])
-        rx_throughput_apps[app] = app_queues
+    rx_throughput_elems = {}
+    for elem in unique_element:
+        app_queues = sum([rx_throughput[c] for c in rx_throughput.columns if c.element == elem])
+        rx_throughput_elems[elem] = app_queues
 
-    rx_throughput_apps = pd.DataFrame(rx_throughput_apps)
+    rx_throughput_elems = pd.DataFrame(rx_throughput_elems)
 
     rx_errors = utils.search_dict(data, "(?=.*RX)(?=.*Error)(?!.*Queue)")
 
@@ -754,8 +754,8 @@ def process_frontend_info(data : dict[pd.DataFrame], out : str, readout_plane : 
     total_errors_dlh = utils.search_dict(data, "Total errors")
 
     with plotting.PlotBook(out + "fe_plots") as book:
-        plotting.plot(times.relative_time(rx_throughput_apps), rx_throughput_apps, rx_throughput_apps.columns, "Time (s)", "RX throughput", autofmt = "B/s")
-        plotting.hline(max_rate_per_stream * n_queues_per_app, "Acceptance data input", autofmt = "B/s", linestyle = "--")
+        plotting.plot(times.relative_time(rx_throughput_elems), rx_throughput_elems, rx_throughput_elems.columns, "Time (s)", "RX throughput", autofmt = "B/s")
+        plotting.hline(max_rate_per_stream * n_queues_per_elem, "Acceptance data input", autofmt = "B/s", linestyle = "--")
         plotting.plt.legend(fontsize="x-small")
         plotting.add_metadata(test_args, start_time)
         book.save()
@@ -990,9 +990,11 @@ def analyse_data(test_args : dict):
             continue
         process_memory_info(node_exporter.get(k), intel_pcm.get(k), uprof.get(k), out, hw_info[h], test_args, h)
 
-    for d, func in zip(["trigger_primitives", "frontend_ethernet"], [process_tp_info, process_frontend_info]):
-        if d not in expected_dashboards: continue # if did not expect to collect data from this dashboard, it should not try to process the data (it is not there.)
-        func(data[d], out, readout_plane, test_args)
+    # for d, func in zip(["trigger_primitives", "frontend_ethernet"], [process_tp_info, process_frontend_info]):
+    #     if d not in expected_dashboards: continue # if did not expect to collect data from this dashboard, it should not try to process the data (it is not there.)
+    #     func(data[d], out, readout_plane, test_args)
+    process_frontend_info(data["frontend_ethernet"], out, readout_plane, test_args)
+    process_tp_info(data["trigger_primitives"] | data["tp_handlers"], out, readout_plane, test_args)
 
     for d, func in zip(["readout", "overview", "overview"], [process_readout_info, process_daq_overview_info, process_message_report]):
         if d not in expected_dashboards: continue
