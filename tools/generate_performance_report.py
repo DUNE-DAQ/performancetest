@@ -35,6 +35,7 @@ def main(args : argparse.Namespace):
 
     if collect: collect_metrics(args)
     test_args = files.read_config(args.file) # reload the config because collect metrics modifies the config
+    shell.run(f"cp {args.file} {test_args['data_path']}") # save a copy of the config to the data path
 
     if test_args["workarea"] is not None:
         with change_git_config(): get_info(test_args["workarea"], test_args["data_path"], test_args["config_repo"])
