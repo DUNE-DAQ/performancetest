@@ -404,9 +404,11 @@ def extract_datasources(url : str, dunedaq_version : str) -> dict:
     """
     datasources = queries.aquery_single(queries.get_datasources, url = url)
     inf_id = get_influx_db_id(dunedaq_version)
+
     valid_datasources = {}
     for d in datasources:
         if (d["id"] == inf_id) or (d["type"] in ["prometheus", "postgres"]):
+            if d["type"] == "postgres" and d["user"] != "ers": continue
             valid_datasources[d["type"]] = d
     return valid_datasources
 
