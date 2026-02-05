@@ -164,16 +164,16 @@ async def make_query(cs : aiohttp.ClientSession, datasource : dict, url : str, q
     """
     response_data = None
 
-    if datasource["type"] == "influxdb":
+    if datasource["typeName"] == "InfluxDB":
         # data for influxdb v1
         response_data = await query_influx(cs, url, datasource, query)
-    elif datasource["type"] == "prometheus":
+    elif datasource["typeName"] == "Prometheus":
         # data for prometheus
         response_data = await query_prometheus(cs, url, datasource, query, time)
-    elif datasource["type"] == "postgres":
+    elif datasource["typeName"] == "PostgreSQL":
         response_data = await query_postgres(cs, url, datasource, query, time)
     else:
-        warn(f"unknown database type: {datasource['type']}")
+        warn(f"unknown database type: {datasource['typeName']}")
 
     return response_data
 
