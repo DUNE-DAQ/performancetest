@@ -407,9 +407,12 @@ def extract_datasources(url : str, dunedaq_version : str) -> dict:
 
     valid_datasources = {}
     for d in datasources:
-        if (d["id"] == inf_id) or (d["type"] in ["prometheus", "postgres"]):
-            if d["type"] == "postgres" and d["user"] != "ers": continue
-            valid_datasources[d["type"]] = d
+        if (d["id"] == inf_id) or (d["typeName"] in ["Prometheus", "PostgreSQL"]):
+            if d["typeName"] == "PostgreSQL":
+                name = "postgres"
+            else:
+                name = d["type"]
+            valid_datasources[name] = d
     return valid_datasources
 
 
