@@ -105,6 +105,24 @@ def hline(v, label : str = None, color = "k", linestyle = "-", autofmt : str = N
     return
 
 
+def vline(v, label : str = None, color = "k", linestyle = "-", autofmt : str = None):
+    """ Draw a vertical line, assigning a value with units to the label.
+
+    Args:
+        v : Value the line represents.
+        label (str, optional): Label of the line. Defaults to None.
+        color (str, optional): Colour of the line. Defaults to "k".
+        linestyle (str, optional): Style of the line. Defaults to "-".
+        autofmt (str, optional): Format the value and label based on the units provided. Defaults to None.
+    """
+    if autofmt:
+        formatter, units = autoscale(v, autofmt, "2f")
+        if label:
+            label += f" ({formatter(v)} {units})"
+    plt.axvline(v, label = label, color = color, linestyle = linestyle)
+    return
+
+
 def autoscale(data : float, units : str, style : str = "2g") -> tuple[FuncFormatter, str]:
     """ Create a formatter to automatically scale units based on provided sample data.
 
@@ -226,7 +244,7 @@ def plot(x, y, label : str, xlabel : str, ylabel : str, newFigure : bool = True,
     return
 
 
-def bar(x, y, xlabel : str, ylabel : str, title : str = None, rotation : int = 0, bar_label : bool = False, horizontal : bool = False, newFigure : bool = True, book : PlotBook = None):
+def bar(x, y, xlabel : str, ylabel : str, title : str = None, rotation : int = 0, bar_label : bool = False, horizontal : bool = False, newFigure : bool = True, book : PlotBook = None, colour : list["str"] | str = None):
     """ Make a bar plot.
 
     Args:
@@ -244,9 +262,9 @@ def bar(x, y, xlabel : str, ylabel : str, title : str = None, rotation : int = 0
     if newFigure: plt.figure()
 
     if horizontal:
-        rect = plt.barh(x, y)
+        rect = plt.barh(x, y, color = colour)
     else:
-        rect = plt.bar(x, y)
+        rect = plt.bar(x, y, color = colour)
 
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
@@ -260,7 +278,7 @@ def bar(x, y, xlabel : str, ylabel : str, title : str = None, rotation : int = 0
             else:
                 bl.append(f"{i:,.3f}")
 
-    if bar_label: plt.bar_label(rect, label_type = "edge", labels = bl, fontsize="x-small")
+    if bar_label: plt.bar_label(rect, label_type = "edge", labels = bl, fontsize = "x-small")
     plt.xticks(rotation = rotation)
     plt.tight_layout()
 
