@@ -104,7 +104,6 @@ def calculate_maximum_memory_bw(hardware_info : str) -> float | None:
         float | None: calculated maximum bandwidth. Returns None if the value cannot be calculted.
     """
     tree = files.read_xml(hardware_info)
-
     n_dimms = 0
     data_width = None
     clock_speed = None
@@ -117,7 +116,11 @@ def calculate_maximum_memory_bw(hardware_info : str) -> float | None:
                 speed = utils.xml_search_elem_name_single(i, "clock")
                 #* assume all DIMMs are the same specifications (they should be...)
                 if width is not None: data_width = int(width.text) # this is in bits
-                if speed is not None: clock_speed = int(speed.text) # this is in Hz
+                #! this output is currently bugged in lshw and affects DDR5 memory https://project.ezix.org/ticket/836
+                # if speed is not None: clock_speed = int(speed.text) # this is in Hz
+                #! instead, get the clock speed from the description for now
+                words = description.text.split(" ")
+                clock_speed = int(words[words.index("MHz") - 1]) * 1E6 # in Hz
     n_channels = n_dimms/2
 
     if not data_width:
