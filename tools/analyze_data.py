@@ -1038,7 +1038,7 @@ def analyse_data(test_args : dict):
         process_memory_info(node_exporter.get(k), intel_pcm.get(k), uprof.get(k), out, hw_info[h], test_args, h)
 
     process_frontend_info(data["frontend_ethernet"], out, readout_plane, test_args)
-    exit()
+
     process_tp_info(data["trigger_primitives"] | data["tp_handlers"], out, readout_plane, test_args)
 
     for d, func in zip(["readout", "overview", "overview"], [process_readout_info, process_daq_overview_info, process_message_report]):
