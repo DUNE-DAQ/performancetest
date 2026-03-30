@@ -34,6 +34,17 @@ readout_plane_values = {
     ReadoutPlane.CRP : ReadoutPlaneValues(num_channels = 3072, adc_sampling_rate = 1.953125E6, adc_size = 14, num_rp_fd = 160, snb_readout_time = 100, readout_window = 4.25, tp_rate = [100, 500], tp_size = 384, max_disk_write = 13.5, num_wibs = 6, num_nics = 8), # max disk write is dependant on the storage device
 }
 
+def sum_over_app(df : pd.DataFrame, app_names : list[str]):
+    merged = {}
+    for i in app_names:
+        for j in df.columns:
+            if i in j:
+                if i not in merged:
+                    merged[i] = df[j]
+                else:
+                    merged[i] = merged[i] + df[j]
+    return pd.DataFrame(merged)
+
 def memory_bw_info_AMD(df : pd.DataFrame) -> pd.DataFrame:
     """ Retreive and format memory bandwidth utilization for AMD servers.
 
@@ -757,6 +768,7 @@ def process_frontend_info(data : dict[pd.DataFrame], out : str, readout_plane : 
 
     unique_element = np.unique([c.element for c in rx_throughput.columns])
     unique_queue_num = np.unique([c.queue for c in rx_throughput.columns])
+    app_names = [i.split("-")[1] for i in unique_element]
 
     n_queues_per_elem = len(unique_queue_num)
     print(f"{n_queues_per_elem=}")
@@ -776,10 +788,25 @@ def process_frontend_info(data : dict[pd.DataFrame], out : str, readout_plane : 
 
     total_errors_dlh = utils.search_dict(data, "Total errors")
 
+    # input + missed = total
+    input_packets = sum_over_app(data["Input Packets"], app_names)
+    input_missed_packets = sum_over_app(data["Input Missed Packets"], app_names)
+    rx_dropped_packets = sum_over_app(data["RX Dropped Packets"], app_names)
+    total_packets = input_packets + input_missed_packets
+
     with plotting.PlotBook(out + "fe_plots") as book:
+
         plotting.plot(times.relative_time(rx_throughput_elems), rx_throughput_elems, rx_throughput_elems.columns, "Time (s)", "RX throughput", autofmt = "B/s")
         plotting.hline(max_rate_per_stream * n_queues_per_elem, "Acceptance data input", autofmt = "B/s", linestyle = "--")
         plotting.plt.legend(fontsize="x-small")
+        plotting.add_metadata(test_args, start_time)
+        book.save()
+
+        plotting.plot(times.relative_time(rx_throughput_elems), input_missed_packets/total_packets, input_missed_packets.columns, "Time (s)", "Missed Packets (%)")
+        plotting.add_metadata(test_args, start_time)
+        book.save()
+
+        plotting.plot(times.relative_time(rx_throughput_elems), rx_dropped_packets/total_packets, rx_dropped_packets.columns, "Time (s)", "Dropped Packets (%)")
         plotting.add_metadata(test_args, start_time)
         book.save()
 
@@ -803,7 +830,10 @@ def process_frontend_info(data : dict[pd.DataFrame], out : str, readout_plane : 
         plotting.add_metadata(test_args, start_time)
         book.save()
 
-        total_errors_dlh = {f"{readout_plane.name} {i}" : v.sum().sum() for i, v in enumerate(total_errors_dlh.values())}
+        total_errors_dlh = {}
+        for k, v in utils.search_dict(data, "Total errors").items():
+            key = [i for i in app_names if i in k][0]
+            total_errors_dlh[key] = v.sum().sum()
         plotting.bar(list(total_errors_dlh.keys()), list(total_errors_dlh.values()), None, "Errors from DLH", bar_label = True)
         plotting.plt.ylim(0)
         plotting.add_metadata(test_args, start_time)
@@ -986,34 +1016,35 @@ def analyse_data(test_args : dict):
     node_exporter = utils.search_dict(data, "node-exporter")
     simplify_dict_name(node_exporter, def_name)
 
-    for k, v in intel_pcm.items():
-        if v is not None:
-            process_cache_info(v, None, out, test_args, k.replace("srv", "-srv-"))
+    # for k, v in intel_pcm.items():
+    #     if v is not None:
+    #         process_cache_info(v, None, out, test_args, k.replace("srv", "-srv-"))
 
-    for k, v in uprof.items():
-        if v is not None:
-            process_cache_info(None, v, out, test_args, k.replace("srv", "-srv-"))
+    # for k, v in uprof.items():
+    #     if v is not None:
+    #         process_cache_info(None, v, out, test_args, k.replace("srv", "-srv-"))
 
-    for k, v in node_exporter.items():
-        h = k.replace("srv", "-srv-")
-        if pinning_file:
-            pf = pinning_file.get(k)
-        else:
-            pf = None
-        process_cpu_info(v, out, test_args, k, pinning_file = pf)
+    # for k, v in node_exporter.items():
+    #     h = k.replace("srv", "-srv-")
+    #     if pinning_file:
+    #         pf = pinning_file.get(k)
+    #     else:
+    #         pf = None
+    #     process_cpu_info(v, out, test_args, k, pinning_file = pf)
 
-        process_disk_info(v, out, readout_plane, test_args, h)
+    #     process_disk_info(v, out, readout_plane, test_args, h)
 
-        process_network_info(v, out, test_args, h)
+    #     process_network_info(v, out, test_args, h)
 
-    for h in test_args["host"]:
-        k = h.replace("-", "")
-        if k not in node_exporter:
-            print(f"Warning: no node exporter data captured for {h}")
-            continue
-        process_memory_info(node_exporter.get(k), intel_pcm.get(k), uprof.get(k), out, hw_info[h], test_args, h)
+    # for h in test_args["host"]:
+    #     k = h.replace("-", "")
+    #     if k not in node_exporter:
+    #         print(f"Warning: no node exporter data captured for {h}")
+    #         continue
+    #     process_memory_info(node_exporter.get(k), intel_pcm.get(k), uprof.get(k), out, hw_info[h], test_args, h)
 
     process_frontend_info(data["frontend_ethernet"], out, readout_plane, test_args)
+    exit()
     process_tp_info(data["trigger_primitives"] | data["tp_handlers"], out, readout_plane, test_args)
 
     for d, func in zip(["readout", "overview", "overview"], [process_readout_info, process_daq_overview_info, process_message_report]):
