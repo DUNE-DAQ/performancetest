@@ -782,12 +782,6 @@ def process_frontend_info(data : dict[pd.DataFrame], out : str, readout_plane : 
 
     rx_throughput_elems = pd.DataFrame(rx_throughput_elems)
 
-    rx_errors = utils.search_dict(data, "(?=.*RX)(?=.*Error)(?!.*Queue)")
-
-    rx_dropped_frames = utils.search_dict(data, "RX Dropped Frames")
-
-    total_errors_dlh = utils.search_dict(data, "Total errors")
-
     # input + missed = total
     input_packets = sum_over_app(data["Input Packets"], app_names)
     input_missed_packets = sum_over_app(data["Input Missed Packets"], app_names)
@@ -816,7 +810,7 @@ def process_frontend_info(data : dict[pd.DataFrame], out : str, readout_plane : 
         plotting.add_metadata(test_args, start_time)
         book.save()
 
-        total_errors = {k : v.sum(axis=0) for k,v in rx_errors.items()}
+        total_errors = {k : v.sum(axis=0) for k,v in utils.search_dict(data, "(?=.*RX)(?=.*Error)(?!.*Queue)").items()}
         label =  [f"{readout_plane.name} {i}" for i, _ in enumerate(list(total_errors.values())[0].index)]
         for k, v in total_errors.items():
             plotting.bar(label, v.values, None, k, bar_label = True)
@@ -824,7 +818,7 @@ def process_frontend_info(data : dict[pd.DataFrame], out : str, readout_plane : 
             plotting.add_metadata(test_args, start_time, False)
             book.save()
 
-        total_dropped_frames = {f"{readout_plane.name} {i}" : v.sum().sum() for i, v in enumerate(rx_dropped_frames.values())}
+        total_dropped_frames = {f"{readout_plane.name} {i}" : v.sum().sum() for i, v in enumerate(utils.search_dict(data, "RX Dropped Frames").values())}
         plotting.bar(list(total_dropped_frames.keys()), list(total_dropped_frames.values()), None, "RX Dropped Frames", bar_label = True)
         plotting.plt.ylim(0)
         plotting.add_metadata(test_args, start_time)
@@ -1016,32 +1010,32 @@ def analyse_data(test_args : dict):
     node_exporter = utils.search_dict(data, "node-exporter")
     simplify_dict_name(node_exporter, def_name)
 
-    # for k, v in intel_pcm.items():
-    #     if v is not None:
-    #         process_cache_info(v, None, out, test_args, k.replace("srv", "-srv-"))
+    for k, v in intel_pcm.items():
+        if v is not None:
+            process_cache_info(v, None, out, test_args, k.replace("srv", "-srv-"))
 
-    # for k, v in uprof.items():
-    #     if v is not None:
-    #         process_cache_info(None, v, out, test_args, k.replace("srv", "-srv-"))
+    for k, v in uprof.items():
+        if v is not None:
+            process_cache_info(None, v, out, test_args, k.replace("srv", "-srv-"))
 
-    # for k, v in node_exporter.items():
-    #     h = k.replace("srv", "-srv-")
-    #     if pinning_file:
-    #         pf = pinning_file.get(k)
-    #     else:
-    #         pf = None
-    #     process_cpu_info(v, out, test_args, k, pinning_file = pf)
+    for k, v in node_exporter.items():
+        h = k.replace("srv", "-srv-")
+        if pinning_file:
+            pf = pinning_file.get(k)
+        else:
+            pf = None
+        process_cpu_info(v, out, test_args, k, pinning_file = pf)
 
-    #     process_disk_info(v, out, readout_plane, test_args, h)
+        process_disk_info(v, out, readout_plane, test_args, h)
 
-    #     process_network_info(v, out, test_args, h)
+        process_network_info(v, out, test_args, h)
 
-    # for h in test_args["host"]:
-    #     k = h.replace("-", "")
-    #     if k not in node_exporter:
-    #         print(f"Warning: no node exporter data captured for {h}")
-    #         continue
-    #     process_memory_info(node_exporter.get(k), intel_pcm.get(k), uprof.get(k), out, hw_info[h], test_args, h)
+    for h in test_args["host"]:
+        k = h.replace("-", "")
+        if k not in node_exporter:
+            print(f"Warning: no node exporter data captured for {h}")
+            continue
+        process_memory_info(node_exporter.get(k), intel_pcm.get(k), uprof.get(k), out, hw_info[h], test_args, h)
 
     process_frontend_info(data["frontend_ethernet"], out, readout_plane, test_args)
     exit()
