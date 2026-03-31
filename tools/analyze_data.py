@@ -758,7 +758,17 @@ def process_frontend_info(data : dict[pd.DataFrame], out : str, readout_plane : 
         return
     start_time = int(rx_throughput.index[0])
     UDPQueue = namedtuple("UDPQueue", ["element", "subelement", "queue"])
-    dict_cols = {c : UDPQueue(**ast.literal_eval(c)) for c in rx_throughput.columns}
+
+    dict_cols = {}
+    old_fmt = False
+    for c in rx_throughput.columns:
+        literal = ast.literal_eval(c)
+        if "application" in literal: # this is older style of frontend data, so it needs to be reformatted
+            literal["element"] = literal.pop("application")
+            literal["subelement"] = None # did not exist in old format
+            old_fmt = True
+        dict_cols[c] = UDPQueue(**literal)
+    # dict_cols = {c : UDPQueue(**ast.literal_eval(c)) for c in rx_throughput.columns}
     rx_throughput = rx_throughput.rename(columns = dict_cols)
 
     rp = readout_plane_values[readout_plane]
@@ -771,7 +781,10 @@ def process_frontend_info(data : dict[pd.DataFrame], out : str, readout_plane : 
 
     unique_element = np.unique([c.element for c in rx_throughput.columns])
     unique_queue_num = np.unique([c.queue for c in rx_throughput.columns])
-    app_names = [i.split("-")[1] for i in unique_element]
+    if old_fmt:
+        app_names = [i.element for i in dict_cols.values()]
+    else:
+        app_names = [i.split("-")[1] for i in unique_element]
 
     n_queues_per_elem = len(unique_queue_num)
     print(f"{n_queues_per_elem=}")
@@ -799,13 +812,16 @@ def process_frontend_info(data : dict[pd.DataFrame], out : str, readout_plane : 
         plotting.add_metadata(test_args, start_time)
         book.save()
 
-        plotting.plot(times.relative_time(rx_throughput_elems), input_missed_packets/total_packets, input_missed_packets.columns, "Time (s)", "Missed Packets (%)")
-        plotting.add_metadata(test_args, start_time)
-        book.save()
+        if len(input_missed_packets) > 0:
+            plotting.plot(times.relative_time(input_missed_packets), input_missed_packets/total_packets, input_missed_packets.columns, "Time (s)", "Missed Packets (%)")
+            plotting.add_metadata(test_args, start_time)
+            book.save()
 
-        plotting.plot(times.relative_time(rx_throughput_elems), rx_dropped_packets/total_packets, rx_dropped_packets.columns, "Time (s)", "Dropped Packets (%)")
-        plotting.add_metadata(test_args, start_time)
-        book.save()
+            plotting.plot(times.relative_time(input_missed_packets), rx_dropped_packets/total_packets, rx_dropped_packets.columns, "Time (s)", "Dropped Packets (%)")
+            plotting.add_metadata(test_args, start_time)
+            book.save()
+        else:
+            print("Note: no missing/dropped packe info was found.")
 
         plotting.plot(times.relative_time(rx_throughput), rx_throughput, None, "Time (s)", "RX throughput", autofmt = "B/s")
         plotting.hline(max_rate_per_stream, "Acceptance data input", autofmt = "B/s", linestyle = "--")
@@ -1042,7 +1058,9 @@ def analyse_data(test_args : dict):
 
     process_frontend_info(data["frontend_ethernet"], out, readout_plane, test_args)
 
-    process_tp_info(data["trigger_primitives"] | data["tp_handlers"], out, readout_plane, test_args)
+    tph = data["tp_handlers"]
+    if tph is None: tph = {} # tp_handler dashboard did not exist in old grafana format
+    process_tp_info(data["trigger_primitives"] | tph, out, readout_plane, test_args)
 
     for d, func in zip(["readout", "overview", "overview"], [process_readout_info, process_daq_overview_info, process_message_report]):
         if d not in expected_dashboards: continue
