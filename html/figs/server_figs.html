@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Performance Report Summary Plots</title>
+  <style>
+    .container {
+      display: flex;
+      gap: 20px;
+      justify-content: center;
+      align-items: flex-start;
+    }
+
+    figure {
+      width: 50%;
+      margin: 0;
+      text-align: center;
+    }
+
+    img {
+      max-width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    figcaption {
+      margin-top: 8px;
+      font-size: 14px;
+      color: #555;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <figure>
+      <img src=&cpu_plots_thread alt="Description of image 1">
+      <figcaption> Mean CPU utlization for each thread on the readout applications for the current run. Threads are colour coded based on type. </figcaption>
+    </figure>
+
+    <figure>
+      <img src=&cpu_plots_total alt="Description of image 2">
+      <figcaption> Total CPU utilization across both sockets, repesented as percentiles, minimum and maximum utlization. </figcaption>
+    </figure>
+  </div>
+
+  <div class="container">
+    <figure>
+      <img src=&cache_plots_l2_cache alt="Description of image 1">
+      <figcaption> L2 Cache utilization for hits and misses for both sockets. </figcaption>
+    </figure>
+
+    <figure>
+      <img src=&cache_plots_l3_cache alt="Description of image 2">
+      <figcaption> L3 Cache utilization for hits and misses for both sockets. </figcaption>
+    </figure>
+  </div>
+
+  <div class="container">
+    <figure>
+      <img src=&memory_plots_usage alt="Description of image 1">
+      <figcaption> Total Memory usage of the system. </figcaption>
+    </figure>
+
+    <figure>
+      <img src=&memory_plots_bandwidth alt="Description of image 2">
+      <figcaption> Memory bandwitch utlization for both sockets for read and write actions. </figcaption>
+    </figure>
+  </div>
+
+  <div class="container">
+    <figure>
+      <img src=&disk_plots_rate alt="Description of image 1">
+      <figcaption> Maximum Disk write rates for SNB tests. Rates are shown both for the individual NVMes and raid 0 configurtaions (labelled mdXYZ). </figcaption>
+    </figure>
+
+    <figure>
+      <img src=&disk_plots_total alt="Description of image 2">
+      <figcaption> Total data written to disk for SNB tests. Data written is shown both for the individual NVMes and raid 0 configurtaions (labelled mdXYZ). </figcaption>
+    </figure>
+  </div>
+
+</body>
+</html>

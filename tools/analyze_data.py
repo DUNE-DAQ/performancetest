@@ -23,6 +23,8 @@ import pandas as pd
 
 from rich import print
 
+np.seterr(divide='ignore', invalid='ignore')
+
 class ReadoutPlane(Enum):
     APA = 4
     CRP = 2
@@ -110,7 +112,7 @@ def calculate_maximum_memory_bw(hardware_info : str) -> float | None:
     for i in utils.xml_search_elem(tree, "class", "memory"):
         if "bank" in i.attrib["id"]: # this is a DIMM
             description = utils.xml_search_elem_name_single(i, "description")
-            if description.text != '[empty]': # DIMM is populated
+            if '[empty]' not in description.text: # DIMM is populated
                 n_dimms += 1
                 width = utils.xml_search_elem_name_single(i, "width")
                 speed = utils.xml_search_elem_name_single(i, "clock")
@@ -1043,7 +1045,7 @@ def analyse_data(test_args : dict):
             pf = pinning_file.get(k)
         else:
             pf = None
-        process_cpu_info(v, out, test_args, k, pinning_file = pf)
+        process_cpu_info(v, out, test_args, h, pinning_file = pf)
 
         process_disk_info(v, out, readout_plane, test_args, h)
 

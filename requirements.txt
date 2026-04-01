@@ -8,3 +8,4 @@ weasyprint==67.0
 jupyter==1.1.1
 ipympl==0.9.6
 aiohttp==3.11.16
+pymupdf

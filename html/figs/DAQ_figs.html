@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Performance Report Summary Plots</title>
+  <style>
+    .container {
+      display: flex;
+      gap: 20px;
+      justify-content: center;
+      align-items: flex-start;
+    }
+
+    figure {
+      width: 50%;
+      margin: 0;
+      text-align: center;
+    }
+
+    img {
+      max-width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    figcaption {
+      margin-top: 8px;
+      font-size: 14px;
+      color: #555;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <figure>
+      <img src=&fe_plots_throughput alt="Description of image 1">
+      <figcaption> Throughput from the NICs reading data from the detector for each application. </figcaption>
+    </figure>
+
+    <figure>
+      <img src=&tp_plots_rate alt="Description of image 1">
+      <figcaption> Total TPG rate produced and sent by the readout applications on the system. </figcaption>
+    </figure>
+  </div>
+
+  <div class="container">
+    <figure>
+      <img src=&fe_plots_missed alt="Description of image 1">
+      <figcaption> Percentage of packets missed by the receivers on the NIC. </figcaption>
+    </figure>
+
+    <figure>
+      <img src=&fe_plots_dropped alt="Description of image 2">
+      <figcaption> Percentage of packets dropped by the worker threads in the data reception. </figcaption>
+    </figure>
+  </div>
+
+
+</body>
+</html>
+<!-- <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>2x2 Figure Grid</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      padding: 10px;
+    }
+
+    figure {
+      margin: 0;
+    }
+
+    figure img {
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      object-fit: cover;
+      display: block;
+    }
+
+    figcaption {
+      margin-top: 8px;
+      font-size: 14px;
+      color: #555;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="grid">
+    <figure>
+      <img src=&fe_plots_missed alt="Description of image 1">
+      <figcaption> Percentage of packets missed by the receivers on the NIC. </figcaption>
+    </figure>
+
+    <figure>
+      <img src=&fe_plots_dropped alt="Description of image 2">
+      <figcaption> Percentage of packets dropped by the worker threads in the data reception. </figcaption>
+    </figure>
+
+    <figure>
+      <img src=&fe_plots_throughput alt="Description of image 1">
+      <figcaption> Throughput from the NICs reading data from the detector for each application. </figcaption>
+    </figure>
+
+    <figure>
+      <img src=&tp_plots_rate alt="Description of image 1">
+      <figcaption> Total TPG rate produced and sent by the readout applications on the system. </figcaption>
+    </figure>
+  </div>
+
+</body>
+</html> -->

@@ -439,7 +439,7 @@ def setup_daq_harvesters(dashboard_info : dict[str], run_number : int, hosts : l
     for dashboard, session in zip(dashboard_info["dashboard_uid"], dashboard_info["session"]):
         if dashboard == "A_CvwTCWk": # Intel PCM dashboard, should be run per server
             for h in hosts:
-                args.append([harvest_grafana_data, [dashboard, session, url, run_number, h, time, datasources, ds_parser, output_file + f'-{h.replace("-", "")}', out_dir]])
+                args.append([harvest_grafana_data, [f"{args['dunedaq_version']}-{dashboard}", session, url, run_number, h, time, datasources, ds_parser, output_file + f'-{h.replace("-", "")}', out_dir]])
         else:
             args.append([harvest_grafana_data, [dashboard, session, url, run_number, hosts[0], time, datasources, ds_parser, output_file, out_dir]])
     return args

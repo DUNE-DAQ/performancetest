@@ -14,9 +14,60 @@ import files, shell, utils
 import workarea_info
 
 import weasyprint
+import pymupdf
 
 from rich import print
 
+plot_to_extract = {
+    "cache_plots" : {"l2_cache" : 1, "l3_cache" : 3},
+    "cpu_plots" : {"thread" : 5, "total" : 10},
+    "disk_plots" : {"rate" : 4, "total" : 5},
+    "fe_plots" : {"throughput" : 0, "missed" : 1, "dropped" : 2},
+    "memory_plots" : {"usage" : 0, "bandwidth" : 1},
+    "tp_plots" : {"rate" : 0},
+}
+
+def extract_image(file_path : str, out_path : str, pages : dict[str, int], zoom : float = 5, prefix : str = "page"):
+    doc = pymupdf.open(file_path)  # open document
+
+    files = {}
+    for k, v in pages.items():
+        try:
+            page = doc.load_page(v)
+        except ValueError:
+            print(f"could not extract image of plot: {k} in {prefix}")
+            continue
+        mat = pymupdf.Matrix(zoom, zoom)  # zoom factor to increase resolution
+        pix = page.get_pixmap(matrix=mat)  # convert page to pixel map
+        fp = f"{out_path}/{prefix}_{k}.png"
+        pix.save(fp) # save to png
+        files[f"{prefix}_{k}"] = fp
+    return files
+
+
+def search_plots(args : dict):
+    if args["plot_path"] is None:
+        args["plot_path"] = utils.make_plot_dir(args)
+
+    report_out = args["plot_path"] + "/report_plots/"
+    os.makedirs(args["plot_path"] + "/report_plots/", exist_ok = True)
+
+    plot_file_list = [p for p in pathlib.Path(args["plot_path"]).glob("**/*.pdf")]
+
+    extracted_files_map = {"daq" : {}} | {h : {} for h in args["host"]}
+    for p in plot_file_list:
+        for k, v in plot_to_extract.items():
+            if k in p.name:
+                for h in args["host"]:
+                    if h in p.stem:
+                        dest = h
+                    else:
+                        dest = "daq"
+                files = extract_image(p, report_out, v, prefix = p.stem)
+                extracted_files_map[dest] = extracted_files_map[dest] | files
+                # dest[key] = extract_image(p, "test", v, prefix = p.stem)
+
+    return extracted_files_map
 
 def create_urls(args : dict) -> dict:
     """ Create cernbox urls for the files in the performance report directory.
@@ -36,8 +87,10 @@ def create_urls(args : dict) -> dict:
         print(v)
         for p in pathlib.Path(v).glob("**/*"):
             print(p)
-            link = utils.make_public_link(head_name + f"/{k}/" + str(p).split(args["plot_path"])[-1])
-            urls[k][p.name] = link
+            if p.is_file:
+                if p.suffix == ".png": continue
+                link = utils.make_public_link(head_name + f"/{k}/" + str(p).split(args["plot_path"])[-1])
+                urls[k][p.name] = link
 
     print(urls)
 
@@ -153,9 +206,30 @@ def performance_report(test_args : dict):
 
     html = html.replace("&environment", environment)
 
+    ### Summary Plots
+    fig_map = search_plots(test_args)
+
+    print(fig_map)
+
+    html += "<h1>Performance Report Summary Plots</h1>"
+
+    html += html_to_str(os.environ["PERFORMANCE_TEST_PATH"] + "/html/figs/DAQ_figs.html")
+
+    for k, v in fig_map["daq"].items():
+        html = html.replace(f"&{k}", str(pathlib.Path(v).absolute()))
+
+    fig_map.pop("daq")
+    for k, v in fig_map.items():
+        html_srv = html_to_str(os.environ["PERFORMANCE_TEST_PATH"] + "/html/figs/server_figs.html")
+        for k1, v1 in v.items():
+            search_term = "&" + k1.replace(f"_{k}", "")
+            html_srv = html_srv.replace(search_term, str(pathlib.Path(v1).absolute()))
+        html += html_srv
+    # weasyprint.HTML(string = html, base_url="/").write_pdf("test.pdf")
+
     file_path = str(utils.test_path(test_args)) + "/" + f"performance_report-run{run}.pdf"
 
-    weasyprint.HTML(string = html).write_pdf(file_path)
+    weasyprint.HTML(string = html, base_url="/").write_pdf(file_path)
 
     print(f"performance report written to {file_path}")
     return
