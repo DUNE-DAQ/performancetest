@@ -29,11 +29,11 @@ class ReadoutPlane(Enum):
     APA = 4
     CRP = 2
 
-ReadoutPlaneValues = namedtuple("ReadoutPlaneValues", ["num_channels", "adc_sampling_rate", "adc_size", "num_rp_fd", "snb_readout_time", "readout_window", "tp_rate", "tp_size", "max_disk_write", "num_wibs", "num_nics"])
+ReadoutPlaneValues = namedtuple("ReadoutPlaneValues", ["num_channels", "adc_sampling_rate", "adc_size", "num_rp_fd", "snb_readout_time", "readout_window", "tp_rate", "tp_size", "max_disk_write", "num_wibs", "num_nics", "channels_per_queue"])
 
 readout_plane_values = {
-    ReadoutPlane.APA : ReadoutPlaneValues(num_channels = 2560, adc_sampling_rate = 1.953125E6, adc_size = 14, num_rp_fd = 150, snb_readout_time = 100, readout_window = 2.6, tp_rate = [100, 500], tp_size = 384, max_disk_write = 12, num_wibs = 5, num_nics = 8),
-    ReadoutPlane.CRP : ReadoutPlaneValues(num_channels = 3072, adc_sampling_rate = 1.953125E6, adc_size = 14, num_rp_fd = 160, snb_readout_time = 100, readout_window = 4.25, tp_rate = [100, 500], tp_size = 384, max_disk_write = 13.5, num_wibs = 6, num_nics = 8), # max disk write is dependant on the storage device
+    ReadoutPlane.APA : ReadoutPlaneValues(num_channels = 2560, adc_sampling_rate = 1.953125E6, adc_size = 14, num_rp_fd = 150, snb_readout_time = 100, readout_window = 2.6, tp_rate = [100, 500], tp_size = 384, max_disk_write = 12, num_wibs = 5, num_nics = 8, channels_per_queue = 256),
+    ReadoutPlane.CRP : ReadoutPlaneValues(num_channels = 3072, adc_sampling_rate = 1.953125E6, adc_size = 14, num_rp_fd = 160, snb_readout_time = 100, readout_window = 4.25, tp_rate = [100, 500], tp_size = 384, max_disk_write = 13.5, num_wibs = 6, num_nics = 8, channels_per_queue = 256), # max disk write is dependant on the storage device
 }
 
 def sum_over_app(df : pd.DataFrame, app_names : list[str]):
@@ -770,35 +770,33 @@ def process_frontend_info(data : dict[pd.DataFrame], out : str, readout_plane : 
             literal["subelement"] = None # did not exist in old format
             old_fmt = True
         dict_cols[c] = UDPQueue(**literal)
-    # dict_cols = {c : UDPQueue(**ast.literal_eval(c)) for c in rx_throughput.columns}
     rx_throughput = rx_throughput.rename(columns = dict_cols)
 
     rp = readout_plane_values[readout_plane]
 
     adc_data_stream_rate_per_ch = rp.adc_size * rp.adc_sampling_rate / 8 # B/s
-    ch_per_queue = 64 # is this hardcoded or configurable in the DAQ?
 
-    max_rate_per_stream = ch_per_queue * adc_data_stream_rate_per_ch # B/s
-    print(f"{max_rate_per_stream=}")
+    max_rate_per_stream = rp.channels_per_queue * adc_data_stream_rate_per_ch # B/s
 
     unique_element = np.unique([c.element for c in rx_throughput.columns])
-    unique_queue_num = np.unique([c.queue for c in rx_throughput.columns])
     if old_fmt:
         app_names = [i.element for i in dict_cols.values()]
     else:
         app_names = [i.split("-")[1] for i in unique_element]
 
-    n_queues_per_elem = len(unique_queue_num)
-    print(f"{n_queues_per_elem=}")
-
-    print(f"{max_rate_per_stream*n_queues_per_elem=}")
 
     rx_throughput_elems = {}
+    queue_nums = []
     for elem in unique_element:
-        app_queues = sum([rx_throughput[c] for c in rx_throughput.columns if c.element == elem])
-        rx_throughput_elems[elem] = app_queues
+        app_queues = [rx_throughput[c] for c in rx_throughput.columns if c.element == elem]
+        queue_nums.append(len(app_queues))
+        rx_throughput_elems[elem] = sum(app_queues)
 
     rx_throughput_elems = pd.DataFrame(rx_throughput_elems)
+
+    if len(queue_nums) > 1:
+        print("Warning: rx queue number for applications differ, will use the first to calculate expected rate.")
+    n_queues_per_elem = queue_nums[0]
 
     # input + missed = total
     input_packets = sum_over_app(data["Input Packets"], app_names)
