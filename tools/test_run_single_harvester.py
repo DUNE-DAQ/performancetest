@@ -45,7 +45,7 @@ def main(args : argparse.Namespace):
         time_range = harvester.get_run_time(dashboard_info, test_args["run_number"], test_args["session"], test_args["dunedaq_version"], datasources)
 
     # setup harvester functions
-    harvesters = harvester.setup_daq_harvesters(dashboard_info, test_args["run_number"], test_args["host"], time_range, name, out_dir, datasources)
+    harvesters = harvester.setup_daq_harvesters(dashboard_info, test_args["dunedaq_version"], test_args["run_number"], test_args["host"], time_range, name, out_dir, datasources)
 
     # harvester.extract_data(harvesters) # extract the data in parallel
     harvester.run_harvester(harvesters[0][0], harvesters[0][1])

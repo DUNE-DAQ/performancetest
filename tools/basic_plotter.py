@@ -21,9 +21,10 @@ class plotter(plotting.PlotEngine):
     """ Class for handling resource utilization plotting.
         Authors: Shyam Bhuller (University of Oxford)
     """
-    def __init__(self, metrics, data, test_args, host : str | None = None):
+    def __init__(self, metrics, data, test_args, host : str | None = None, time_unit = 1):
         self.test_args = test_args
         self.host = host
+        self.time_unit = time_unit
         super().__init__(metrics, data)
 
 
@@ -54,7 +55,7 @@ class plotter(plotting.PlotEngine):
                 v = df[c].astype(float)
             except:
                 v = df[c]
-            plotting.plot(times.relative_time(df), v, c if make_labels else None, tlabel, metric, False)
+            plotting.plot(self.time_unit * times.relative_time(df), v, c if make_labels else None, tlabel, metric, False)
             plotting.add_metadata(self.test_args, int(df.index[0]), False, self.host)
         plotting.plt.ylim(0, 1.1 * max(plotting.plt.gca().get_ylim()))
 
@@ -77,8 +78,10 @@ def plot(args : argparse.Namespace, display : bool = False):
         if hdf_files[f] is None: continue
 
         if any([i in f for i in ["A_CvwTCWk", "uprof-pcm", "uprof-power", "node-exporter"]]):
+            time_unit = 1#s
             host = f.split("_")[-1].replace("srv", "-srv-")
         else:
+            time_unit = 0.1#s
             host = None
 
         data = files.read_hdf5(hdf_files[f])
@@ -93,7 +96,7 @@ def plot(args : argparse.Namespace, display : bool = False):
                 values[k] = data[k].to_frame()
             else:
                 values[k] = data[k]
-        plt = plotter(keys, values, args, host)
+        plt = plotter(keys, values, args, host, time_unit)
 
 
         if display is False:

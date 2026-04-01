@@ -78,7 +78,7 @@ def get_run_time(dashboard_info : dict[str], run_number : int, test_session : st
     response = queries.aquery_single(queries.query_influx, url = url, datasource = datasources["influxdb"], query_str = query_str)
     values = np.array(response["results"][0]["series"][0]["values"])
     t = values[values[:, 1].astype(int) == run_number][:, 0] # select times for the given run number
-    utimes = times.dt_to_unix_array([t[0], t[-1]]).values # get the unix time for start and end times
+    utimes = times.dt_to_unix_array([t[0], t[-1]], "1s").values # get the unix time for start and end times
 
     return time_range(start = min(utimes), end =max(utimes))
 
@@ -416,11 +416,12 @@ def extract_datasources(url : str, dunedaq_version : str) -> dict:
     return valid_datasources
 
 
-def setup_daq_harvesters(dashboard_info : dict[str], run_number : int, hosts : list[str], time : times.time_range, output_file : str, out_dir : str, datasources : dict) -> list[callable, list]:
+def setup_daq_harvesters(dashboard_info : dict[str], dunedaq_version : str, run_number : int, hosts : list[str], time : times.time_range, output_file : str, out_dir : str, datasources : dict) -> list[callable, list]:
     """ Prepare the arguments for harvesting daq dashboards.
 
     Args:
         dashboard_info (dict[str]): Dictionary of daq dashboards to extact data from.
+        dunedaq_version (str): dunedaq version.
         run_number (int): Run number of test.
         hosts (list[str]): Hosts to extract performance metrics for (Intel PCM).
         time (times.time_range): Time range of the test.
@@ -439,7 +440,7 @@ def setup_daq_harvesters(dashboard_info : dict[str], run_number : int, hosts : l
     for dashboard, session in zip(dashboard_info["dashboard_uid"], dashboard_info["session"]):
         if dashboard == "A_CvwTCWk": # Intel PCM dashboard, should be run per server
             for h in hosts:
-                args.append([harvest_grafana_data, [f"{args['dunedaq_version']}-{dashboard}", session, url, run_number, h, time, datasources, ds_parser, output_file + f'-{h.replace("-", "")}', out_dir]])
+                args.append([harvest_grafana_data, [dashboard, session, url, run_number, h, time, datasources, ds_parser, output_file + f'-{h.replace("-", "")}', out_dir]])
         else:
             args.append([harvest_grafana_data, [dashboard, session, url, run_number, hosts[0], time, datasources, ds_parser, output_file, out_dir]])
     return args
@@ -565,7 +566,11 @@ async def harvest_grafana_data(dashboard : str, session : str, url : str, run_nu
 
             data_from_panel = {}
             for query_name, query in query_strs.items(): # loop over all queries
+                # if query_name != "Global spread":
+                #     continue
                 response_data = await queries.make_query(cs, valid_ds[data_type], url, query, time) # make the query
+                # print(response_data)
+                # print(ds_parser[data_type](response_data, query_name))
                 data_from_panel[query_name] = ds_parser[data_type](response_data, query_name) # get the data from the response, will be specific to the datasource type
 
             # organise the DataFrames to save to file

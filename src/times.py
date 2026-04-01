@@ -51,7 +51,7 @@ def get_unix_timestamp(time : str) -> int:
     raise ValueError(f'Invalid time format: {time}')
 
 
-def dt_to_unix_array(times : np.array) -> pd.Series:
+def dt_to_unix_array(times : np.array, timedelta : str = "0.1s") -> pd.Series:
     """ Convert an array of times from numpy into unix time in units of seconds.
         Authors: Shyam Bhuller (University of Oxford), Matthew Man (University of Toronto), Danaisis Vargas Oliva (University of Toronto)
 
@@ -61,8 +61,34 @@ def dt_to_unix_array(times : np.array) -> pd.Series:
     Returns:
         pd.Series: Pandas series of times
     """
-    s = pd.to_datetime(pd.Series(times).str.replace("T", " ").str.replace("Z", " "))
-    return (s - pd.Timestamp("1970-01-01")) // pd.Timedelta('1s')
+    # s = pd.Series(times).str.replace("T", " ").str.replace("Z", "")
+    # mask = s.str.contains(r'\.')
+    # s[mask] = pd.to_datetime(s[mask], format="%Y-%m-%d %H:%M:%S.%f")
+    # s[~mask] = pd.to_datetime(s[~mask], format="%Y-%m-%d %H:%M:%S")
+    # s = pd.Series(s, dtype="datetime64[ns]")
+
+    s = pd.to_datetime(pd.Series(times).str.replace("T", " ").str.replace("Z", " "), format = "mixed")
+    # print(s)
+
+
+
+    # result = any(['.' in s for s in times])
+    # # result = np.char.find(times, '.') >= 0
+    # if result is True:
+    #     fmt = "%Y-%m-%d %H:%M:%S.%f "
+    # else:
+    #     fmt = "%Y-%m-%d %H:%M:%S "
+
+    # s = pd.to_datetime(pd.Series(times).str.replace("T", " ").str.replace("Z", " "), format = fmt)
+
+    # try:
+    #   s = pd.to_datetime(pd.Series(list(times)).str.replace("T", " ").str.replace("Z", " "))
+    # except:
+      # s = pd.to_datetime(pd.Series(times).str.replace("T", " ").str.replace("Z", " "), format = "mixed")
+    #   print(pd.to_datetime("2026-04-01 15:08:57.2 "))
+    #   exit(1)
+
+    return (s - pd.Timestamp("1970-01-01")) // pd.Timedelta(timedelta)
 
 
 def relative_time(df : pd.DataFrame) -> pd.Series:

@@ -688,8 +688,8 @@ def process_tp_info(data : dict[pd.DataFrame], out : str, readout_plane : Readou
 
     with plotting.PlotBook(out + "tp_plots") as book:
         if not total_hit_rate.empty:
-            plotting.plot(times.relative_time(total_hit_rate), total_hit_rate.values, f"np0{readout_plane.value} hits produced", "Time (s)", "TP rate")
-            plotting.plot(times.relative_time(total_hit_sent), total_hit_sent.values, f"np0{readout_plane.value} hits sent", "Time (s)", "TP rate", newFigure = False, autofmt = "Hz")
+            plotting.plot(times.relative_time(total_hit_rate)/10, total_hit_rate.values, f"np0{readout_plane.value} hits produced", "Time (s)", "TP rate")
+            plotting.plot(times.relative_time(total_hit_sent)/10, total_hit_sent.values, f"np0{readout_plane.value} hits sent", "Time (s)", "TP rate", newFigure = False, autofmt = "Hz")
         
             plotting.hline(expected_hit_rate * n_rp, "expected hit rate", "red", "--", "Hz")
             plotting.hline(acceptance_hit_rate * n_rp, "acceptence hit rate", "k", "--", "Hz")
@@ -700,7 +700,7 @@ def process_tp_info(data : dict[pd.DataFrame], out : str, readout_plane : Readou
         if not hit_rate_apa.empty:
             plotting.plt.figure()
             for c in hit_rate_apa:
-                plotting.plot(times.relative_time(hit_rate_apa[c]), hit_rate_apa[c].values, c, "Time (s)", "TP rate", newFigure = False, autofmt = "Hz")
+                plotting.plot(times.relative_time(hit_rate_apa[c])/10, hit_rate_apa[c].values, c, "Time (s)", "TP rate", newFigure = False, autofmt = "Hz")
             plotting.hline(expected_hit_rate, f"expected hit rate per {readout_plane.name}", "red", "--", "Hz")
             plotting.hline(acceptance_hit_rate, f"acceptence hit rate per {readout_plane.name}", "k", "--", "Hz")
             plotting.plt.legend(fontsize="x-small")
@@ -708,7 +708,7 @@ def process_tp_info(data : dict[pd.DataFrame], out : str, readout_plane : Readou
             book.save()
 
         if not tp_data.tp_writer_info.empty:
-            plotting.plot(times.relative_time(tp_data.tp_writer_info), tp_data.tp_writer_info[["TP Received", "TP written"]], ["received", "written"], "Time (s)", "TP rate", autofmt = "Hz")
+            plotting.plot(times.relative_time(tp_data.tp_writer_info)/10, tp_data.tp_writer_info[["TP Received", "TP written"]], ["received", "written"], "Time (s)", "TP rate", autofmt = "Hz")
             plotting.plt.title("TPWriter receieve/write rates")
             plotting.hline(expected_hit_rate * n_rp, "expected hit rate", "red", "--", "Hz")
             plotting.hline(acceptance_hit_rate * n_rp, "acceptence hit rate", "k", "--", "Hz")
@@ -716,7 +716,7 @@ def process_tp_info(data : dict[pd.DataFrame], out : str, readout_plane : Readou
             plotting.add_metadata(test_args, int(tp_data.tp_writer_info.index[0]))
             book.save()
 
-            plotting.plot(times.relative_time(tp_data.tp_writer_info), rp.tp_size * tp_data.tp_writer_info[["TP Received", "TP written"]], ["received", "written"], "Time (s)", "Rate", autofmt = "b/s")
+            plotting.plot(times.relative_time(tp_data.tp_writer_info)/10, rp.tp_size * tp_data.tp_writer_info[["TP Received", "TP written"]], ["received", "written"], "Time (s)", "Rate", autofmt = "b/s")
             plotting.plt.title("TPWriter receieve/write rates")
             plotting.hline(expected_hit_rate * n_rp * rp.tp_size, "expected hit rate", "red", "--", "b/s")
             plotting.hline(acceptance_hit_rate * n_rp * rp.tp_size, "acceptence hit rate", "k", "--", "b/s")
@@ -731,7 +731,7 @@ def process_tp_info(data : dict[pd.DataFrame], out : str, readout_plane : Readou
             book.save()
 
         if not tp_data.tph_request_rates.empty:
-            plotting.plot(times.relative_time(tp_data.tph_request_rates), tp_data.tph_request_rates.values, tp_data.tph_request_rates.columns, "Time (s)", "Request Rates", autofmt = "Hz")
+            plotting.plot(times.relative_time(tp_data.tph_request_rates)/10, tp_data.tph_request_rates.values, tp_data.tph_request_rates.columns, "Time (s)", "Request Rates", autofmt = "Hz")
             plotting.add_metadata(test_args, int(tp_data.tp_writer_info.index[0]))
             book.save()
 
@@ -806,24 +806,24 @@ def process_frontend_info(data : dict[pd.DataFrame], out : str, readout_plane : 
 
     with plotting.PlotBook(out + "fe_plots") as book:
 
-        plotting.plot(times.relative_time(rx_throughput_elems), rx_throughput_elems, rx_throughput_elems.columns, "Time (s)", "RX throughput", autofmt = "B/s")
+        plotting.plot(times.relative_time(rx_throughput_elems)/10, rx_throughput_elems, rx_throughput_elems.columns, "Time (s)", "RX throughput", autofmt = "B/s")
         plotting.hline(max_rate_per_stream * n_queues_per_elem, "Acceptance data input", autofmt = "B/s", linestyle = "--")
         plotting.plt.legend(fontsize="x-small")
         plotting.add_metadata(test_args, start_time)
         book.save()
 
         if len(input_missed_packets) > 0:
-            plotting.plot(times.relative_time(input_missed_packets), input_missed_packets/total_packets, input_missed_packets.columns, "Time (s)", "Missed Packets (%)")
+            plotting.plot(times.relative_time(input_missed_packets)/10, input_missed_packets/total_packets, input_missed_packets.columns, "Time (s)", "Missed Packets (%)")
             plotting.add_metadata(test_args, start_time)
             book.save()
 
-            plotting.plot(times.relative_time(input_missed_packets), rx_dropped_packets/total_packets, rx_dropped_packets.columns, "Time (s)", "Dropped Packets (%)")
+            plotting.plot(times.relative_time(input_missed_packets)/10, rx_dropped_packets/total_packets, rx_dropped_packets.columns, "Time (s)", "Dropped Packets (%)")
             plotting.add_metadata(test_args, start_time)
             book.save()
         else:
             print("Note: no missing/dropped packe info was found.")
 
-        plotting.plot(times.relative_time(rx_throughput), rx_throughput, None, "Time (s)", "RX throughput", autofmt = "B/s")
+        plotting.plot(times.relative_time(rx_throughput)/10, rx_throughput, None, "Time (s)", "RX throughput", autofmt = "B/s")
         plotting.hline(max_rate_per_stream, "Acceptance data input", autofmt = "B/s", linestyle = "--")
         plotting.plt.legend(fontsize="x-small")
         plotting.add_metadata(test_args, start_time)
@@ -874,7 +874,7 @@ def process_readout_info(data : dict[pd.DataFrame], out : str, test_args : dict)
     mean_request_rate_dlh.rename(columns = {k : k.split(" ")[-1] for k in request_rates_dlh}, inplace = True)
 
     with plotting.PlotBook(out + "re_plots") as book:
-        plotting.plot(times.relative_time(request_rates_total), request_rates_total, request_rates_total.columns, "Time (s)", "request rate (Hz)")
+        plotting.plot(times.relative_time(request_rates_total)/10, request_rates_total, request_rates_total.columns, "Time (s)", "request rate (Hz)")
         plotting.add_metadata(test_args, int(request_rates_total.index[0]))
         book.save()
 
@@ -909,14 +909,14 @@ def process_daq_overview_info(data : dict[pd.DataFrame], out : str, test_args : 
 
     with plotting.PlotBook(out + "ov_plots") as book:
         total_count = global_trigger_rate.pop("Total count")
-        plotting.plot(times.relative_time(global_trigger_rate), global_trigger_rate, global_trigger_rate.columns, "Time (s)", "Global Trigger Rate", autofmt = "Hz")
+        plotting.plot(times.relative_time(global_trigger_rate)/10, global_trigger_rate, global_trigger_rate.columns, "Time (s)", "Global Trigger Rate", autofmt = "Hz")
         plotting.plt.legend(ncols = 2, loc = "upper left", fontsize="x-small")
         plotting.plt.gca().grid(False)
         lim = plotting.plt.gca().get_ylim()
         plotting.plt.ylim(min(lim), 1.2 * max(lim))
 
         ax_total = plotting.plt.gca().twinx()
-        ax_total.plot(times.relative_time(global_trigger_rate), total_count, linestyle = "--", color = f"C{len(global_trigger_rate.columns)}", label = "Total triggers", zorder = -1)
+        ax_total.plot(times.relative_time(global_trigger_rate)/10, total_count, linestyle = "--", color = f"C{len(global_trigger_rate.columns)}", label = "Total triggers", zorder = -1)
         ax_total.set_ylabel("Total count")
         ax_total.grid(False)
         plotting.plt.legend(loc = "upper right", fontsize="x-small")
@@ -926,13 +926,13 @@ def process_daq_overview_info(data : dict[pd.DataFrame], out : str, test_args : 
         plotting.add_metadata(test_args, int(global_trigger_rate.index[0]))
         book.save()
 
-        plotting.plot(times.relative_time(global_trigger_rate), global_trigger_rate, global_trigger_rate.columns, "Time (s)", "Global Trigger Rate", autofmt = "Hz")
+        plotting.plot(times.relative_time(global_trigger_rate)/10, global_trigger_rate, global_trigger_rate.columns, "Time (s)", "Global Trigger Rate", autofmt = "Hz")
         lim = plotting.plt.gca().get_ylim()
         plotting.plt.ylim(min(lim), 1.2 * max(lim))
         plotting.add_metadata(test_args, int(global_trigger_rate.index[0]))
         book.save()
 
-        plotting.plot(times.relative_time(dataflow_written_rate), dataflow_written_rate, dataflow_written_rate.columns, "Time (s)", "Data written by Dataflow", autofmt = "B/s")
+        plotting.plot(times.relative_time(dataflow_written_rate)/10, dataflow_written_rate, dataflow_written_rate.columns, "Time (s)", "Data written by Dataflow", autofmt = "B/s")
         plotting.plt.legend(ncols = 2, fontsize="x-small")
         lim = plotting.plt.gca().get_ylim()
         plotting.plt.ylim(min(lim), 1.2 * max(lim))
