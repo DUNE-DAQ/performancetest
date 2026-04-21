@@ -1005,7 +1005,9 @@ def plot_memory_usage_comparison(
         return
 
     df1 = rebase_relative_time(df1)
+    df1.index = df1.index*10.0
     df2 = rebase_relative_time(df2)
+    df2.index = df2.index*10.0
 
     if make_same_time_range:
         df1, df2 = restrict_to_common_relative_range(df1, df2)
@@ -1079,12 +1081,23 @@ def _infer_tp_reference_rates(
     Mirrors the logic in analyze_data.py: rates are per-channel values scaled
     to the full detector (all readout planes).
     """
-    ds = data_source.lower()
+    ds = (data_source or "").lower()
+    rp: dict | None = None
     if "crp" in ds or "np02" in ds:
         rp = _RP_CONSTANTS["crp"]
     elif "apa" in ds or "np04" in ds:
         rp = _RP_CONSTANTS["apa"]
-    else:
+
+    # Fallback: try to infer APA vs CRP from the number of DLH columns.
+    # APA: 5 WIBs * 8 NICs = 40 DLHs per readout plane
+    # CRP: 6 WIBs * 8 NICs = 48 DLHs per readout plane
+    if rp is None and n_hit_rate_cols and n_hit_rate_cols > 0:
+        if (n_hit_rate_cols % (_RP_CONSTANTS["crp"]["num_wibs"] * _RP_CONSTANTS["crp"]["num_nics"])) == 0:
+            rp = _RP_CONSTANTS["crp"]
+        elif (n_hit_rate_cols % (_RP_CONSTANTS["apa"]["num_wibs"] * _RP_CONSTANTS["apa"]["num_nics"])) == 0:
+            rp = _RP_CONSTANTS["apa"]
+
+    if rp is None:
         return None, None
 
     n_dlh = rp["num_wibs"] * rp["num_nics"]
