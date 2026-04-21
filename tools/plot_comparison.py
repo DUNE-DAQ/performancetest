@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 """
-Compare two performance-test runs using two config files.
+Created on 2026-04-21
+
+Author: Claudia Su (University of Oxford)
+
+Description: Compare two performance-test runs using two config files and create plots.
 
 Compares:
 1. total CPU utilization summary
@@ -9,13 +13,14 @@ Compares:
    - 99.9% percentile
    - Minimum
    - Maximum
+   - ratio plot
 2. total system memory usage
    - time-series overlay
    - ratio plot
 3. NIC RX throughput (total across all queues)
    - time-series overlay
    - ratio plot
-4. total TPG rate produced and sent
+4. total TP rate produced and sent
    - time-series overlay (produced)
    - time-series overlay (sent)
    - ratio plots
