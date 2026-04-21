@@ -338,19 +338,44 @@ def get_thread_nums(thread_str : str) -> list[int]:
     return split
 
 
-def parse_pinning_file(pinning_file : dict, ru_host : str) -> dict[list]:
+def get_readout_application_name(data : dict, hosts : list) -> list:
+    """ Get the name of readout applications by parsing hdf5 files.
+        #! should have a better way to do this that does not rely on the stored grafana data (maybe add a applications hdf5?)
+
+    Args:
+        data (dict): _description_
+        hosts (list): _description_
+
+    Returns:
+        list: _description_
+    """
+    ro_data = utils.search_dict(data, "readout")["readout"]
+    app_names = []
+    if ro_data is not None:
+        for k in ro_data:
+            for h in hosts:
+                matches = [i for i in k.split(" ") if h.replace("-", "") in i]
+                if len(matches)> 0:
+                    if matches[0] not in app_names:
+                        app_names.append(matches[0])
+    else:
+        print("readout application name cannot be found.")
+    return app_names
+
+def parse_pinning_file(pinning_file : dict, ro_host : str, ro_app_names : list[str]) -> dict[list]:
     """ Parse a CPU pinning file, creating a list of cpus for each thread for every daq application.
 
     Args:
         pinning_file (dict): CPU pinning file.
         ru_host (str): Readout host name.
+        ro_app_names (list[str]): Readout application names
 
     Returns:
         dict[list]: Parsed pinning file.
     """
     parsed_pinning_files = {}
 
-    for t in ru_host:
+    for t in ro_host:
         pinning = {}
         key = t.replace("-", "")
         for k, v in pinning_file.items():
@@ -358,6 +383,7 @@ def parse_pinning_file(pinning_file : dict, ru_host : str) -> dict[list]:
             if k == "daq_application":
                 for name, application in v.items():
                     if key in name:
+                        if name not in ro_app_names: continue
                         utils.add_to_dict(pinning, get_thread_nums(application["parent"]), key = "parent")
                         for tname, threads in application["threads"].items():
                             utils.add_to_dict(pinning, get_thread_nums(threads), tname)
@@ -813,11 +839,11 @@ def process_frontend_info(data : dict[pd.DataFrame], out : str, readout_plane : 
         book.save()
 
         if len(input_missed_packets) > 0:
-            plotting.plot(times.relative_time(input_missed_packets)/10, input_missed_packets/total_packets, input_missed_packets.columns, "Time (s)", "Missed Packets (%)")
+            plotting.plot(times.relative_time(input_missed_packets)/10, 100*input_missed_packets/total_packets, input_missed_packets.columns, "Time (s)", "Missed Packets (%)")
             plotting.add_metadata(test_args, start_time)
             book.save()
 
-            plotting.plot(times.relative_time(input_missed_packets)/10, rx_dropped_packets/total_packets, rx_dropped_packets.columns, "Time (s)", "Dropped Packets (%)")
+            plotting.plot(times.relative_time(input_missed_packets)/10, 100*rx_dropped_packets/total_packets, rx_dropped_packets.columns, "Time (s)", "Dropped Packets (%)")
             plotting.add_metadata(test_args, start_time)
             book.save()
         else:
@@ -978,15 +1004,6 @@ def analyse_data(test_args : dict):
 
     expected_dashboards = files.read_json(f"{os.environ['PERFORMANCE_TEST_PATH']}/config/dashboard_info.json")["dashboard_uid"]
 
-    pinning_file = shell.search_data_file("cpupin-all-running", test_args["data_path"])
-    if len(pinning_file) == 0:
-        pinning_file = None
-    else:
-        pinning_file = files.read_json(pinning_file[0])
-
-    if pinning_file:
-        pinning_file = parse_pinning_file(pinning_file, test_args["host"])
-
     hw_info = shell.search_data_file("xml", test_args["data_path"])
     if len(hw_info) > 0:
         hw_info = {k : v for v, k in zip(hw_info, utils.get_unique_string_elements([s.stem for s in hw_info], "_"))}
@@ -1008,6 +1025,18 @@ def analyse_data(test_args : dict):
     else:
         out = utils.make_plot_dir(test_args) + "analysis/"
     os.makedirs(out, exist_ok = True)
+
+    ro_apps = get_readout_application_name(data, test_args["host"])
+
+    pinning_file = shell.search_data_file("cpupin-all-running", test_args["data_path"])
+    if len(pinning_file) == 0:
+        pinning_file = None
+    else:
+        pinning_file = files.read_json(pinning_file[0])
+
+    if pinning_file:
+        pinning_file = parse_pinning_file(pinning_file, test_args["host"], ro_apps)
+
 
     if ("crp" in test_args["data_source"].lower()) or ("np02" in test_args["data_source"].lower()):
         readout_plane = ReadoutPlane.CRP
