@@ -173,15 +173,23 @@ def cpu_usage_rate(
 
 
 def _prep_series(
-    s: pd.Series | None, start_off: float, end_cut: float, scale: float = 1.0
+    s: pd.Series | None, start_off: float, end_cut: float, scale: float = 1.0, time_scale: float = 1.0
 ) -> pd.Series | None:
-    """Apply time window, rebase to relative time, and optionally divide by scale."""
+    """Apply time window, rebase to relative time, and optionally divide by scale.
+
+    time_scale: multiply the rebased time index by this factor (e.g. 10.0 to stretch
+                the x-axis of a run whose raw timestamps are 10× compressed).
+    """
     if s is None:
         return None
     df = apply_time_window((s / scale).to_frame("v"), start_off, end_cut)
     if df.empty:
         return None
-    return rebase_relative_time(df).iloc[:, 0]
+    out = rebase_relative_time(df).iloc[:, 0]
+    if time_scale != 1.0:
+        out = out.copy()
+        out.index = out.index * time_scale
+    return out
 
 
 def _clip_dicts_to_common_end(*dicts: dict) -> None:
