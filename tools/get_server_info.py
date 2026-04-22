@@ -16,6 +16,46 @@ import files, utils, shell
 
 from rich import print
 
+def xml_to_file(data_path : str, host : str, cmd_name : str, xmlstring : str):
+    """ Write xml data to file.
+
+    Args:
+        data_path (str): Output data path.
+        host (str): Host name.
+        cmd_name (str): Command name, used as file prefix.
+        xmlstring (str): xml data to write.
+    """
+    tree = ET.ElementTree(ET.fromstring(xmlstring))
+    out_path = f"{data_path}{cmd_name}_{host}.xml"
+
+    print(f"file saved to: {out_path}")
+    files.write_xml(tree, out_path)
+    return
+
+
+def run_cmd(cmd : str, host : str, require_sudo : bool) -> str:
+    """ Run commad and capture stdout.
+
+    Args:
+        cmd (str): Command to run.
+        host (str): Host to run command on.
+        require_sudo (bool): Command requires sudo to run properly.
+
+    Returns:
+        str: command stdout.
+    """
+    if require_sudo and shell.is_sudo(host):
+        cmd = "sudo " + cmd
+    else:
+        print("Note: user does not have sudo permissions, lshw output will be limited.")
+    cmd_out = shell.run(cmd, capture = True, host = host)
+
+    if cmd_out.returncode > 0:
+        print("Could not get hardware info output. See above for reason.")
+        exit()
+    return cmd_out.stdout
+
+
 def run(host : str, data_path : str):
     """ Run lshw on the host machine, capture the output as an xml tree and save the output.
 
@@ -23,22 +63,13 @@ def run(host : str, data_path : str):
         host (str): Host name.
         data_path (str): Output data path.
     """
-    cmd = "lshw -xml"
-    if shell.is_sudo(host):
-        cmd = "sudo " + cmd
-    else:
-        print("Warning: user does not have sudo permissions, lshw output will be limited.")
-    lshw_out = shell.run(cmd, capture = True, host = host)
-
-    if lshw_out.returncode > 0:
-        print("could not get lshw output. See above for reason.")
-        exit()
-
-    tree = ET.ElementTree(ET.fromstring(lshw_out.stdout))
-    out_path = f"{data_path}lshw_{host}.xml"
-
-    print(f"file saved to: {out_path}")
-    files.write_xml(tree, out_path)
+    cmds = {
+        "lshw" : "lshw -xml",
+        "lstopo": "lstopo -p --of xml"
+    }
+    for name, cmd in cmds.items():
+        cmd_out = run_cmd(cmd, host, True)
+        xml_to_file(data_path, host, name, cmd_out)
     return
 
 
