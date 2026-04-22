@@ -14,7 +14,7 @@ from collections import namedtuple
 from enum import Enum
 from types import SimpleNamespace
 
-import files, shell, plotting, utils, times
+import files, shell, plotting, utils, times, cpu_topology
 from times import time_range
 import matplotlib.patches as mpatches
 
@@ -174,9 +174,10 @@ def process_memory_info(ne : pd.DataFrame, intel : pd.DataFrame | None, amd : pd
 
         for i in [intel_data, amd_data]:
             if i is None: continue
-            if hw_info:
-                bw = calculate_maximum_memory_bw(hw_info)
+            if "lshw" in hw_info:
+                bw = calculate_maximum_memory_bw(hw_info["lshw"])
             else:
+                print("Note: maximum memery bandwidth of server cannot be calculated, lshw output was not captured.")
                 bw = None
 
             plotting.plot(times.relative_time(i), i, i.columns, "Relative time (s)", "Memory bandwidth Usage", autofmt = "B/s")
@@ -440,7 +441,7 @@ def cpu_usage(idle : float | np.ndarray, total : float | np.ndarray) -> float | 
     return 100 * (1 - (idle/total))
 
 
-def process_cpu_info(data : dict[pd.DataFrame], out : str, test_args : dict, host : str, max_util : float = 80, pinning_file : dict | None = None):
+def process_cpu_info(data : dict[pd.DataFrame], out : str, test_args : dict, host : str, hw_info : dict, max_util : float = 80, pinning_file : dict | None = None):
     """ Analyse CPU information and plot the results.
         Calculates maximum, minimum and various quantiles for each core and across all cores.
 
@@ -454,6 +455,12 @@ def process_cpu_info(data : dict[pd.DataFrame], out : str, test_args : dict, hos
     """
 
     total_time_per_core = sum(utils.search_dict(data, "(?=.*CPU)(?!.*Usage)").values()) # total time per core
+
+    if "lstopo" not in hw_info:
+        print("Note: CPU topology information not found, check lstopo output was run.")
+        topology = None
+    else:
+        topology = cpu_topology.CoreMap(cpu_topology.create_llc_domain_map(files.read_xml(hw_info["lstopo"])))
 
     if total_time_per_core.empty:
         print("Warning: no CPU information was found.")
@@ -485,6 +492,29 @@ def process_cpu_info(data : dict[pd.DataFrame], out : str, test_args : dict, hos
             usage.min()
         ], axis = 1, keys = ["50% percentile", "99% percentile", "99.9% percentile", "Maximum", "Minimum"])
     cpu_metrics.index = cpu_metrics.index.astype(int)
+
+    # metrics per physical core
+    physical_core_metrics = {}
+    if topology:
+        cpu_ids_per_core = {}
+        for i, c in enumerate(topology.core.elements): # core ids are only unique per socket
+            cpu_ids_per_core[i] = [p.id for p in c.children]
+
+        core_usage = {}
+        for core, num in cpu_ids_per_core.items():
+            mask = np.array(num).flatten().astype(str)
+            core_total_time = total_time_per_core[mask].sum(axis=1)
+            core_idle_time = data["CPU idle (s)"][mask].sum(axis=1)
+            core_usage[core] = cpu_usage_rate(core_idle_time, core_total_time)
+        core_usage = pd.DataFrame(core_usage)
+        physical_core_metrics = pd.concat(
+            [
+                core_usage.quantile(q = 50/100),
+                core_usage.quantile(q = 99/100),
+                core_usage.quantile(q = 99.9/100),
+                core_usage.max(),
+                core_usage.min()
+            ], axis = 1, keys = ["50% percentile", "99% percentile", "99.9% percentile", "Maximum", "Minimum"])
 
     # metrics per thread
     thread_name_prefix = {}
@@ -554,6 +584,16 @@ def process_cpu_info(data : dict[pd.DataFrame], out : str, test_args : dict, hos
         plotting.add_metadata(test_args, time[0], False, host = host)
         plotting.plt.subplots_adjust(top=1)
         book.save()
+
+        if topology:
+            for c in physical_core_metrics:
+                plotting.bar(physical_core_metrics[c].index, physical_core_metrics[c], "Physical Core", "Utilization (%)", c)
+                if max(physical_core_metrics[c]) > 50:
+                    plotting.plt.axhline(max_util, color  = "k", linestyle = "--")
+                plotting.add_metadata(test_args, time[0], True, host = host)
+                plotting.plt.tight_layout()
+                plotting.plt.subplots_adjust(top=0.9)
+                book.save()
     return
 
 
@@ -655,7 +695,7 @@ def process_network_info(data : dict[pd.DataFrame], out : str, test_args : dict,
         test_args (dict): Test configuration arguments.
         host (str): Host machine name.
     """
-    network_rt = utils.search_dict(data, "Network.*\(Bps\)")
+    network_rt = utils.search_dict(data, r"Network.*\(Bps\)")
 
     if all([v.empty for v in network_rt.values()]):
         print("Warning: no network data found.")
@@ -1006,7 +1046,10 @@ def analyse_data(test_args : dict):
 
     hw_info = shell.search_data_file("xml", test_args["data_path"])
     if len(hw_info) > 0:
-        hw_info = {k : v for v, k in zip(hw_info, utils.get_unique_string_elements([s.stem for s in hw_info], "_"))}
+        hw_info = {
+            h : {k : v for v, k in zip(hw_info, utils.get_unique_string_elements([s.stem for s in hw_info if h in s.stem], "_"))}
+            for h in test_args["host"]
+        }
     else:
         print("Warning: hardware information not found.")
         hw_info = None
@@ -1048,7 +1091,6 @@ def analyse_data(test_args : dict):
 
     if len(test_args["host"]) == 1:
         def_name = test_args["host"][0].replace("-", "")
-        hw_info = {test_args["host"][0] : list(hw_info.values())[0]}
     else:
         def_name = None
     intel_pcm = utils.search_dict(data, "A_CvwTCWk")
@@ -1072,7 +1114,7 @@ def analyse_data(test_args : dict):
             pf = pinning_file.get(k)
         else:
             pf = None
-        process_cpu_info(v, out, test_args, h, pinning_file = pf)
+        process_cpu_info(v, out, test_args, h, hw_info[h], pinning_file = pf)
 
         process_disk_info(v, out, readout_plane, test_args, h)
 

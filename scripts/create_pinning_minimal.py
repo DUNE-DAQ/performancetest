@@ -19,249 +19,11 @@ import copy
 import json
 import os
 
-import llc_domain_parser, files, shell
+import files, cpu_topology
 
-from collections import ChainMap, OrderedDict
-from dataclasses import dataclass
+from collections import ChainMap
 
 from rich import print, rule
-
-@dataclass
-class Element:
-    """ Representation of a single object in the core map.
-    """
-    id : int
-    children : list[int] # only keep the ID not the object itself
-    parent : "Element"
-    type : str = None
-
-    def __repr__(self):
-        return f"{self.type}(id : {self.id}, children : {len(self.children) if self.children else None}, parent : {self.parent})"
-
-
-    def get_type(self, type : str) -> list:
-        """ Search and return child objects by their type.
-
-        Args:
-            type (str): type of element to find.
-
-        Returns:
-            list: list of elements of that type.
-        """
-        cores = []
-        if self.children:
-            for c in self.children:
-                if c.type == type:
-                    cores.append(c)
-                else:
-                    cores.extend(c.get_type(type))
-        return cores
-
-
-class ElementList:
-    """ A list of elements with special properties, including when items are called, they are removed from the list and domain map.
-    """
-    def __init__(self, elements : list, domain_map):
-        self.elements = elements
-        self.map = domain_map
-        return
-
-
-    def __getitem__(self, i : int):
-        e = self.elements[i]
-        self.elements.remove(e)
-        if self.map: self.map.remove(e)
-        return e
-
-
-    def get_id(self, i : int) -> Element:
-        """ Get the Element that matches the specific id.
-
-        Args:
-            i (int): id.
-
-        Returns:
-            Element: Found Element, only returns the first occurance found.
-        """
-        for e in self.elements:
-            if e.id == i:
-                self.elements.remove(e)
-                self.map.remove(e)
-                return e
-        raise Exception(f"Element with id {i} was not found!")
-
-    @property
-    def first(self) -> Element:
-        """ Get the first Element in the list.
-
-        Returns:
-            Element: First element.
-        """
-        return self.__getitem__(0)
-
-
-    def __len__(self):
-        return len(self.elements)
-
-
-class CoreMap:
-    """ Map of CPU processing units. Converts a parsed output of lstopo into a Elements for each type of resouce in the lstopo map (Core, PU, NUMA, Socket etc.).
-        Each Element is assigned parents and children, so the nested data is represented as a flat list to better allow getting an Element from each reosuce layer.
-    """
-    def __init__(self, domain_map : dict):
-        self.elements = []
-        CoreMap.ParseMap(domain_map, element_list = self.elements)
-
-        unique_types = []
-        for e in self.elements:
-            if e.type not in unique_types:
-                unique_types.append(e.type)
-        for t in unique_types:
-            self.__make_func__(t)
-
-        self.__offset_core_id__()
-
-        return
-
-    def __make_func__(self, type : str):
-        """ Create a property function for a given element type in the coremap.
-            This property function returns the appropriate ElementList for that given type.
-
-        Args:
-            type (str): The type to make function for.
-        """
-        def func(self) -> ElementList:
-            return ElementList([i for i in self.elements if i.type == type], self)
-        setattr(CoreMap, type.lower(), property(func))
-
-
-    def __offset_core_id__(self):
-        """ Offset the Core IDs from the lstopo map as they are the same for each socket.
-        """
-        offset = len(self.core) // len(self.socket)
-        for c in self.core.elements:
-            c.id = c.id + c.parent.parent.parent.id * offset
-        return
-
-
-    def remove(self, e : Element, remove_from_parent : bool = True):
-        """ Removes an Element from the CoreMap. To correctly do so, it does the following for the Element to be removed:
-            #* remove any reference to another element: find its parent, and remove self from children
-            #* remove any reference to another element: find its children, and remove self from parent
-            #* remove from self.elements
-        Args:
-            e (Element): Element to remove
-            remove_from_parent (bool, optional): Optinally remove from the parent. Required logic for a recusive implementation. Defaults to True.
-        """
-        if e is not None:
-            if e.children:
-                for c in e.children:
-                    self.remove(c, False)
-
-            if e in self.elements:
-                self.elements.remove(e)
-
-            if e.parent is not None:
-                if remove_from_parent:
-                    if e in e.parent.children:
-                        e.parent.children.remove(e)
-                if (len(e.parent.children) == 0): self.remove(e.parent)
-            else:
-                self.remove(e.parent)
-        return
-
-
-    def print(self):
-        """Pretty print representation of the CoreMap
-        """
-        top_elements = [e for e in self.elements if e.parent is None]
-        out = self.__remake_domain_map(top_elements)
-        print(out)
-        return
-
-
-    def __remake_domain_map(self, elements : list[Element]) -> list:
-        """ Nested list representation of the CoreMap for visulization. Keys and values are represented as strings.
-
-        Args:
-            elements (list[Element]): List of elements.
-
-        Returns:
-            list: list 
-        """
-        out = []
-        for e in elements:
-            k = f"{e.type}:{e.id}"
-            if e.children:
-                v = self.__remake_domain_map(e.children)
-                out.append({k: v})
-            else:
-                out.append(k)
-        return out
-
-
-    @staticmethod
-    def ParseMap(container, parent : Element = None, element_list : list = []):
-        """ Parse the lstopo output, and create Elements from each resource recursively.
-
-        Args:
-            container: a list or dictionary from the lstopo output that represents a resource.
-            parent (Element, optional): Parent element (if exists or the resource has a parent). Defaults to None.
-            element_list (list, optional): _description_. Defaults to [].
-        """
-        if type(container) == dict:
-            for item in container.items():
-                if hasattr(item[1], "__iter__"):
-                    e = Element(item[0], [], parent)
-                    if parent: parent.children.append(e)
-                    element_list.append(e)
-                    CoreMap.ParseMap(item[1], e, element_list)
-                    CoreMap.AssignElementType(e)
-
-                    #* loop through all items, and return list of elements who are children of this item
-                    #* assign the parent to each child
-                    #* add elements to a flat list
-
-        else: # assume list-like
-            for item in container:
-                if hasattr(item, "__iter__"):
-                    e = Element(None, [], parent)
-                    if parent: parent.children.append(e)
-                    element_list.append(e)
-                    CoreMap.ParseMap(item)
-                    CoreMap.AssignElementType(e)
-                else:
-                    e = Element(item, None, parent, "PU") # this is the deepest part of the map
-                    parent.children.append(e) # add child to parent
-                    element_list.append(e) # add element to flat list
-                    CoreMap.AssignElementType(e)
-        return
-
-    @staticmethod
-    def AssignElementType(e : Element):
-        """ Assigns the Elements type based on the parents/child type. The current hierarchy of reasources is (top to bottom):
-            Socket -> NUMA -> Cache -> Core -> PU.
-
-        Args:
-            e (Element): Element
-        """
-        # code asssumes all children are the same type (which should be true)
-        if not e.parent:
-            e.type = "Socket" # we are at the highest level
-        elif not e.children:
-            e.type == "PU" # we are at the lowest level
-        elif e.children[0].type == "PU":
-            e.type = "Core"
-        elif e.children[0].type == "Core":
-            e.type = "Cache"
-        elif e.children[0].type == "Cache":
-            e.type = "NUMA"
-        elif e.children[0].type == None:
-            pass
-        else:
-            raise Exception(f"do not know how to interpret Element with type: {e.type}")
-        return
-
 
 def core_list_to_str(cores : list[int]) -> str:
     """ Convert a list of cores to a string format for the json file.
@@ -274,18 +36,6 @@ def core_list_to_str(cores : list[int]) -> str:
     """
     #! for now, just use join, but can try to condense it later on.
     return ",".join(str(c) for c in cores)
-
-
-def get_isolated_cores():
-    rte_cpus = []
-    try:
-        out = shell.run("cat /sys/devices/system/cpu/isolated", capture = True, host = args.readout_server).stdout
-        for i in out.decode().split(","):
-            int_list = [int(j) for j in i.split("-")]
-            rte_cpus.extend(list(range(min(int_list), max(int_list)+1)))
-    except ValueError:
-        print("cannot automatically detect isolated CPUS")
-    return rte_cpus
 
 
 def get_resource_allocation(template_file : str) -> ChainMap:
@@ -307,7 +57,7 @@ def get_resource_allocation(template_file : str) -> ChainMap:
     return cpu_resource_allocation
 
 
-def assign_cores(core_map : CoreMap, cores : list[Element], max_cores : int) -> list[int]:
+def assign_cores(core_map : cpu_topology.CoreMap, cores : list[cpu_topology.Element], max_cores : int) -> list[int]:
     """ Assign processing units to a thread. Used for cache aware pinning.
 
     Args:
@@ -322,12 +72,12 @@ def assign_cores(core_map : CoreMap, cores : list[Element], max_cores : int) -> 
     while len(pus) < (2 * max_cores):
         if len(cores) == 0:
             raise Exception("Ran out of cores to assign!")
-        next_core = ElementList(cores, core_map).first
+        next_core = cpu_topology.ElementList(cores, core_map).first
         pus.extend([c.id for c in next_core.children])
     return pus
 
 
-def fill_pinning_map(pinning : dict, cpu_alloc : ChainMap, core_map : CoreMap) -> dict:
+def fill_pinning_map(pinning : dict, cpu_alloc : ChainMap, core_map : cpu_topology.CoreMap) -> dict:
     """ Assign processing units to threads. Is L3 cache aware. Thread names are prioritized by order in the dictionary.
 
     Args:
@@ -342,7 +92,7 @@ def fill_pinning_map(pinning : dict, cpu_alloc : ChainMap, core_map : CoreMap) -
     for n in core_map.numa.elements:
         core_map.core.get_id(min([c.id for c in n.get_type("Core")]))
 
-    isolated_cores = get_isolated_cores()
+    isolated_cores = cpu_topology.get_isolated_cores()
     pu_list = {numa_region.id : [i.id for i in numa_region.get_type("PU")] for numa_region in core_map.numa.elements} # keep a snapshot of the numa/pu assignment
 
     pinning_dict = {k : {"threads" : {}} for k in pinning}
@@ -467,7 +217,7 @@ def fill_pinning_map(pinning : dict, cpu_alloc : ChainMap, core_map : CoreMap) -
     return {"daq_application" : pinning_dict}
 
 def main(args = argparse.Namespace):
-    cm = CoreMap(llc_domain_parser.create_llc_domain_map(args.readout_server))
+    cm = cpu_topology.CoreMap(cpu_topology.get_and_create_llc_domain_map(args.readout_server))
     print(rule.Rule("CPU map"))
     cm.print()
 
