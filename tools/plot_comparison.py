@@ -379,8 +379,32 @@ def derive_packet_loss(
 # Color encoding: for app index i and run index r (0=run1, 1=run2), use C{2*i + r}.
 # This keeps run1/run2 of the same app as adjacent palette entries, and for a single
 # app collapses to the familiar C0 (run1) / C1 (run2) pair.
+# High-contrast colour encoding.
+# For app index i and run index r:
+#   run1/run2 use visually distinct colours, not light/dark variants.
+_HIGH_CONTRAST_COLORS = [
+    "tab:blue",
+    "tab:orange",
+    "tab:green",
+    "tab:purple",
+    "tab:brown",
+    "tab:pink",
+    "tab:gray",
+    "tab:olive",
+    "tab:cyan",
+    "darkblue",
+    "darkgreen",
+    "darkorange",
+    "crimson",
+    "indigo",
+    "saddlebrown",
+    "deeppink",
+    "black",
+]
+
+
 def _series_color(app_idx: int, run_idx: int) -> str:
-    return f"C{app_idx * 2 + run_idx}"
+    return _HIGH_CONTRAST_COLORS[(app_idx * 2 + run_idx) % len(_HIGH_CONTRAST_COLORS)]
 
 
 def _app_suffix_label(app_name: str, n_apps: int) -> str:
