@@ -597,6 +597,12 @@ def process_cpu_info(data : dict[pd.DataFrame], out : str, test_args : dict, hos
     return
 
 
+def calculate_relative_time(data : pd.Series) -> tuple[int, int]:
+    time = data.index.astype(int) # this is the total time elapsed
+    t0 = time[0]
+    return time - t0, t0
+
+
 def process_disk_info(data : dict[pd.DataFrame], out : str, readout_plane : ReadoutPlane, test_args : dict, host : str):
     """ Analyse disk information for the NVME and RAID devices and plots the results.
         Calculates total IO time, disk write rate during the test and total amount written to disk.
@@ -620,68 +626,73 @@ def process_disk_info(data : dict[pd.DataFrame], out : str, readout_plane : Read
         print("Warning: no NVMe data was found")
         return
 
-    time = data["Disk IO time (s)"].index.astype(int) # this is the total time elapsed
-    t0 = time[0]
-    time = time - t0
     tlabel = "Relative time (s)"
 
     dt = data["Disk IO time (s)"] - data["Disk IO time (s)"].iloc[0]
+    disk_io_time, disk_io_t0 = calculate_relative_time(dt)
     io_time = dt[nvme_sample] # this is the time the nvme/SSD spends writing. Note that if the write rate BW is not at 100%, the disk io time does not equal the total time recording, because the disk is waiting some amount.
 
     # * this is not correct, as disk IO time is not the same as the total time elapsed.
     write_rate = 8 * data["Disk Written (Bps)"][nvme_sample]/(1000**3)
+    write_rate_time, write_rate_t0 = calculate_relative_time(write_rate)
     total_written =  write_rate * 100 / 8
 
     if "Disk Total Written (B)" in data:
         total_written =  (data["Disk Total Written (B)"] - data["Disk Total Written (B)"].min(axis=0)) /(1000**3)
+        total_written_time, total_written_t0 = calculate_relative_time(total_written)
         total_written = total_written[nvme_sample]
 
     max_io = io_time.max()
     max_wr = write_rate.max()
     max_tw = total_written.max()
 
+    print(disk_io_time)
+    print(disk_io_time)
+    print(disk_io_time)
+
+
 
     with plotting.PlotBook(out + f"disk_plots_{host}.pdf") as book:
         # line plots
-        plotting.plot(time, io_time, io_time.columns, tlabel, "Disk time spent during IO (s)")
+        plotting.plot(disk_io_time, io_time, io_time.columns, tlabel, "Disk time spent during IO (s)")
         plotting.plt.axhline(rp.snb_readout_time, color = "k", linestyle = "--", label = "Maximum\nwrite time (100 s)")
         plotting.plt.legend(fontsize="x-small")
-        plotting.add_metadata(test_args, t0, host = host)
+        plotting.add_metadata(test_args, disk_io_t0, host = host)
         book.save()
 
-        plotting.plot(time, write_rate, write_rate.columns, tlabel, "Disk write rate (Gb/s)")
+        plotting.plot(write_rate_time, write_rate, write_rate.columns, tlabel, "Disk write rate (Gb/s)")
         plotting.hline(data_input, "Data input rate", "k", "--", "Gb/s")
         plotting.hline(8 * rp.max_disk_write, "Maximum RAID write rate", "red", "--", "Gb/s")
         plotting.plt.legend(fontsize="x-small")
-        plotting.add_metadata(test_args, t0, host = host)
+        plotting.add_metadata(test_args, write_rate_t0, host = host)
         book.save()
         
-        plotting.plot(time, total_written, total_written.columns, tlabel, "Total written to disk (GB)")
+        plotting.plot(total_written_time, total_written, total_written.columns, tlabel, "Total written to disk (GB)")
         plotting.plt.axhline(max_write_rp, color = "k", linestyle = "--", label = f"Minimum data written\nper {readout_plane.name} ({max_write_rp} GB)")
         plotting.plt.axhline(max_write_disk, color = "red", linestyle = "--", label = f"Maximum data writable to disk ({max_write_disk/1000} TB)")
         plotting.plt.legend(fontsize="x-small")
-        plotting.add_metadata(test_args, t0, host = host)
+        plotting.add_metadata(test_args, total_written_t0, host = host)
         book.save()
 
         # bar plots
         plotting.bar(max_io.index, max_io.values, ylabel = "Device", xlabel = "Total IO time (s)", rotation = 30, bar_label = True, horizontal = True)
         plotting.plt.axvline(rp.snb_readout_time, color = "k", linestyle = "--", label = "Maximum\nwrite time (100 s)")
         plotting.plt.legend(fontsize="x-small")
-        plotting.add_metadata(test_args, t0, host = host)
+        plotting.add_metadata(test_args, disk_io_t0, host = host)
         book.save()
 
         plotting.bar(max_wr.index, max_wr.values, ylabel = "Device", xlabel = "Maximum Disk write rate (Gb/s)", rotation = 30, bar_label = True, horizontal = True)
         plotting.vline(data_input, "Data input rate", "k", "--", "Gb/s")
         plotting.vline(8 * rp.max_disk_write, "Maximum RAID write rate", "red", "--", "Gb/s")
         plotting.plt.legend(fontsize="x-small")
-        plotting.add_metadata(test_args, t0, host = host)
+        plotting.add_metadata(test_args, write_rate_t0, host = host)
         book.save()
 
         plotting.bar(max_tw.index, max_tw.values, ylabel = "Device", xlabel = "Total written to disk (GB)", rotation = 30, bar_label = True, horizontal = True)
         plotting.plt.axvline(max_write_rp, color = "k", linestyle = "--", label = f"Minimum data written\nper {readout_plane.name} ({max_write_rp} GB)")
         plotting.plt.axvline(max_write_disk, color = "red", linestyle = "--", label = f"Maximum data writable to disk ({max_write_disk/1000} TB)")
         plotting.plt.legend(fontsize="x-small")
-        plotting.add_metadata(test_args, t0, host = host)
+        plotting.add_metadata(test_args, write_rate_t0, host = host)
         book.save()
     return
 
