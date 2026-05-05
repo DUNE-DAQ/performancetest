@@ -30,7 +30,8 @@ def main(args : argparse.Namespace):
 
     dashboard_info = create_dashboard_info(test_args)
 
-    dashboard_info["dashboard_uid"] = [f"{test_args['dunedaq_version'].replace('.', '_')}-{args.uid}"]
+    if args.uid != "node_exporter":
+      dashboard_info["dashboard_uid"] = [f"{test_args['dunedaq_version'].replace('.', '_')}-{args.uid}"]
     dashboard_info["session"] = [test_args["session"]]
 
     # get datsources from which the data is harvested
@@ -45,8 +46,12 @@ def main(args : argparse.Namespace):
         time_range = harvester.get_run_time(dashboard_info, test_args["run_number"], test_args["session"], test_args["dunedaq_version"], datasources)
 
     # setup harvester functions
-    harvesters = harvester.setup_daq_harvesters(dashboard_info, test_args["dunedaq_version"], test_args["run_number"], test_args["host"], time_range, name, out_dir, datasources)
+    if args.uid == "node_exporter":
+        harvesters = harvester.setup_node_exporter_harvesters(test_args["host"], time_range, name, out_dir, datasources)
+    else:
+        harvesters = harvester.setup_daq_harvesters(dashboard_info, test_args["dunedaq_version"], test_args["run_number"], test_args["host"], time_range, name, out_dir, datasources)
 
+    print(f"{harvesters=}")
     # harvester.extract_data(harvesters) # extract the data in parallel
     harvester.run_harvester(harvesters[0][0], harvesters[0][1])
 

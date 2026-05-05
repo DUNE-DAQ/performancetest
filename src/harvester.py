@@ -74,7 +74,6 @@ def get_run_time(dashboard_info : dict[str], run_number : int, test_session : st
         query_str = f"SELECT \"run_number\" FROM \"dunedaq.rcif.opmon.RunInfo\" WHERE \"session\" = '{test_session}' AND \"run_number\" = {run_number}"
     else:
         raise Exception(f"version {dunedaq_version} is not supported.")
-
     response = queries.aquery_single(queries.query_influx, url = url, datasource = datasources["influxdb"], query_str = query_str)
     values = np.array(response["results"][0]["series"][0]["values"])
     t = values[values[:, 1].astype(int) == run_number][:, 0] # select times for the given run number
@@ -737,14 +736,12 @@ async def harvest_node_exporter_data(host : str, time : times.time_range, output
 
             if sample_label is None: sample_label = ["total"]
 
-            # construct the dataframe
-            parsed = {}
+            parsed = []
             for s, v in zip(sample_label, values):
-                parsed["time"] = v[:, 0]
-                parsed[s] = v[:, 1]
-
+                df = pd.DataFrame({"time" : v[:, 0], s : v[:, 1]}).set_index("time").astype(float)
+                parsed.append(df)
             if len(parsed) != 0:
-                dfs[query] = pd.DataFrame(parsed).set_index("time").astype(float)
+                dfs[query] = pd.concat(parsed, axis = 1)
                 dfs[query].set_index(dfs[query].index.astype(int), inplace = True)
             else:
                 warnings.warn(f"no data found for {query}")
