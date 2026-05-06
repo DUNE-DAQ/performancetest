@@ -41,6 +41,7 @@ from pathlib import Path
 from typing import Any
 
 import click
+import matplotlib.colors as mcolors
 import numpy as np
 import pandas as pd
 
@@ -405,6 +406,21 @@ _HIGH_CONTRAST_COLORS = [
 
 def _series_color(app_idx: int, run_idx: int) -> str:
     return _HIGH_CONTRAST_COLORS[(app_idx * 2 + run_idx) % len(_HIGH_CONTRAST_COLORS)]
+
+
+# ── packet-loss colour / style scheme ─────────────────────────────────────────
+# Color encodes run: run1 → _RUN_COLORS[0], run2 → _RUN_COLORS[1].
+# Shade encodes metric: full color = missed, lighter = dropped.
+# Linestyle encodes app: solid for app 0, dashed for app 1, etc.
+_RUN_COLORS = ["tab:blue", "tab:orange"]
+_DROPPED_LIGHTEN = 0.50          # blend fraction toward white for dropped lines
+_APP_LINESTYLES = ["-", "--", "-.", ":"]
+
+
+def _lighten_color(color: str, amount: float = _DROPPED_LIGHTEN) -> tuple:
+    """Return *color* blended toward white by *amount* (0 = unchanged, 1 = white)."""
+    r, g, b = mcolors.to_rgb(color)
+    return (1 - amount * (1 - r), 1 - amount * (1 - g), 1 - amount * (1 - b))
 
 
 def _app_suffix_label(app_name: str, n_apps: int) -> str:
@@ -817,19 +833,51 @@ def _plot_packet_metric_comparison(
     first_file_time_end_cut: float,
     second_file_time_end_cut: float,
     make_same_time_range: bool,
+    color1: str | tuple,
+    color2: str | tuple,
 ) -> None:
-    """Generic per-app overlay + ratio for a single packet-loss metric."""
+    """Per-app overlay + ratio for a single packet-loss metric.
+
+    Color encodes run (color1/color2); linestyle encodes app.
+    """
     all_apps = sorted(set(series1.keys()) | set(series2.keys()))
+    n_apps = len(all_apps)
     prepped1 = {app: _prep_series(series1.get(app), first_file_time_start_offset, first_file_time_end_cut) for app in all_apps}
     prepped2 = {app: _prep_series(series2.get(app), second_file_time_start_offset, second_file_time_end_cut) for app in all_apps}
 
     if make_same_time_range:
         _clip_dicts_to_common_end(prepped1, prepped2)
 
-    _plot_per_app_overlay_and_ratio(
-        prepped1, prepped2, label1, label2,
-        ylabel=title, title=title, book=book,
-    )
+    plotting.plt.figure()
+    ax = plotting.plt.gca()
+    has_data = False
+
+    for app_idx, app in enumerate(all_apps):
+        ls = _APP_LINESTYLES[app_idx % len(_APP_LINESTYLES)]
+        sfx = _app_suffix_label(app, n_apps)
+        for s, lbl, color in [
+            (prepped1.get(app), f"{label1}{sfx}", color1),
+            (prepped2.get(app), f"{label2}{sfx}", color2),
+        ]:
+            if s is not None:
+                ax.plot(s.index, s.values, label=lbl, color=color, linestyle=ls)
+                has_data = True
+
+    if not has_data:
+        plotting.plt.close()
+        return
+
+    ax.set_xlabel("Relative time (s)")
+    ax.set_ylabel(title)
+    ax.set_title(title)
+    ax.legend(fontsize="small")
+    plotting.plt.subplots_adjust(top=0.88, bottom=0.15)
+    overlay_xlim = ax.get_xlim()
+    book.save()
+
+    ratio_lines = _build_ratio_lines(prepped1, prepped2, all_apps, n_apps)
+    if ratio_lines:
+        _save_ratio_plot(ratio_lines, overlay_xlim, f"{label2} / {label1}", book)
 
 
 def plot_packet_loss_comparison(
@@ -844,7 +892,11 @@ def plot_packet_loss_comparison(
     second_file_time_end_cut: float = 0.0,
     make_same_time_range: bool = False,
 ) -> None:
-    """Compare missed and dropped packet percentages between two runs, per app."""
+    """Compare missed and dropped packet percentages between two runs, per app.
+
+    Missed plot uses full run colours; dropped plot uses lighter shades of the
+    same colours.  Within each plot, linestyle encodes app (solid, dashed, …).
+    """
     kw = dict(
         label1=label1, label2=label2, book=book,
         first_file_time_start_offset=first_file_time_start_offset,
@@ -853,16 +905,19 @@ def plot_packet_loss_comparison(
         second_file_time_end_cut=second_file_time_end_cut,
         make_same_time_range=make_same_time_range,
     )
+    c1, c2 = _RUN_COLORS[0], _RUN_COLORS[1]
 
     missed1 = {app: pair[0] for app, pair in loss1.items()}
     missed2 = {app: pair[0] for app, pair in loss2.items()}
     if any(v is not None for v in missed1.values()) and any(v is not None for v in missed2.values()):
-        _plot_packet_metric_comparison(missed1, missed2, title="Missed packets (%)", **kw)
+        _plot_packet_metric_comparison(missed1, missed2, title="Missed packets (%)",
+                                       color1=c1, color2=c2, **kw)
 
     dropped1 = {app: pair[1] for app, pair in loss1.items()}
     dropped2 = {app: pair[1] for app, pair in loss2.items()}
     if any(v is not None for v in dropped1.values()) and any(v is not None for v in dropped2.values()):
-        _plot_packet_metric_comparison(dropped1, dropped2, title="Dropped packets (%)", **kw)
+        _plot_packet_metric_comparison(dropped1, dropped2, title="Dropped packets (%)",
+                                       color1=c1, color2=c2, **kw)
 
 
 # ── TP reference rates ─────────────────────────────────────────────────────────
