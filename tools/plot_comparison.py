@@ -41,7 +41,6 @@ from pathlib import Path
 from typing import Any
 
 import click
-import matplotlib.colors as mcolors
 import numpy as np
 import pandas as pd
 
@@ -83,18 +82,6 @@ def rebase_relative_time(df: pd.DataFrame) -> pd.DataFrame:
     out = df.copy()
     out.index = times.relative_time(out) / 10.0
     return out
-
-
-def restrict_to_common_relative_range(
-    df1: pd.DataFrame, df2: pd.DataFrame
-) -> tuple[pd.DataFrame, pd.DataFrame]:
-    if df1.empty or df2.empty:
-        return df1.iloc[0:0], df2.iloc[0:0]
-    end = min(float(df1.index.max()), float(df2.index.max()))
-    if end <= 0:
-        return df1.iloc[0:0], df2.iloc[0:0]
-    clip = lambda df: df.loc[(df.index >= 0) & (df.index <= end)].copy()
-    return clip(df1), clip(df2)
 
 
 def _group_df_by_element(df: pd.DataFrame | None) -> dict[str, pd.Series]:
@@ -377,12 +364,8 @@ def derive_packet_loss(
 
 # ── plotting helpers ───────────────────────────────────────────────────────────
 
-# Color encoding: for app index i and run index r (0=run1, 1=run2), use C{2*i + r}.
-# This keeps run1/run2 of the same app as adjacent palette entries, and for a single
-# app collapses to the familiar C0 (run1) / C1 (run2) pair.
-# High-contrast colour encoding.
-# For app index i and run index r:
-#   run1/run2 use visually distinct colours, not light/dark variants.
+# Color encoding for general plots: for app index i and run index r (0=run1, 1=run2),
+# run1/run2 use visually distinct colours from the high-contrast palette.
 _HIGH_CONTRAST_COLORS = [
     "tab:blue",
     "tab:orange",
@@ -408,19 +391,11 @@ def _series_color(app_idx: int, run_idx: int) -> str:
     return _HIGH_CONTRAST_COLORS[(app_idx * 2 + run_idx) % len(_HIGH_CONTRAST_COLORS)]
 
 
-# ── packet-loss colour / style scheme ─────────────────────────────────────────
-# Color encodes run: run1 → _RUN_COLORS[0], run2 → _RUN_COLORS[1].
-# Shade encodes metric: full color = missed, lighter = dropped.
-# Linestyle encodes app: solid for app 0, dashed for app 1, etc.
+# Packet-loss colour / style scheme:
+#   color encodes run  — run1 → _RUN_COLORS[0], run2 → _RUN_COLORS[1]
+#   linestyle encodes app — solid for app 0, dashed for app 1, etc.
 _RUN_COLORS = ["tab:blue", "tab:orange"]
-_DROPPED_LIGHTEN = 0.50          # blend fraction toward white for dropped lines
 _APP_LINESTYLES = ["-", "--", "-.", ":"]
-
-
-def _lighten_color(color: str, amount: float = _DROPPED_LIGHTEN) -> tuple:
-    """Return *color* blended toward white by *amount* (0 = unchanged, 1 = white)."""
-    r, g, b = mcolors.to_rgb(color)
-    return (1 - amount * (1 - r), 1 - amount * (1 - g), 1 - amount * (1 - b))
 
 
 def _app_suffix_label(app_name: str, n_apps: int) -> str:
@@ -479,7 +454,7 @@ def _save_ratio_plot(
     book.save()
 
 
-def _plot_per_app_overlay_and_ratio(
+def _overlay_and_ratio(
     prepped1: dict[str, pd.Series | None],
     prepped2: dict[str, pd.Series | None],
     label1: str,
@@ -487,21 +462,34 @@ def _plot_per_app_overlay_and_ratio(
     ylabel: str,
     title: str,
     book,
+    *,
+    color_fn=None,
+    linestyle_fn=None,
     hline: tuple[float, str] | None = None,
     ratio_ylim: tuple[float, float] | None = None,
 ) -> None:
-    """Generic per-app overlay + ratio plot (one series per app per run)."""
-    all_apps = sorted(set(prepped1.keys()) | set(prepped2.keys()))
+    """Per-app overlay + ratio plot.
+
+    color_fn(app_idx, run_idx) -> color; defaults to _series_color.
+    linestyle_fn(app_idx) -> linestyle; defaults to solid ("-").
+    """
+    all_apps = sorted(set(prepped1) | set(prepped2))
     n_apps = len(all_apps)
+    if color_fn is None:
+        color_fn = _series_color
+    if linestyle_fn is None:
+        linestyle_fn = lambda _: "-"
 
     plotting.plt.figure()
     ax = plotting.plt.gca()
     has_data = False
     for app_idx, app in enumerate(all_apps):
+        ls = linestyle_fn(app_idx)
         sfx = _app_suffix_label(app, n_apps)
-        for s, lbl, run_idx in [(prepped1[app], label1, 0), (prepped2[app], label2, 1)]:
+        for run_idx, (s, lbl) in enumerate([(prepped1.get(app), label1), (prepped2.get(app), label2)]):
             if s is not None:
-                ax.plot(s.index, s.values, label=f"{lbl}{sfx}", color=_series_color(app_idx, run_idx))
+                ax.plot(s.index, s.values, label=f"{lbl}{sfx}",
+                        color=color_fn(app_idx, run_idx), linestyle=ls)
                 has_data = True
 
     if not has_data:
@@ -524,65 +512,6 @@ def _plot_per_app_overlay_and_ratio(
 
 
 # ── plot functions ─────────────────────────────────────────────────────────────
-
-def plot_timeseries_comparison(
-    s1: pd.Series,
-    s2: pd.Series,
-    label1: str,
-    label2: str,
-    title: str,
-    book,
-    first_file_time_start_offset: float = 0.0,
-    second_file_time_start_offset: float = 0.0,
-    first_file_time_end_cut: float = 0.0,
-    second_file_time_end_cut: float = 0.0,
-    make_same_time_range: bool = False,
-    ylim: tuple | None = None,
-    hlines: list[tuple[float, str, str, str]] | None = None,
-) -> None:
-    """Overlay time-series from two runs and plot their ratio.
-
-    hlines: optional list of (value, label, color, linestyle) drawn on the
-            overlay plot only (e.g. reference / acceptance lines).
-    """
-    df1 = apply_time_window(s1.to_frame("value"), first_file_time_start_offset, first_file_time_end_cut)
-    df2 = apply_time_window(s2.to_frame("value"), second_file_time_start_offset, second_file_time_end_cut)
-    if df1.empty or df2.empty:
-        return
-
-    df1, df2 = rebase_relative_time(df1), rebase_relative_time(df2)
-    if make_same_time_range:
-        df1, df2 = restrict_to_common_relative_range(df1, df2)
-    if df1.empty or df2.empty:
-        return
-
-    combined = pd.concat(
-        [df1.rename(columns={"value": label1}), df2.rename(columns={"value": label2})],
-        axis=1,
-    )
-    plotting.plot(combined.index, combined, combined.columns, "Relative time (s)", title)
-    if ylim is not None:
-        plotting.plt.ylim(*ylim)
-    if hlines:
-        for value, hlabel, color, linestyle in hlines:
-            plotting.plt.axhline(value, color=color, linestyle=linestyle, label=hlabel)
-    plotting.plt.legend(fontsize="small")
-    plotting.plt.subplots_adjust(top=0.88, bottom=0.15)
-    overlay_xlim = plotting.plt.xlim()
-    book.save()
-
-    _, s1i, s2i = interpolate_to_common_grid(df1.iloc[:, 0], df2.iloc[:, 0])
-    if s1i.empty or s2i.empty:
-        return
-    ratio = ratio_series(s2i, s1i).dropna()
-    if ratio.empty:
-        return
-
-    plotting.plot(ratio.index, ratio.values, None, "Relative time (s)", f"{label2} / {label1}")
-    plotting.plt.xlim(overlay_xlim)
-    plotting.plt.axhline(1.0, color="k", linestyle="--")
-    plotting.plt.subplots_adjust(top=0.88, bottom=0.15)
-    book.save()
 
 
 def plot_total_cpu_summary_comparison(
@@ -648,34 +577,33 @@ def plot_memory_usage_comparison(
     second_file_time_end_cut: float = 0.0,
     make_same_time_range: bool = False,
 ):
-    df1 = apply_time_window(mem1.to_frame("Memory Usage (%)"), first_file_time_start_offset, first_file_time_end_cut)
-    df2 = apply_time_window(mem2.to_frame("Memory Usage (%)"), second_file_time_start_offset, second_file_time_end_cut)
-    if df1.empty or df2.empty:
+    s1 = _prep_series(mem1, first_file_time_start_offset, first_file_time_end_cut, time_scale=10.0)
+    s2 = _prep_series(mem2, second_file_time_start_offset, second_file_time_end_cut, time_scale=10.0)
+    if s1 is None or s2 is None:
         return
-
-    df1 = rebase_relative_time(df1)
-    df1.index = df1.index * 10.0
-    df2 = rebase_relative_time(df2)
-    df2.index = df2.index * 10.0
 
     if make_same_time_range:
-        df1, df2 = restrict_to_common_relative_range(df1, df2)
-    if df1.empty or df2.empty:
-        return
+        end = min(float(s1.index.max()), float(s2.index.max()))
+        s1 = s1.loc[s1.index <= end]
+        s2 = s2.loc[s2.index <= end]
+        if s1.empty or s2.empty:
+            return
 
-    combined = pd.concat(
-        [df1.rename(columns={"Memory Usage (%)": label1}), df2.rename(columns={"Memory Usage (%)": label2})],
-        axis=1,
-    )
-    plotting.plot(combined.index, combined, combined.columns, "Relative time (s)", f"Total system memory usage — {host}")
-    plotting.plt.ylim(0, 100)
-    plotting.plt.axhline(80, color="k", linestyle=":", label="80%")
-    plotting.plt.legend(fontsize="small")
+    c1, c2 = _RUN_COLORS
+    plotting.plt.figure()
+    ax = plotting.plt.gca()
+    ax.plot(s1.index, s1.values, label=label1, color=c1)
+    ax.plot(s2.index, s2.values, label=label2, color=c2)
+    ax.set_xlabel("Relative time (s)")
+    ax.set_ylabel(f"Total system memory usage — {host}")
+    ax.set_ylim(0, 100)
+    ax.axhline(80, color="k", linestyle=":", label="80%")
+    ax.legend(fontsize="small")
     plotting.plt.subplots_adjust(top=0.88, bottom=0.15)
-    overlay_xlim = plotting.plt.xlim()
+    overlay_xlim = ax.get_xlim()
     book.save()
 
-    _, s1i, s2i = interpolate_to_common_grid(df1.iloc[:, 0], df2.iloc[:, 0])
+    _, s1i, s2i = interpolate_to_common_grid(s1, s2)
     if s1i.empty or s2i.empty:
         return
     ratio = ratio_series(s2i, s1i).dropna()
@@ -710,12 +638,15 @@ def plot_nic_throughput_comparison(
     if make_same_time_range:
         _clip_dicts_to_common_end(prepped1, prepped2)
 
+    c1, c2 = _RUN_COLORS
     hline = (acceptance_gbs, f"acceptance ({acceptance_gbs} GB/s)") if acceptance_gbs is not None else None
-    _plot_per_app_overlay_and_ratio(
+    _overlay_and_ratio(
         prepped1, prepped2, label1, label2,
         ylabel="NIC RX throughput (GB/s)",
         title="Total NIC RX throughput (GB/s)",
         book=book,
+        color_fn=lambda ai, ri: [c1, c2][ri],
+        linestyle_fn=lambda ai: _APP_LINESTYLES[ai % len(_APP_LINESTYLES)],
         hline=hline,
     )
 
@@ -761,10 +692,10 @@ def plot_tp_rate_comparison(
 
     if make_same_time_range:
         end = min(float(s.index.max()) for s in active)
-        for app in all_apps:
-            for k, ser in prepped[app].items():
-                if ser is not None:
-                    prepped[app][k] = ser.loc[ser.index <= end]
+        for d in prepped.values():
+            for k in d:
+                if d[k] is not None:
+                    d[k] = d[k].loc[d[k].index <= end]
 
     # Scale to MHz
     for app in all_apps:
@@ -821,65 +752,6 @@ def plot_tp_rate_comparison(
         _save_ratio_plot(ratio_lines, overlay_xlim, f"{label2} / {label1}", book, ratio_ylim)
 
 
-def _plot_packet_metric_comparison(
-    series1: dict[str, pd.Series | None],
-    series2: dict[str, pd.Series | None],
-    label1: str,
-    label2: str,
-    title: str,
-    book,
-    first_file_time_start_offset: float,
-    second_file_time_start_offset: float,
-    first_file_time_end_cut: float,
-    second_file_time_end_cut: float,
-    make_same_time_range: bool,
-    color1: str | tuple,
-    color2: str | tuple,
-) -> None:
-    """Per-app overlay + ratio for a single packet-loss metric.
-
-    Color encodes run (color1/color2); linestyle encodes app.
-    """
-    all_apps = sorted(set(series1.keys()) | set(series2.keys()))
-    n_apps = len(all_apps)
-    prepped1 = {app: _prep_series(series1.get(app), first_file_time_start_offset, first_file_time_end_cut) for app in all_apps}
-    prepped2 = {app: _prep_series(series2.get(app), second_file_time_start_offset, second_file_time_end_cut) for app in all_apps}
-
-    if make_same_time_range:
-        _clip_dicts_to_common_end(prepped1, prepped2)
-
-    plotting.plt.figure()
-    ax = plotting.plt.gca()
-    has_data = False
-
-    for app_idx, app in enumerate(all_apps):
-        ls = _APP_LINESTYLES[app_idx % len(_APP_LINESTYLES)]
-        sfx = _app_suffix_label(app, n_apps)
-        for s, lbl, color in [
-            (prepped1.get(app), f"{label1}{sfx}", color1),
-            (prepped2.get(app), f"{label2}{sfx}", color2),
-        ]:
-            if s is not None:
-                ax.plot(s.index, s.values, label=lbl, color=color, linestyle=ls)
-                has_data = True
-
-    if not has_data:
-        plotting.plt.close()
-        return
-
-    ax.set_xlabel("Relative time (s)")
-    ax.set_ylabel(title)
-    ax.set_title(title)
-    ax.legend(fontsize="small")
-    plotting.plt.subplots_adjust(top=0.88, bottom=0.15)
-    overlay_xlim = ax.get_xlim()
-    book.save()
-
-    ratio_lines = _build_ratio_lines(prepped1, prepped2, all_apps, n_apps)
-    if ratio_lines:
-        _save_ratio_plot(ratio_lines, overlay_xlim, f"{label2} / {label1}", book)
-
-
 def plot_packet_loss_comparison(
     loss1: dict[str, tuple[pd.Series | None, pd.Series | None]],
     loss2: dict[str, tuple[pd.Series | None, pd.Series | None]],
@@ -894,30 +766,25 @@ def plot_packet_loss_comparison(
 ) -> None:
     """Compare missed and dropped packet percentages between two runs, per app.
 
-    Missed plot uses full run colours; dropped plot uses lighter shades of the
-    same colours.  Within each plot, linestyle encodes app (solid, dashed, …).
+    Both plots use the same run colours (_RUN_COLORS). Within each plot,
+    linestyle encodes app (solid for app 0, dashed for app 1, …).
     """
+    c1, c2 = _RUN_COLORS
     kw = dict(
         label1=label1, label2=label2, book=book,
-        first_file_time_start_offset=first_file_time_start_offset,
-        second_file_time_start_offset=second_file_time_start_offset,
-        first_file_time_end_cut=first_file_time_end_cut,
-        second_file_time_end_cut=second_file_time_end_cut,
-        make_same_time_range=make_same_time_range,
+        color_fn=lambda ai, ri: [c1, c2][ri],
+        linestyle_fn=lambda ai: _APP_LINESTYLES[ai % len(_APP_LINESTYLES)],
     )
-    c1, c2 = _RUN_COLORS[0], _RUN_COLORS[1]
 
-    missed1 = {app: pair[0] for app, pair in loss1.items()}
-    missed2 = {app: pair[0] for app, pair in loss2.items()}
-    if any(v is not None for v in missed1.values()) and any(v is not None for v in missed2.values()):
-        _plot_packet_metric_comparison(missed1, missed2, title="Missed packets (%)",
-                                       color1=c1, color2=c2, **kw)
-
-    dropped1 = {app: pair[1] for app, pair in loss1.items()}
-    dropped2 = {app: pair[1] for app, pair in loss2.items()}
-    if any(v is not None for v in dropped1.values()) and any(v is not None for v in dropped2.values()):
-        _plot_packet_metric_comparison(dropped1, dropped2, title="Dropped packets (%)",
-                                       color1=c1, color2=c2, **kw)
+    for title, pair_idx in [("Missed packets (%)", 0), ("Dropped packets (%)", 1)]:
+        s1 = {app: _prep_series(pair[pair_idx], first_file_time_start_offset, first_file_time_end_cut)
+              for app, pair in loss1.items()}
+        s2 = {app: _prep_series(pair[pair_idx], second_file_time_start_offset, second_file_time_end_cut)
+              for app, pair in loss2.items()}
+        if make_same_time_range:
+            _clip_dicts_to_common_end(s1, s2)
+        if any(v is not None for v in s1.values()) and any(v is not None for v in s2.values()):
+            _overlay_and_ratio(s1, s2, ylabel=title, title=title, **kw)
 
 
 # ── TP reference rates ─────────────────────────────────────────────────────────
