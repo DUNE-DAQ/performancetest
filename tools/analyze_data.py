@@ -363,6 +363,17 @@ def get_readout_application_name(data : dict, hosts : list) -> list:
         print("readout application name cannot be found.")
     return app_names
 
+
+def fuzzy_string_match(lst : list[str], target : str):
+    result = []
+    for l in lst:
+        if l not in target:
+            result.append(False)
+        else:
+            result.append(True)
+    return any(result)
+
+
 def parse_pinning_file(pinning_file : dict, ro_host : str, ro_app_names : list[str]) -> dict[list]:
     """ Parse a CPU pinning file, creating a list of cpus for each thread for every daq application.
 
@@ -383,8 +394,11 @@ def parse_pinning_file(pinning_file : dict, ro_host : str, ro_app_names : list[s
             if k == "_comment" : continue
             if k == "daq_application":
                 for name, application in v.items():
+                    print(name, key)
+                    print(ro_app_names)
                     if key in name:
-                        if name not in ro_app_names: continue
+                        if not fuzzy_string_match(ro_app_names, name): continue
+                        # if name not in ro_app_names: continue
                         utils.add_to_dict(pinning, get_thread_nums(application["parent"]), key = "parent")
                         for tname, threads in application["threads"].items():
                             utils.add_to_dict(pinning, get_thread_nums(threads), tname)
@@ -952,7 +966,7 @@ def process_readout_info(data : dict[pd.DataFrame], out : str, test_args : dict)
         plotting.add_metadata(test_args, int(request_rates_total.index[0]))
         book.save()
 
-        plotting.bar(request_rates_total.columns, request_rates_total.mean(axis=0) // len(mean_request_rate_dlh.columns), "", "Average request rate (Hz)", rotation = 30)
+        plotting.bar(request_rates_total.columns, request_rates_total.mean(axis=0) // len(mean_request_rate_dlh.columns), "", "Average request rate per Data handler (Hz)", rotation = 30)
         plotting.add_metadata(test_args, int(request_rates_total.index[0]))
         book.save()
     return
@@ -1047,7 +1061,7 @@ def analyse_data(test_args : dict):
     hw_info = shell.search_data_file("xml", test_args["data_path"])
     if len(hw_info) > 0:
         hw_info = {
-            h : {k : v for v, k in zip(hw_info, utils.get_unique_string_elements([s.stem for s in hw_info if h in s.stem], "_"))}
+            h : {k : v for v, k in zip(hw_info, [s.stem.replace(f"_{h}", "") for s in hw_info if h in s.stem])}
             for h in test_args["host"]
         }
     else:
@@ -1079,7 +1093,6 @@ def analyse_data(test_args : dict):
 
     if pinning_file:
         pinning_file = parse_pinning_file(pinning_file, test_args["host"], ro_apps)
-
 
     if ("crp" in test_args["data_source"].lower()) or ("np02" in test_args["data_source"].lower()):
         readout_plane = ReadoutPlane.CRP
