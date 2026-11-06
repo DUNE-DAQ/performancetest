@@ -263,6 +263,7 @@ def get_queries(panel : dict) -> dict:
 
     for target in targets:
         if ('expr' in target) and (target["expr"] != ""):
+            if target.get("format") == "table": continue # prometheus tables (e.g. kepler) are not time series and have no legend
             queries[target["legendFormat"]] = target["expr"]
         elif 'query' in target:
             if len(targets) > 1:

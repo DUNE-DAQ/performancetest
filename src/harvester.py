@@ -116,6 +116,11 @@ async def collect_vars(cs : aiohttp.ClientSession, url : str, datasource : dict,
         "run_number" : str(run_number),
         "partition" : partition,
         "session" : partition,
+        "namespace" : partition, # kepler dashboard: k8s namespace of the session
+        "job" : ".*", # kepler dashboard: match any value
+        "zone" : ".*",
+        "pod" : ".*",
+        "container" : ".*",
         "timeFilter" : f"time >= {time.start}s and time <= {time.end}s", # apply time range within query (applicable to influxdb queries)
         "__interval": "10s",
         "{__from}" : str(time.start),
@@ -323,7 +328,9 @@ def parse_result_prometheus(response_data : dict, name : str) -> pd.DataFrame:
         return pd.DataFrame()
     else:
         for i, result in enumerate(response_data["data"]["result"]):
-            if len(response_data["data"]["result"]) == 1:
+            if "{{" in name: # fill a legend template such as "{{zone}} - {{pod_name}}" with the series labels
+                key = re.sub(r"\{\{\s*(\w+)\s*\}\}", lambda m: result["metric"].get(m.group(1), ""), name)
+            elif len(response_data["data"]["result"]) == 1:
                 key = name
             else:
                 key = name + f"_{i}"
@@ -438,7 +445,7 @@ def setup_daq_harvesters(dashboard_info : dict[str], dunedaq_version : str, run_
 
     args = []
     for dashboard, session in zip(dashboard_info["dashboard_uid"], dashboard_info["session"]):
-        if dashboard == "A_CvwTCWk": # Intel PCM dashboard, should be run per server
+        if dashboard in ["A_CvwTCWk", "kepler-power"]: # Intel PCM and Kepler dashboards, should be run per server
             for h in hosts:
                 args.append([harvest_grafana_data, [dashboard, session, url, run_number, h, time, datasources, ds_parser, output_file + f'-{h.replace("-", "")}', out_dir]])
         else:
