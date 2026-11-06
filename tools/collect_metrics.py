@@ -29,7 +29,7 @@ def create_dashboard_info(args : dict) -> dict:
     dashboard_config = files.read_json(f"{os.environ['PERFORMANCE_TEST_PATH']}/config/dashboard_info.json")
 
     for i, uid in enumerate(dashboard_config["dashboard_uid"]):
-        if uid == "A_CvwTCWk" : continue # pcm dashboard is not tied to a specific dunedaq version
+        if uid in ["A_CvwTCWk", "kepler-power"] : continue # pcm and kepler dashboards are not tied to a specific dunedaq version
         dashboard_config["dashboard_uid"][i] = f"{args['dunedaq_version'].replace('.', '_')}-{uid}"
 
     for i, uid in enumerate(dashboard_config["session"]):

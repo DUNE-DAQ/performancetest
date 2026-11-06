@@ -6,7 +6,8 @@
         "readout",
         "trigger_primitives",
         "tp_handlers",
-        "A_CvwTCWk"
+        "A_CvwTCWk",
+        "kepler-power"
     ],
-    "session" : [null, null, null, null, null, "np04-daq"]
+    "session" : [null, null, null, null, null, "np04-daq", null]
 }
